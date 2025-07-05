@@ -18,21 +18,21 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                <input class="input-field w-full" value="John Doe" />
+                <input class="input-field w-full" v-model="profile.name" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                <input class="input-field w-full" value="john.doe@company.com" />
+                <input class="input-field w-full" v-model="profile.email" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Role</label>
-                <select class="input-field w-full">
+                <select class="input-field w-full" v-model="profile.role">
                   <option>Lead Engineer</option>
                   <option>Manager</option>
                   <option>Admin</option>
                 </select>
               </div>
-              <button class="btn-primary">Update Profile</button>
+              <button class="btn-primary" @click="updateProfile">Update Profile</button>
             </div>
           </div>
 
@@ -40,16 +40,16 @@
           <div class="card">
             <h2 class="text-xl font-semibold text-white mb-6">API Keys</h2>
             <div class="space-y-4">
-              <div class="p-4 bg-dark-800 rounded-lg border border-dark-600">
+              <div class="p-4 bg-dark-800 rounded-lg border border-dark-600" v-for="key in apiKeys" :key="key.id">
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="font-medium text-white">Production API Key</p>
                     <p class="text-sm text-gray-400">••••••••••••••••••••</p>
                   </div>
-                  <button class="text-neon-blue hover:text-neon-blue/80 text-sm">Regenerate</button>
+                  <button class="text-neon-blue hover:text-neon-blue/80 text-sm" @click="regenerateApiKey(key.id)">Regenerate</button>
                 </div>
               </div>
-              <button class="btn-secondary w-full">Generate New Key</button>
+              <button class="btn-secondary w-full" @click="generateApiKey">Generate New Key</button>
             </div>
           </div>
 
@@ -109,4 +109,41 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import { onMounted, ref } from 'vue'
+
+const profile = ref({ name: '', email: '', role: '' })
+const apiKeys = ref<{ id: string; [key: string]: any }[]>([])
+const branding = ref({})
+const notifications = ref({})
+const deletingKey = ref<string | null>(null)
+const patchingProfile = ref(false)
+const updatingBranding = ref(false)
+const updatingNotifications = ref(false)
+
+onMounted(async () => {
+  const profileRes = await fetch('/api/v1/settings/profile/')
+  if (profileRes.ok) {
+    profile.value = await profileRes.json()
+  }
+  const keysRes = await fetch('/api/v1/settings/api-keys/')
+  if (keysRes.ok) {
+    apiKeys.value = await keysRes.json()
+  }
+})
+
+const updateProfile = async () => {
+  await fetch('/api/v1/settings/profile/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile.value)
+  })
+}
+
+const generateApiKey = async () => {
+  await fetch('/api/v1/settings/api-keys/', { method: 'POST' })
+}
+
+const regenerateApiKey = async (keyId: string) => {
+  await fetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, { method: 'POST' })
+}
 </script> 

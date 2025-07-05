@@ -17,7 +17,7 @@
             <div class="card">
               <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl font-semibold text-white">Vendor Partners</h2>
-                <button class="btn-primary">Add Vendor</button>
+                <button class="btn-primary" @click="showVendorModal = true">Add Vendor</button>
               </div>
               
               <div class="space-y-4">
@@ -64,12 +64,43 @@
         </div>
       </main>
     </div>
+
+    <!-- Vendor Modal -->
+    <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div class="bg-dark-800 p-8 rounded-lg">
+        <h2 class="text-xl font-semibold text-white mb-6">
+          {{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}
+        </h2>
+        <form @submit.prevent="handleSubmit">
+          <div class="mb-4">
+            <label for="name" class="text-white">Name</label>
+            <input id="name" v-model="vendorForm.name" class="input" required>
+          </div>
+          <div class="mb-4">
+            <label for="type" class="text-white">Type</label>
+            <input id="type" v-model="vendorForm.type" class="input" required>
+          </div>
+          <div class="mb-4">
+            <label for="status" class="text-white">Status</label>
+            <select id="status" v-model="vendorForm.status" class="input" required>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">
+            {{ editingVendor ? 'Update' : 'Add' }}
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import { onMounted, ref } from 'vue'
 
 interface Vendor {
   id: string
@@ -84,18 +115,29 @@ interface Activity {
   time: string
 }
 
-const vendors: Vendor[] = [
-  { id: '1', name: 'TSMC', type: 'Foundry', status: 'active' },
-  { id: '2', name: 'GlobalFoundries', type: 'Foundry', status: 'active' },
-  { id: '3', name: 'Samsung Foundry', type: 'Foundry', status: 'pending' },
-  { id: '4', name: 'UMC', type: 'Foundry', status: 'inactive' }
-]
+const vendors = ref<Vendor[]>([])
+const activities = ref<Activity[]>([])
+const showVendorModal = ref(false)
+const editingVendor = ref<Vendor | null>(null)
+const vendorForm = ref({ name: '', type: '', status: 'active' })
+const deleting = ref<string | null>(null)
+const uploadingNDA = ref<string | null>(null)
+const acknowledging = ref<string | null>(null)
+const vendorDetails = ref<Vendor | null>(null)
 
-const activities: Activity[] = [
-  { id: '1', message: 'NDA signed with TSMC', time: '2 hours ago' },
-  { id: '2', message: 'Spec acknowledgment from GlobalFoundries', time: '1 day ago' },
-  { id: '3', message: 'Contract renewal with Samsung', time: '3 days ago' }
-]
+onMounted(async () => {
+  const res = await fetch('/api/v1/vendors/')
+  if (res.ok) {
+    vendors.value = await res.json()
+  }
+  // Fetch activities for the first vendor as an example
+  if (vendors.value.length > 0) {
+    const actRes = await fetch(`/api/v1/vendors/${vendors.value[0].id}/timeline`)
+    if (actRes.ok) {
+      activities.value = await actRes.json()
+    }
+  }
+})
 
 const getStatusClass = (status: string) => {
   switch (status) {
@@ -107,6 +149,93 @@ const getStatusClass = (status: string) => {
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
     default:
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  }
+}
+
+const handleSubmit = async () => {
+  if (editingVendor.value) {
+    await updateVendor()
+  } else {
+    await addVendor()
+  }
+}
+
+const addVendor = async () => {
+  const res = await fetch('/api/v1/vendors/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(vendorForm.value)
+  })
+  if (res.ok) {
+    vendors.value.push(await res.json())
+    showVendorModal.value = false
+  }
+}
+
+const updateVendor = async () => {
+  if (editingVendor.value) {
+    const res = await fetch(`/api/v1/vendors/${editingVendor.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(vendorForm.value)
+    })
+    if (res.ok) {
+      const updatedVendor = await res.json()
+      const index = vendors.value.findIndex(v => v.id === updatedVendor.id)
+      if (index !== -1) {
+        vendors.value[index] = updatedVendor
+      }
+      showVendorModal.value = false
+    }
+  }
+}
+
+const deleteVendor = async () => {
+  if (deleting.value) {
+    const res = await fetch(`/api/v1/vendors/${deleting.value}`, {
+      method: 'DELETE'
+    })
+    if (res.ok) {
+      vendors.value = vendors.value.filter(v => v.id !== deleting.value)
+      deleting.value = null
+    }
+  }
+}
+
+const uploadNDA = async () => {
+  if (uploadingNDA.value) {
+    const res = await fetch(`/api/v1/vendors/${uploadingNDA.value}/nda`, {
+      method: 'POST'
+    })
+    if (res.ok) {
+      // Handle successful upload
+      uploadingNDA.value = null
+    }
+  }
+}
+
+const acknowledge = async () => {
+  if (acknowledging.value) {
+    const res = await fetch(`/api/v1/vendors/${acknowledging.value}/acknowledge`, {
+      method: 'POST'
+    })
+    if (res.ok) {
+      // Handle successful acknowledgement
+      acknowledging.value = null
+    }
+  }
+}
+
+const viewVendor = async () => {
+  if (vendorDetails.value) {
+    const res = await fetch(`/api/v1/vendors/${vendorDetails.value.id}`)
+    if (res.ok) {
+      vendorDetails.value = await res.json()
+    }
   }
 }
 </script> 

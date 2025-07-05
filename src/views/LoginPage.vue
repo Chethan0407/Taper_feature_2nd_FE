@@ -74,7 +74,7 @@
               <input type="checkbox" v-model="rememberMe" class="rounded border-light-300 dark:border-dark-600 text-neon-blue focus:ring-neon-blue/20">
               <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
             </label>
-            <a href="#" class="text-sm text-neon-blue hover:text-neon-blue/80 transition-colors">
+            <a href="#" @click.prevent="showForgotPassword = true" class="text-sm text-neon-blue hover:text-neon-blue/80 transition-colors">
               Forgot password?
             </a>
           </div>
@@ -125,7 +125,7 @@
         <div class="mt-8 text-center">
           <p class="text-gray-600 dark:text-gray-400">
             Don't have an account?
-            <a href="#" class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors">
+            <a href="#" @click.prevent="showSignUp = true" class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors">
               Sign up
             </a>
           </p>
@@ -137,6 +137,70 @@
         <p class="text-sm text-gray-500 dark:text-gray-400">
           © 2024 TapeOutOps. All rights reserved.
         </p>
+      </div>
+    </div>
+
+    <!-- Sign Up Modal -->
+    <div v-if="showSignUp" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white dark:bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="showSignUp = false">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Sign Up</h2>
+        <form @submit.prevent="handleSignUp" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+            <input v-model="signupName" type="text" required class="input-field w-full" placeholder="Enter your name" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+            <input v-model="signupEmail" type="email" required class="input-field w-full" placeholder="Enter your email" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+            <div class="relative">
+              <input :type="signupShowPassword ? 'text' : 'password'" v-model="signupPassword" required class="input-field w-full pr-12" placeholder="Create a password" />
+              <button type="button" @click="signupShowPassword = !signupShowPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                <svg v-if="signupShowPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"/>
+                </svg>
+                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm Password</label>
+            <input type="password" v-model="signupConfirmPassword" required class="input-field w-full" placeholder="Confirm your password" />
+          </div>
+          <div v-if="signupPasswordMismatch" class="text-red-500 text-center mt-2">Passwords do not match.</div>
+          <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="signupLoading">
+            <span v-if="signupLoading">Signing up...</span>
+            <span v-else>Sign Up</span>
+          </button>
+          <div v-if="signupError" class="text-red-500 text-center mt-2">{{ signupError }}</div>
+          <div v-if="signupSuccess" class="text-green-500 text-center mt-2">Sign up successful! You can now log in.</div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div v-if="showForgotPassword" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white dark:bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="showForgotPassword = false">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Forgot Password</h2>
+        <form @submit.prevent="handleForgotPassword" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+            <input v-model="forgotEmail" type="email" required class="input-field w-full" placeholder="Enter your email" />
+          </div>
+          <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="forgotLoading">
+            <span v-if="forgotLoading">Sending...</span>
+            <span v-else>Send Reset Link</span>
+          </button>
+          <div v-if="forgotError" class="text-red-500 text-center mt-2">{{ forgotError }}</div>
+          <div v-if="forgotSuccess" class="text-green-500 text-center mt-2">Reset link sent! Check your email.</div>
+        </form>
       </div>
     </div>
   </div>
@@ -155,6 +219,25 @@ const password = ref('')
 const showPassword = ref(false)
 const rememberMe = ref(false)
 const isLoading = ref(false)
+
+// Sign up state
+const showSignUp = ref(false)
+const signupEmail = ref('')
+const signupPassword = ref('')
+const signupName = ref('')
+const signupLoading = ref(false)
+const signupSuccess = ref(false)
+const signupError = ref('')
+const signupConfirmPassword = ref('')
+const signupShowPassword = ref(false)
+const signupPasswordMismatch = ref(false)
+
+// Add forgot password state
+const showForgotPassword = ref(false)
+const forgotEmail = ref('')
+const forgotLoading = ref(false)
+const forgotSuccess = ref(false)
+const forgotError = ref('')
 
 const handleLogin = async () => {
   isLoading.value = true
@@ -185,6 +268,52 @@ const handleGoogleLogin = async () => {
     console.error('Google login failed:', error)
   } finally {
     isLoading.value = false
+  }
+}
+
+const handleSignUp = async () => {
+  signupLoading.value = true
+  signupError.value = ''
+  signupSuccess.value = false
+  signupPasswordMismatch.value = false
+  if (signupPassword.value !== signupConfirmPassword.value) {
+    signupPasswordMismatch.value = true
+    signupLoading.value = false
+    return
+  }
+  try {
+    const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: signupEmail.value, password: signupPassword.value, name: signupName.value })
+    })
+    if (!res.ok) throw new Error('Sign up failed')
+    signupSuccess.value = true
+    setTimeout(() => { showSignUp.value = false }, 1500)
+  } catch (e: any) {
+    signupError.value = e.message || 'Sign up failed'
+  } finally {
+    signupLoading.value = false
+  }
+}
+
+const handleForgotPassword = async () => {
+  forgotLoading.value = true
+  forgotError.value = ''
+  forgotSuccess.value = false
+  try {
+    const res = await fetch('http://localhost:8000/api/v1/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail.value })
+    })
+    if (!res.ok) throw new Error('Failed to send reset email')
+    forgotSuccess.value = true
+    setTimeout(() => { showForgotPassword.value = false }, 2000)
+  } catch (e: any) {
+    forgotError.value = e.message || 'Failed to send reset email'
+  } finally {
+    forgotLoading.value = false
   }
 }
 </script> 

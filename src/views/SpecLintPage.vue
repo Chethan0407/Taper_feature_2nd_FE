@@ -79,6 +79,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import { onMounted, ref } from 'vue'
 
 interface LintResult {
   id: string
@@ -88,29 +89,25 @@ interface LintResult {
   rule: string
 }
 
-const lintResults: LintResult[] = [
-  {
-    id: '1',
-    type: 'error',
-    message: 'Missing NDA clause in section 3.2',
-    line: 45,
-    rule: 'NDA_Check'
-  },
-  {
-    id: '2',
-    type: 'warning',
-    message: 'Inconsistent date format detected',
-    line: 67,
-    rule: 'Date_Format'
-  },
-  {
-    id: '3',
-    type: 'info',
-    message: 'Consider adding version number',
-    line: 12,
-    rule: 'Version_Check'
+const lintResults = ref<LintResult[]>([])
+const rules = ref([])
+const showRuleModal = ref(false)
+const editingRule = ref(null)
+const ruleForm = ref({})
+const runningLint = ref(false)
+const exporting = ref(false)
+const deletingResult = ref(false)
+
+const fetchLintResults = async (specId: string) => {
+  const res = await fetch(`/api/v1/lint-results/spec/${specId}`)
+  if (res.ok) {
+    lintResults.value = await res.json()
   }
-]
+}
+
+onMounted(() => {
+  // Call fetchLintResults with the current specId if available
+})
 
 const getResultBorderClass = (type: string) => {
   switch (type) {

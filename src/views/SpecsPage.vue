@@ -90,6 +90,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import { onMounted, ref } from 'vue'
 
 interface Spec {
   id: string
@@ -99,29 +100,30 @@ interface Spec {
   uploadDate: string
 }
 
-const specs: Spec[] = [
-  {
-    id: '1',
-    name: 'Tapeout_Spec_v2.1.pdf',
-    version: '2.1',
-    status: 'approved',
-    uploadDate: '2024-01-15'
-  },
-  {
-    id: '2',
-    name: 'Design_Requirements.docx',
-    version: '1.0',
-    status: 'review',
-    uploadDate: '2024-01-14'
-  },
-  {
-    id: '3',
-    name: 'Process_Flow.xlsx',
-    version: '3.2',
-    status: 'draft',
-    uploadDate: '2024-01-13'
+const specs = ref<Spec[]>([])
+
+// Add modal and state for create/update
+const showSpecModal = ref(false)
+const editingSpec = ref<Spec | null>(null)
+const specForm = ref({ name: '', version: '', status: 'draft', uploadDate: '' })
+const deleting = ref<string | null>(null)
+const downloading = ref<string | null>(null)
+const duplicating = ref<string | null>(null)
+const assigningReviewer = ref<string | null>(null)
+const approving = ref<string | null>(null)
+const comparing = ref<string | null>(null)
+const viewingVersions = ref<string | null>(null)
+const runningLint = ref<string | null>(null)
+const viewingLintResults = ref<string | null>(null)
+
+onMounted(async () => {
+  // Replace with your actual project_id logic
+  const projectId = 'your_project_id'
+  const res = await fetch(`/api/v1/specs/projects/${projectId}/specs`)
+  if (res.ok) {
+    specs.value = await res.json()
   }
-]
+})
 
 const getStatusClass = (status: string) => {
   switch (status) {
