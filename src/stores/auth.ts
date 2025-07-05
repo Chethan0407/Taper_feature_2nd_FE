@@ -44,6 +44,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const loginWithGoogle = async () => {
+    isLoading.value = true
+    try {
+      // Simulate Google OAuth flow
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Mock Google user data
+      const mockUser: User = {
+        id: '2',
+        email: 'john.doe@gmail.com',
+        name: 'John Doe',
+        role: 'lead',
+        avatar: 'https://via.placeholder.com/40'
+      }
+      
+      const mockToken = 'mock_google_token_' + Date.now()
+      
+      user.value = mockUser
+      token.value = mockToken
+      localStorage.setItem('tapeout_token', mockToken)
+      
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Google login failed' }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const logout = () => {
     user.value = null
     token.value = null
@@ -78,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     isAuthenticated,
     login,
+    loginWithGoogle,
     logout,
     checkAuth
   }

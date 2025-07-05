@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-dark-950">
+  <div class="min-h-screen bg-light-50 dark:bg-dark-950">
     <!-- Sidebar -->
     <Sidebar />
     
@@ -15,7 +15,7 @@
           <h1 class="text-4xl font-bold text-gradient mb-4">
             Streamline Your Tapeout Workflow
           </h1>
-          <p class="text-xl text-gray-400 max-w-2xl">
+          <p class="text-xl text-gray-600 dark:text-gray-400 max-w-2xl">
             Welcome back, {{ authStore.user?.name }}. Manage your semiconductor design specifications, 
             automate quality checks, and collaborate with vendors all in one place.
           </p>
@@ -71,8 +71,8 @@
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-semibold text-white mb-2">SpecLint Engine</h3>
-                <p class="text-gray-400 mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">SpecLint Engine</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
                   Automatically validate your specifications for compliance, completeness, and best practices.
                 </p>
                 <button class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors">
@@ -91,8 +91,8 @@
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-semibold text-white mb-2">Checklist Automation</h3>
-                <p class="text-gray-400 mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Checklist Automation</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
                   Create, assign, and track approval workflows with automated reminders and notifications.
                 </p>
                 <button class="text-neon-green hover:text-neon-green/80 font-medium transition-colors">
@@ -107,19 +107,19 @@
         <div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="card text-center">
             <div class="text-3xl font-bold text-neon-blue mb-2">12</div>
-            <div class="text-gray-400">Active Specs</div>
+            <div class="text-gray-600 dark:text-gray-400">Active Specs</div>
           </div>
           <div class="card text-center">
             <div class="text-3xl font-bold text-neon-green mb-2">8</div>
-            <div class="text-gray-400">Pending Reviews</div>
+            <div class="text-gray-600 dark:text-gray-400">Pending Reviews</div>
           </div>
           <div class="card text-center">
             <div class="text-3xl font-bold text-neon-purple mb-2">5</div>
-            <div class="text-gray-400">Vendor Partners</div>
+            <div class="text-gray-600 dark:text-gray-400">Vendor Partners</div>
           </div>
           <div class="card text-center">
             <div class="text-3xl font-bold text-yellow-400 mb-2">95%</div>
-            <div class="text-gray-400">Quality Score</div>
+            <div class="text-gray-600 dark:text-gray-400">Quality Score</div>
           </div>
         </div>
       </main>
