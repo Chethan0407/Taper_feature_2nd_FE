@@ -130,6 +130,9 @@
             </a>
           </p>
         </div>
+
+        <!-- Login Error -->
+        <div v-if="loginError" class="text-red-500 text-center mt-2">{{ loginError }}</div>
       </div>
 
       <!-- Footer -->
@@ -239,16 +242,20 @@ const forgotLoading = ref(false)
 const forgotSuccess = ref(false)
 const forgotError = ref('')
 
+const loginError = ref('')
+
 const handleLogin = async () => {
   isLoading.value = true
+  loginError.value = ''
   try {
     const result = await authStore.login(email.value, password.value)
     if (result.success) {
       router.push('/dashboard')
     } else {
-      console.error('Login failed:', result.error)
+      loginError.value = result.error || 'Wrong email or password.'
     }
   } catch (error) {
+    loginError.value = 'Wrong email or password.'
     console.error('Login failed:', error)
   } finally {
     isLoading.value = false

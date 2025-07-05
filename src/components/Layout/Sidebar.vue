@@ -93,8 +93,8 @@ const userInitials = computed(() => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase()
 })
 
-const handleLogout = () => {
-  authStore.logout()
+const handleLogout = async () => {
+  await authStore.logout()
   router.push('/login')
 }
 </script> 

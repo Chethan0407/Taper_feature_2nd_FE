@@ -66,31 +66,32 @@
     </div>
 
     <!-- Vendor Modal -->
-    <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div class="bg-dark-800 p-8 rounded-lg">
-        <h2 class="text-xl font-semibold text-white mb-6">
+    <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-dark-800 p-10 rounded-2xl relative w-full max-w-lg shadow-2xl">
+        <button class="absolute top-6 right-6 text-gray-400 hover:text-gray-200 text-3xl font-bold" @click="showVendorModal = false">&times;</button>
+        <h2 class="text-3xl font-bold text-white mb-10">
           {{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}
         </h2>
-        <form @submit.prevent="handleSubmit">
-          <div class="mb-4">
-            <label for="name" class="text-white">Name</label>
-            <input id="name" v-model="vendorForm.name" class="input" required>
+        <form @submit.prevent="handleSubmit" class="space-y-7">
+          <div>
+            <label for="name" class="block text-lg font-medium text-gray-200 mb-2">Name</label>
+            <input id="name" v-model="vendorForm.name" class="input-field w-full py-3 px-4 text-base rounded-lg" required>
           </div>
-          <div class="mb-4">
-            <label for="type" class="text-white">Type</label>
-            <input id="type" v-model="vendorForm.type" class="input" required>
+          <div>
+            <label for="type" class="block text-lg font-medium text-gray-200 mb-2">Type</label>
+            <input id="type" v-model="vendorForm.type" class="input-field w-full py-3 px-4 text-base rounded-lg" required>
           </div>
-          <div class="mb-4">
-            <label for="status" class="text-white">Status</label>
-            <select id="status" v-model="vendorForm.status" class="input" required>
+          <div>
+            <label for="status" class="block text-lg font-medium text-gray-200 mb-2">Status</label>
+            <select id="status" v-model="vendorForm.status" class="input-field w-full py-3 px-4 text-base rounded-lg">
               <option value="active">Active</option>
               <option value="pending">Pending</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          <button type="submit" class="btn-primary">
-            {{ editingVendor ? 'Update' : 'Add' }}
-          </button>
+          <div class="pt-2">
+            <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold">{{ editingVendor ? 'Update' : 'Add' }}</button>
+          </div>
         </form>
       </div>
     </div>
