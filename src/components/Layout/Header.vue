@@ -28,7 +28,7 @@
       <!-- Right side - Actions -->
       <div class="flex items-center space-x-4 ml-6">
         <!-- Notifications -->
-        <button class="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+        <button class="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" @click="openNotifications">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -61,14 +61,50 @@
       </div>
     </div>
   </header>
+
+  <!-- Notification Panel -->
+  <div v-if="showNotificationPanel" class="absolute right-8 top-16 z-50 w-80 bg-dark-900 border border-dark-700 rounded-xl shadow-2xl p-4">
+    <div v-if="notificationLoading" class="text-center py-8 text-gray-400">Loading...</div>
+    <div v-else-if="notificationError" class="text-center py-8 text-red-400">{{ notificationError }}</div>
+    <div v-else>
+      <h3 class="text-lg font-bold text-white mb-4">Notification Preferences</h3>
+      <pre class="text-xs text-gray-400 bg-dark-800 rounded p-2 overflow-x-auto">{{ notificationSettings }}</pre>
+      <div class="mt-4 text-right">
+        <button class="btn-secondary" @click="showNotificationPanel = false">Close</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { fetchNotificationSettings } from '@/utils/users.api'
 
 const searchQuery = ref('')
 const notificationCount = ref(3)
 const isDark = ref(true)
+
+// Notification panel state
+const showNotificationPanel = ref(false)
+const notificationSettings = ref(null)
+const notificationLoading = ref(false)
+const notificationError = ref('')
+
+const openNotifications = async () => {
+  showNotificationPanel.value = !showNotificationPanel.value
+  if (showNotificationPanel.value) {
+    notificationLoading.value = true
+    notificationError.value = ''
+    try {
+      const res = await fetchNotificationSettings()
+      notificationSettings.value = res.data
+    } catch (e) {
+      notificationError.value = (e as any).message || 'Failed to load notifications'
+    } finally {
+      notificationLoading.value = false
+    }
+  }
+}
 
 const toggleTheme = () => {
   isDark.value = !isDark.value

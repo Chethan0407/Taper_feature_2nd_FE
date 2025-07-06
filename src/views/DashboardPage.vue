@@ -23,7 +23,7 @@
 
         <!-- CTA Section -->
         <div class="mb-12">
-          <button class="btn-primary text-lg px-8 py-4 animate-glow">
+          <button class="btn-primary text-lg px-8 py-4 animate-glow" @click="goToProjects">
             Get Started
           </button>
         </div>
@@ -130,10 +130,16 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
+
+const goToProjects = () => {
+  router.push('/projects')
+}
 
 onMounted(async () => {
   // Check authentication on mount

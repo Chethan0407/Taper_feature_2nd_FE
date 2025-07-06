@@ -73,7 +73,8 @@ import {
   CheckSquare,
   Search,
   Users,
-  Settings
+  Settings,
+  Folder
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -81,6 +82,7 @@ const authStore = useAuthStore()
 
 const navigationItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Projects', path: '/projects', icon: Folder },
   { name: 'Specs', path: '/specs', icon: FileText },
   { name: 'Checklists', path: '/checklists', icon: CheckSquare },
   { name: 'SpecLint', path: '/speclint', icon: Search },

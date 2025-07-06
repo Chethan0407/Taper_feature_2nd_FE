@@ -7,20 +7,54 @@
       
       <main class="p-8">
         <!-- Page Header -->
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-white mb-2">Specifications</h1>
-          <p class="text-gray-400">Upload, manage and review your tapeout specifications</p>
+        <div class="mb-8 flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold text-white mb-2">Specifications</h1>
+            <p class="text-gray-400">Upload, manage and review your tapeout specifications</p>
+          </div>
+          <button class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow" @click="showCreateModal = true">
+            + Create Spec
+          </button>
+        </div>
+
+        <!-- Project Error Alert -->
+        <div v-if="showProjectError" class="card mb-8 bg-red-500/10 border border-red-500/30">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-red-400">{{ projectError }}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <input 
+                type="number" 
+                v-model.number="currentProjectId" 
+                class="input-field w-20 text-center"
+                placeholder="ID"
+                min="1"
+              />
+              <button 
+                @click="changeProjectId(currentProjectId)" 
+                class="btn-secondary px-3 py-1 text-sm"
+              >
+                Change Project
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Upload Section -->
         <div class="card mb-8">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-white">Upload New Spec</h2>
-            <button class="btn-primary">
+            <input type="file" ref="fileInput" class="hidden" @change="handleFileChange" />
+            <button class="btn-primary" @click="triggerFileInput" :disabled="uploading">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
-              Upload Spec
+              <span v-if="uploading">Uploading...</span>
+              <span v-else>Upload Spec</span>
             </button>
           </div>
           
@@ -30,6 +64,9 @@
             </svg>
             <p class="text-gray-400 mb-2">Drag and drop your spec files here</p>
             <p class="text-sm text-gray-500">Supports PDF, DOCX, PPT, XLS (Max 50MB)</p>
+            <input type="file" class="mt-4" @change="handleFileChange" />
+            <div v-if="uploadError" class="text-red-400 mt-2">{{ uploadError }}</div>
+            <div v-if="uploadSuccess" class="text-green-400 mt-2">Spec uploaded successfully!</div>
           </div>
         </div>
 
@@ -77,12 +114,220 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                   </button>
+                  <!-- Actions Dropdown -->
+                  <div class="relative" @mouseenter="openDropdown = spec.id" @mouseleave="openDropdown = null">
+                    <button class="p-2 text-gray-400 hover:text-gray-300 transition-colors" title="More Actions">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="5" cy="12" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="19" cy="12" r="2"/>
+                      </svg>
+                    </button>
+                    <div v-if="openDropdown === spec.id" class="absolute right-0 mt-2 w-56 bg-dark-900 border border-dark-700 rounded-xl shadow-xl z-50 py-2">
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="viewDetails(spec)">View Details</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="editSpec(spec)">Edit</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="deleteSpec(spec)">Delete</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="duplicateSpec(spec)">Duplicate</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="approveSpec(spec)">Approve</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="assignReviewer(spec)">Assign Reviewer</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="triggerLint(spec)">Trigger Lint</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="viewLintResults(spec)">View Lint Results</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="viewVersions(spec)">Version History</button>
+                      <button class="block w-full text-left px-4 py-2 hover:bg-dark-800 text-gray-200" @click="compareVersions(spec)">Compare Versions</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </main>
+    </div>
+
+    <!-- Create Spec Modal -->
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="showCreateModal = false">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Create New Spec</h2>
+        <form class="space-y-4" @submit.prevent="handleCreateSpec">
+          <input class="input-field w-full" v-model="createSpecForm.name" placeholder="Spec Name" required />
+          <input class="input-field w-full" v-model="createSpecForm.version" placeholder="Version (e.g. 1.0.0)" pattern="^\d+\.\d+\.\d+$" title="Version must be in the format major.minor.patch (e.g. 1.0.0)" required />
+          <textarea class="input-field w-full" v-model="createSpecForm.description" placeholder="Description (optional)" rows="3"></textarea>
+          <input type="file" ref="createSpecFileInput" class="input-field w-full" @change="onCreateSpecFileChange" required />
+          <button class="btn-primary w-full py-3 text-lg font-semibold" :disabled="creatingSpec">
+            <span v-if="creatingSpec">Creating...</span>
+            <span v-else>Create</span>
+          </button>
+          <div v-if="createSpecError" class="text-red-400 text-center mt-2">{{ createSpecError }}</div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div v-if="showDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-2xl relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeDetailsModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Spec Details</h2>
+        <div class="flex space-x-4 mb-6">
+          <button v-for="tab in detailsTabs" :key="tab" @click="activeDetailsTab = tab" :class="['px-4 py-2 rounded-lg font-semibold', activeDetailsTab === tab ? 'bg-dark-800 text-neon-blue' : 'bg-dark-700 text-gray-300']">{{ tab }}</button>
+        </div>
+        <div v-if="activeDetailsTab === 'General'">
+          <div class="mb-4">
+            <label class="block text-gray-400 mb-1">Name</label>
+            <input class="input-field w-full" v-model="detailsSpec.name" />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-400 mb-1">Version</label>
+            <input class="input-field w-full" v-model="detailsSpec.version" />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-400 mb-1">Description</label>
+            <textarea class="input-field w-full" v-model="detailsSpec.description" rows="3"></textarea>
+          </div>
+          <button class="btn-primary w-full mt-4" @click="editSpec(detailsSpec)">Save Changes</button>
+        </div>
+        <div v-else-if="activeDetailsTab === 'Reviewers'">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-gray-300 font-semibold">Assigned Reviewers</span>
+            <button class="btn-secondary" @click="openAssignReviewerModal(detailsSpec)">Assign Reviewer</button>
+          </div>
+          <ul class="mb-4">
+            <li v-for="reviewer in detailsSpec.reviewers || []" :key="reviewer.id" class="flex items-center justify-between py-2 border-b border-dark-700">
+              <span class="text-gray-200">{{ reviewer.name }}</span>
+              <button class="text-red-400 hover:text-red-600" @click="removeReviewer(detailsSpec, reviewer)">&times;</button>
+            </li>
+          </ul>
+        </div>
+        <div v-else-if="activeDetailsTab === 'Lint Results'">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-gray-300 font-semibold">Lint Results</span>
+            <button class="btn-secondary" @click="openLintModal(detailsSpec)">Trigger Lint</button>
+          </div>
+          <ul>
+            <li v-for="lint in detailsSpec.lintResults || []" :key="lint.id" class="py-2 border-b border-dark-700">
+              <span :class="getLintClass(lint.type)">{{ lint.type }}</span> - {{ lint.message }}
+            </li>
+          </ul>
+        </div>
+        <div v-else-if="activeDetailsTab === 'Version History'">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-gray-300 font-semibold">Versions</span>
+            <button class="btn-secondary" @click="openVersionModal(detailsSpec)">Compare Versions</button>
+          </div>
+          <ul>
+            <li v-for="version in detailsSpec.versions || []" :key="version.id" class="py-2 border-b border-dark-700 flex items-center justify-between">
+              <span class="text-gray-200">v{{ version.number }} - {{ version.date }}</span>
+              <button class="btn-secondary" @click="downloadVersion(version)">Download</button>
+            </li>
+          </ul>
+        </div>
+        <div class="flex space-x-2 mt-8">
+          <button class="btn-primary flex-1" @click="approveSpec(detailsSpec)">Approve</button>
+          <button class="btn-secondary flex-1" @click="openDuplicateModal(detailsSpec)">Duplicate</button>
+          <button class="btn-secondary flex-1" @click="downloadSpec(detailsSpec)">Download</button>
+          <button class="btn-secondary flex-1 text-red-400 border-red-400" @click="openDeleteModal(detailsSpec)">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeEditModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Edit Spec</h2>
+        <form class="space-y-4" @submit.prevent="handleEditSpec">
+          <input class="input-field w-full" v-model="editSpecForm.name" placeholder="Spec Name" required />
+          <input class="input-field w-full" v-model="editSpecForm.version" placeholder="Version (e.g. v1.0)" required />
+          <textarea class="input-field w-full" v-model="editSpecForm.description" placeholder="Description (optional)" rows="3"></textarea>
+          <button class="btn-primary w-full py-3 text-lg font-semibold" :disabled="editingSpec">
+            <span v-if="editingSpec">Saving...</span>
+            <span v-else>Save</span>
+          </button>
+          <div v-if="editSpecError" class="text-red-400 text-center mt-2">{{ editSpecError }}</div>
+          <div v-if="editSpecSuccess" class="text-green-400 text-center mt-2">Spec updated successfully!</div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-sm relative text-center">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeDeleteModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-gradient">Delete Spec?</h2>
+        <p class="text-gray-300 mb-6">Are you sure you want to delete this spec? This action cannot be undone.</p>
+        <div class="flex space-x-4 justify-center">
+          <button class="btn-secondary flex-1" @click="closeDeleteModal">Cancel</button>
+          <button class="btn-primary flex-1 bg-red-600 hover:bg-red-700" @click="confirmDeleteSpec">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assign Reviewer Modal -->
+    <div v-if="showAssignReviewerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeAssignReviewerModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Assign Reviewer</h2>
+        <form class="space-y-4">
+          <input class="input-field w-full" v-model="reviewerEmail" placeholder="Reviewer Email" />
+          <button class="btn-primary w-full py-3 text-lg font-semibold">Assign</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Lint Results Modal -->
+    <div v-if="showLintModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-lg relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeLintModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Lint Results</h2>
+        <ul>
+          <li v-for="lint in lintResults" :key="lint.id" class="py-2 border-b border-dark-700">
+            <span :class="getLintClass(lint.type)">{{ lint.type }}</span> - {{ lint.message }}
+          </li>
+        </ul>
+        <button class="btn-primary w-full mt-6" @click="triggerLint(detailsSpec)">Re-run Lint</button>
+      </div>
+    </div>
+
+    <!-- Version History Modal -->
+    <div v-if="showVersionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-lg relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeVersionModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Version History</h2>
+        <ul>
+          <li v-for="version in detailsSpec.versions || []" :key="version.id" class="py-2 border-b border-dark-700 flex items-center justify-between">
+            <span class="text-gray-200">v{{ version.number }} - {{ version.date }}</span>
+            <button class="btn-secondary" @click="compareWithCurrent(version)">Compare</button>
+            <button class="btn-secondary" @click="downloadVersion(version)">Download</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Duplicate Modal -->
+    <div v-if="showDuplicateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeDuplicateModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Duplicate Spec</h2>
+        <form class="space-y-4">
+          <input class="input-field w-full" v-model="duplicateSpecForm.name" placeholder="New Spec Name" />
+          <input class="input-field w-full" v-model="duplicateSpecForm.version" placeholder="Version (e.g. v1.0)" />
+          <textarea class="input-field w-full" v-model="duplicateSpecForm.description" placeholder="Description (optional)" rows="3"></textarea>
+          <button class="btn-primary w-full py-3 text-lg font-semibold">Duplicate</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Approve Modal -->
+    <div v-if="showApproveModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-sm relative text-center">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeApproveModal">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-gradient">Approve Spec?</h2>
+        <p class="text-gray-300 mb-6">Are you sure you want to approve this spec?</p>
+        <div class="flex space-x-4 justify-center">
+          <button class="btn-secondary flex-1" @click="closeApproveModal">Cancel</button>
+          <button class="btn-primary flex-1" @click="confirmApproveSpec">Approve</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -91,6 +336,8 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 interface Spec {
   id: string
@@ -103,8 +350,8 @@ interface Spec {
 const specs = ref<Spec[]>([])
 
 // Add modal and state for create/update
-const showSpecModal = ref(false)
-const editingSpec = ref<Spec | null>(null)
+const showCreateModal = ref(false)
+const editingSpec = ref(false)
 const specForm = ref({ name: '', version: '', status: 'draft', uploadDate: '' })
 const deleting = ref<string | null>(null)
 const downloading = ref<string | null>(null)
@@ -115,14 +362,115 @@ const comparing = ref<string | null>(null)
 const viewingVersions = ref<string | null>(null)
 const runningLint = ref<string | null>(null)
 const viewingLintResults = ref<string | null>(null)
+const uploading = ref(false)
+const uploadError = ref('')
+const uploadSuccess = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const openDropdown = ref<string | null>(null)
+const showDetailsModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const showAssignReviewerModal = ref(false)
+const showLintModal = ref(false)
+const showVersionModal = ref(false)
+const showDuplicateModal = ref(false)
+const showApproveModal = ref(false)
+const detailsSpec = ref<any>({})
+const editSpecForm = ref({ name: '', version: '', description: '' })
+const duplicateSpecForm = ref({ name: '', version: '', description: '' })
+const reviewerEmail = ref('')
+const lintResults = ref<any[]>([])
+const detailsTabs = ['General', 'Reviewers', 'Lint Results', 'Version History']
+const activeDetailsTab = ref('General')
+const createSpecForm = ref({
+  name: '',
+  version: '',
+  description: ''
+})
+const createSpecFile = ref<File | null>(null)
+const createSpecFileInput = ref<HTMLInputElement | null>(null)
+const creatingSpec = ref(false)
+const createSpecError = ref('')
+const editSpecError = ref('')
+const editSpecSuccess = ref(false)
+const route = useRoute()
+const authStore = useAuthStore()
+
+// Add simple project ID management
+const currentProjectId = ref<number>(1)
+const showProjectError = ref(false)
+const projectError = ref('')
+
+// Simple function to change project ID
+const changeProjectId = (newId: number) => {
+  currentProjectId.value = newId
+  showProjectError.value = false
+  projectError.value = ''
+  // Reload specs for the new project
+  loadSpecsForProject(newId)
+}
+
+// Function to load specs for a specific project
+const loadSpecsForProject = async (projectId: number) => {
+  try {
+    const res = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    
+    if (res.ok) {
+      specs.value = await res.json()
+      showProjectError.value = false
+    } else {
+      const errorText = await res.text()
+      if (errorText.includes('Project not found')) {
+        showProjectError.value = true
+        projectError.value = `Project ID ${projectId} not found. Please use a valid project ID.`
+      }
+    }
+  } catch (error) {
+    console.error('Error loading specs:', error)
+  }
+}
+
+const getProjectId = () => {
+  // Try to get from route param, fallback to current project ID
+  const routeProjectId = route.params.project_id
+  if (routeProjectId && typeof routeProjectId === 'string') {
+    return parseInt(routeProjectId, 10)
+  }
+  return currentProjectId.value
+}
 
 onMounted(async () => {
-  // Replace with your actual project_id logic
-  const projectId = 'your_project_id'
-  const res = await fetch(`/api/v1/specs/projects/${projectId}/specs`)
-  if (res.ok) {
-    specs.value = await res.json()
+  // DEBUG: Check authentication status
+  console.log('=== Component Mount Debug ===')
+  console.log('Is authenticated:', authStore.isAuthenticated)
+  console.log('Token exists:', !!authStore.token)
+  console.log('Token value:', authStore.token)
+  console.log('LocalStorage token:', localStorage.getItem('tapeout_token'))
+  
+  // Test authentication with backend
+  try {
+    const authTestRes = await fetch('http://localhost:8000/api/v1/auth/me', {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    console.log('Auth test response status:', authTestRes.status)
+    if (authTestRes.ok) {
+      const userData = await authTestRes.json()
+      console.log('User data from auth test:', userData)
+    } else {
+      const errorText = await authTestRes.text()
+      console.log('Auth test error:', errorText)
+    }
+  } catch (error) {
+    console.error('Auth test failed:', error)
   }
+  
+  // Load specs for current project
+  const projectId = getProjectId()
+  console.log('Loading specs for project:', projectId)
+  
+  await loadSpecsForProject(projectId)
 })
 
 const getStatusClass = (status: string) => {
@@ -135,6 +483,265 @@ const getStatusClass = (status: string) => {
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
     default:
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  }
+}
+
+const triggerFileInput = () => {
+  if (fileInput.value) fileInput.value.click()
+}
+
+const handleFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+  const file = target.files[0]
+  uploading.value = true
+  uploadError.value = ''
+  uploadSuccess.value = false
+  
+  // DEBUG: Check authentication
+  console.log('=== File Upload Debug ===')
+  console.log('Auth token exists:', !!authStore.token)
+  console.log('Auth token value:', authStore.token)
+  console.log('Is authenticated:', authStore.isAuthenticated)
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    // Add authentication header
+    const headers: HeadersInit = {}
+    if (authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null') {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    // DEBUG: Log the request details
+    console.log('Making request to:', 'http://localhost:8000/api/v1/specs/specs')
+    console.log('Headers being sent:', headers)
+    console.log('FormData entries:', Array.from(formData.entries()))
+    console.log('File details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
+    
+    const res = await fetch('http://localhost:8000/api/v1/specs/specs', {
+      method: 'POST',
+      headers,
+      body: formData
+    })
+    
+    // DEBUG: Log the response details
+    console.log('Response status:', res.status)
+    console.log('Response status text:', res.statusText)
+    console.log('Response headers:', Object.fromEntries(res.headers.entries()))
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.log('Error response body:', errorText)
+      throw new Error(errorText || 'Upload failed')
+    }
+    
+    const responseData = await res.json()
+    console.log('Success response:', responseData)
+    
+    uploadSuccess.value = true
+    setTimeout(() => { uploadSuccess.value = false }, 2000)
+    
+    // Refresh specs list after successful upload
+    const projectId = getProjectId()
+    const specsRes = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    if (specsRes.ok) {
+      specs.value = await specsRes.json()
+    }
+  } catch (e: any) {
+    console.error('Upload error details:', e)
+    uploadError.value = e.message || 'Upload failed'
+  } finally {
+    uploading.value = false
+    if (fileInput.value) fileInput.value.value = ''
+  }
+}
+
+const viewDetails = (spec: Spec) => {
+  detailsSpec.value = { ...spec }
+  showDetailsModal.value = true
+  activeDetailsTab.value = 'General'
+}
+const editSpec = (spec: Spec) => {
+  editSpecForm.value = { 
+    name: spec.name, 
+    version: spec.version, 
+    description: (spec as any).description || '' 
+  }
+  showEditModal.value = true
+}
+const deleteSpec = (spec: Spec) => {}
+const duplicateSpec = (spec: Spec) => {
+  duplicateSpecForm.value = { 
+    name: spec.name + ' Copy', 
+    version: spec.version, 
+    description: (spec as any).description || '' 
+  }
+  showDuplicateModal.value = true
+}
+const approveSpec = (spec: Spec) => {}
+const assignReviewer = (spec: Spec) => {}
+const triggerLint = (spec: Spec) => {}
+const viewLintResults = (spec: Spec) => {}
+const viewVersions = (spec: Spec) => {}
+const compareVersions = (spec: Spec) => {}
+const closeDetailsModal = () => { showDetailsModal.value = false }
+const closeEditModal = () => { showEditModal.value = false }
+const openDeleteModal = (spec: Spec) => { detailsSpec.value = { ...spec }; showDeleteModal.value = true }
+const closeDeleteModal = () => { showDeleteModal.value = false }
+const confirmDeleteSpec = () => { showDeleteModal.value = false }
+const openAssignReviewerModal = (spec: Spec) => { detailsSpec.value = { ...spec }; showAssignReviewerModal.value = true }
+const closeAssignReviewerModal = () => { showAssignReviewerModal.value = false }
+const removeReviewer = (spec: Spec, reviewer: any) => {}
+const openLintModal = (spec: Spec) => { detailsSpec.value = { ...spec }; showLintModal.value = true }
+const closeLintModal = () => { showLintModal.value = false }
+const openVersionModal = (spec: Spec) => { detailsSpec.value = { ...spec }; showVersionModal.value = true }
+const closeVersionModal = () => { showVersionModal.value = false }
+const compareWithCurrent = (version: any) => {}
+const downloadVersion = (version: any) => {}
+const openDuplicateModal = (spec: Spec) => {
+  duplicateSpecForm.value = { 
+    name: spec.name + ' Copy', 
+    version: spec.version, 
+    description: (spec as any).description || '' 
+  }
+  showDuplicateModal.value = true
+}
+const closeDuplicateModal = () => { showDuplicateModal.value = false }
+const openApproveModal = (spec: Spec) => { detailsSpec.value = { ...spec }; showApproveModal.value = true }
+const closeApproveModal = () => { showApproveModal.value = false }
+const confirmApproveSpec = () => { showApproveModal.value = false }
+const downloadSpec = (spec: Spec) => {}
+const getLintClass = (type: string) => {
+  if (type === 'error') return 'text-red-400';
+  if (type === 'warning') return 'text-yellow-400';
+  if (type === 'info') return 'text-blue-400';
+  return 'text-gray-400';
+}
+
+const onCreateSpecFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    createSpecFile.value = target.files[0]
+  } else {
+    createSpecFile.value = null
+  }
+}
+
+function isValidSemver(version: string) {
+  return /^\d+\.\d+\.\d+$/.test(version)
+}
+
+const handleCreateSpec = async () => {
+  creatingSpec.value = true
+  createSpecError.value = ''
+  try {
+    const projectId = getProjectId()
+    if (!createSpecFile.value) {
+      createSpecError.value = 'Please select a file.'
+      creatingSpec.value = false
+      return
+    }
+    if (!isValidSemver(createSpecForm.value.version)) {
+      createSpecError.value = 'Version must be in the format major.minor.patch (e.g. 1.0.0)'
+      creatingSpec.value = false
+      return
+    }
+    const formData = new FormData()
+    formData.append('file', createSpecFile.value)
+    formData.append('name', createSpecForm.value.name)
+    formData.append('version', createSpecForm.value.version)
+    if (createSpecForm.value.description) {
+      formData.append('description', createSpecForm.value.description)
+    }
+    const res = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
+      method: 'POST',
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined,
+      body: formData
+    })
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.log('Create spec error response:', errorText)
+      
+      // Handle project not found error
+      if (res.status === 404 && errorText.includes('Project not found')) {
+        createSpecError.value = `Project ID ${projectId} not found. Please use a valid project ID.`
+        showProjectError.value = true
+        projectError.value = `Project ID ${projectId} not found. Please use a valid project ID.`
+        creatingSpec.value = false
+        return
+      }
+      
+      throw new Error(errorText || 'Failed to create spec')
+    }
+    // Refresh specs list
+    const specsRes = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    if (specsRes.ok) {
+      specs.value = await specsRes.json()
+    }
+    showCreateModal.value = false
+    createSpecForm.value = { name: '', version: '', description: '' }
+    createSpecFile.value = null
+    if (createSpecFileInput.value) createSpecFileInput.value.value = ''
+  } catch (e: any) {
+    createSpecError.value = e.message || 'Failed to create spec'
+  } finally {
+    creatingSpec.value = false
+  }
+}
+
+const handleEditSpec = async () => {
+  editingSpec.value = true
+  editSpecError.value = ''
+  editSpecSuccess.value = false
+  try {
+    const specId = detailsSpec.value.id
+    
+    // Add authentication header
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null') {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    const res = await fetch(`http://localhost:8000/api/v1/specs/specs/${specId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(editSpecForm.value)
+    })
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to update spec')
+    }
+    
+    // Refresh specs list
+    const projectId = getProjectId()
+    const specsRes = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    if (specsRes.ok) {
+      specs.value = await specsRes.json()
+    }
+    editSpecSuccess.value = true
+    setTimeout(() => {
+      showEditModal.value = false
+      editSpecSuccess.value = false
+    }, 1200)
+  } catch (e: any) {
+    editSpecError.value = e.message || 'Failed to update spec'
+  } finally {
+    editingSpec.value = false
   }
 }
 </script> 
