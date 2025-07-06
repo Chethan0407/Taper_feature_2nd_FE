@@ -10,6 +10,7 @@ export interface Project {
   edaTool: 'Synopsys' | 'Cadence' | 'Mentor'
   type: 'TapeOut' | 'LintOnly'
   status: 'active' | 'planning' | 'completed' | 'archived'
+  company_id: number
   createdAt: string
   updatedAt: string
 }
@@ -45,7 +46,7 @@ export const useProjectsStore = defineStore('projects', () => {
   }
 
   // Create new project
-  const createProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { company_id: number }) => {
     loading.value = true
     error.value = null
     try {

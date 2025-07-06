@@ -98,6 +98,15 @@
             </div>
           </div>
 
+          <!-- Company Selection -->
+          <div>
+            <CompanySelector
+              v-model="form.companyId"
+              label="COMPANY"
+              required
+            />
+          </div>
+
           <!-- Submit Button -->
           <div class="flex justify-end space-x-3 pt-4">
             <button 
@@ -127,6 +136,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useProjectsStore, type Project } from '@/stores/projects'
+import CompanySelector from '@/components/Common/CompanySelector.vue'
 
 interface Props {
   onProjectCreated?: (project: Project) => void
@@ -143,7 +153,8 @@ const form = reactive({
   description: '',
   platform: '' as 'ASIC' | 'FPGA' | 'SoC',
   edaTool: '' as 'Synopsys' | 'Cadence' | 'Mentor',
-  type: '' as 'TapeOut' | 'LintOnly'
+  type: '' as 'TapeOut' | 'LintOnly',
+  companyId: '' as string
 })
 
 const toggleForm = () => {
@@ -159,19 +170,26 @@ const resetForm = () => {
   form.platform = '' as 'ASIC' | 'FPGA' | 'SoC'
   form.edaTool = '' as 'Synopsys' | 'Cadence' | 'Mentor'
   form.type = '' as 'TapeOut' | 'LintOnly'
+  form.companyId = '' as string
 }
 
 const handleSubmit = async () => {
   submitting.value = true
   
   try {
+    // Validate company_id is selected
+    if (!form.companyId || !parseInt(form.companyId)) {
+      throw new Error('Please select a company')
+    }
+    
     const projectData = {
       name: form.name,
       description: form.description,
       platform: form.platform,
       edaTool: form.edaTool,
       type: form.type,
-      status: 'active' as const
+      status: 'active' as const,
+      company_id: parseInt(form.companyId)
     }
     
     const newProject = await projectsStore.createProject(projectData)

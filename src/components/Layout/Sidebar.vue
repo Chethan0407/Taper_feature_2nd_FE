@@ -74,7 +74,8 @@ import {
   Search,
   Users,
   Settings,
-  Folder
+  Folder,
+  Building2
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -87,6 +88,7 @@ const navigationItems = [
   { name: 'Checklists', path: '/checklists', icon: CheckSquare },
   { name: 'SpecLint', path: '/speclint', icon: Search },
   { name: 'Vendors', path: '/vendors', icon: Users },
+  { name: 'Companies', path: '/companies', icon: Building2 },
   { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
