@@ -107,6 +107,30 @@
             />
           </div>
 
+          <!-- Linked Specs -->
+          <div>
+            <label class="block text-gray-300 text-sm font-medium mb-2">LINKED SPECS</label>
+            <select 
+              v-model="form.linkedSpecs"
+              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
+              multiple
+            >
+              <option v-for="spec in allSpecs" :value="spec.id">{{ spec.name }}</option>
+            </select>
+          </div>
+
+          <!-- Linked Checklists -->
+          <div>
+            <label class="block text-gray-300 text-sm font-medium mb-2">LINKED CHECKLISTS</label>
+            <select 
+              v-model="form.linkedChecklists"
+              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
+              multiple
+            >
+              <option v-for="checklist in allChecklists" :value="checklist.id">{{ checklist.name }}</option>
+            </select>
+          </div>
+
           <!-- Submit Button -->
           <div class="flex justify-end space-x-3 pt-4">
             <button 
@@ -134,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useProjectsStore, type Project } from '@/stores/projects'
 import CompanySelector from '@/components/Common/CompanySelector.vue'
 
@@ -154,7 +178,36 @@ const form = reactive({
   platform: '' as 'ASIC' | 'FPGA' | 'SoC',
   edaTool: '' as 'Synopsys' | 'Cadence' | 'Mentor',
   type: '' as 'TapeOut' | 'LintOnly',
-  companyId: '' as string
+  companyId: '' as string,
+  linkedSpecs: [] as number[],
+  linkedChecklists: [] as number[]
+})
+
+const allSpecs = ref<{ id: number; name: string }[]>([])
+const allChecklists = ref<{ id: number; name: string }[]>([])
+const loadingSpecs = ref(false)
+const loadingChecklists = ref(false)
+
+onMounted(async () => {
+  loadingSpecs.value = true
+  loadingChecklists.value = true
+  try {
+    // Fetch specs
+    const specsRes = await fetch('http://localhost:8000/api/v1/specs/')
+    if (specsRes.ok) {
+      allSpecs.value = await specsRes.json()
+    }
+    // Fetch checklists
+    const checklistsRes = await fetch('http://localhost:8000/api/v1/checklists/')
+    if (checklistsRes.ok) {
+      allChecklists.value = await checklistsRes.json()
+    }
+  } catch (e) {
+    // ignore for now
+  } finally {
+    loadingSpecs.value = false
+    loadingChecklists.value = false
+  }
 })
 
 const toggleForm = () => {
@@ -171,6 +224,8 @@ const resetForm = () => {
   form.edaTool = '' as 'Synopsys' | 'Cadence' | 'Mentor'
   form.type = '' as 'TapeOut' | 'LintOnly'
   form.companyId = '' as string
+  form.linkedSpecs = []
+  form.linkedChecklists = []
 }
 
 const handleSubmit = async () => {
@@ -189,7 +244,9 @@ const handleSubmit = async () => {
       edaTool: form.edaTool,
       type: form.type,
       status: 'active' as const,
-      company_id: parseInt(form.companyId)
+      company_id: parseInt(form.companyId),
+      spec_ids: form.linkedSpecs,
+      checklist_ids: form.linkedChecklists
     }
     
     const newProject = await projectsStore.createProject(projectData)

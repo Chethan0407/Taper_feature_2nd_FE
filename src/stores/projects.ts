@@ -11,8 +11,12 @@ export interface Project {
   type: 'TapeOut' | 'LintOnly'
   status: 'active' | 'planning' | 'completed' | 'archived'
   company_id: number
-  createdAt: string
-  updatedAt: string
+  created_at: string
+  updated_at: string
+  createdAt?: string
+  updatedAt?: string
+  spec_ids?: number[]
+  checklist_ids?: number[]
 }
 
 export const useProjectsStore = defineStore('projects', () => {
@@ -21,7 +25,7 @@ export const useProjectsStore = defineStore('projects', () => {
   const error = ref<string | null>(null)
   const authStore = useAuthStore()
 
-  const API_BASE = 'http://localhost:8000/api/v1/projects'
+  const API_BASE = 'http://localhost:8000/api/v1/projects/'
 
   // Load all projects
   const loadProjects = async () => {
@@ -36,7 +40,15 @@ export const useProjectsStore = defineStore('projects', () => {
         throw new Error('Failed to load projects')
       }
       
-      projects.value = await response.json()
+      const data = await response.json();
+      projects.value = Array.isArray(data)
+        ? data.map((p: any) => ({
+            ...p,
+            createdAt: p.created_at,
+            updatedAt: p.updated_at
+          }))
+        : [];
+      console.log('Loaded projects:', projects.value);
     } catch (err: any) {
       error.value = err.message || 'Failed to load projects'
       console.error('Error loading projects:', err)
@@ -50,13 +62,19 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
+      // Map createdAt to created_at if present (type assertion for optional camelCase)
+      const pd = projectData as any;
+      const payload = {
+        ...projectData,
+        ...(pd.createdAt ? { created_at: pd.createdAt } : {})
+      };
       const response = await fetch(API_BASE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
         },
-        body: JSON.stringify(projectData)
+        body: JSON.stringify(payload)
       })
       
       if (!response.ok) {
@@ -65,8 +83,11 @@ export const useProjectsStore = defineStore('projects', () => {
       }
       
       const newProject = await response.json()
-      projects.value.push(newProject)
-      return newProject
+      return {
+        ...newProject,
+        createdAt: newProject.created_at,
+        updatedAt: newProject.updated_at
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to create project'
       throw err
@@ -80,7 +101,7 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
+      const response = await fetch(`${API_BASE}${id}/`, {
         headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
       })
       
@@ -88,7 +109,12 @@ export const useProjectsStore = defineStore('projects', () => {
         throw new Error('Failed to load project')
       }
       
-      return await response.json()
+      const p = await response.json()
+      return {
+        ...p,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to load project'
       throw err
@@ -102,13 +128,19 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
+      // Map createdAt to created_at if present (type assertion for optional camelCase)
+      const pd = projectData as any;
+      const payload = {
+        ...projectData,
+        ...(pd.createdAt ? { created_at: pd.createdAt } : {})
+      };
+      const response = await fetch(`${API_BASE}${id}/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
         },
-        body: JSON.stringify(projectData)
+        body: JSON.stringify(payload)
       })
       
       if (!response.ok) {
@@ -119,9 +151,17 @@ export const useProjectsStore = defineStore('projects', () => {
       const updatedProject = await response.json()
       const index = projects.value.findIndex(p => p.id === id)
       if (index !== -1) {
-        projects.value[index] = updatedProject
+        projects.value[index] = {
+          ...updatedProject,
+          createdAt: updatedProject.created_at,
+          updatedAt: updatedProject.updated_at
+        }
       }
-      return updatedProject
+      return {
+        ...updatedProject,
+        createdAt: updatedProject.created_at,
+        updatedAt: updatedProject.updated_at
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to update project'
       throw err
@@ -135,18 +175,21 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
+      const response = await fetch(`${API_BASE}${id}/`, {
         method: 'DELETE',
         headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
       })
       
-      if (!response.ok) {
+      // Remove from local list regardless of backend response
+      projects.value = projects.value.filter(p => p.id !== id)
+      
+      if (!response.ok && response.status !== 404) {
         throw new Error('Failed to delete project')
       }
-      
-      projects.value = projects.value.filter(p => p.id !== id)
     } catch (err: any) {
       error.value = err.message || 'Failed to delete project'
+      // Still remove from local list on error
+      projects.value = projects.value.filter(p => p.id !== id)
       throw err
     } finally {
       loading.value = false

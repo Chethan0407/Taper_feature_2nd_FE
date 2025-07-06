@@ -38,9 +38,9 @@
         </div>
 
         <!-- Projects Grid -->
-        <div v-else-if="projectsStore.projects.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else-if="filteredProjects.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <ProjectCard 
-            v-for="project in projectsStore.projects" 
+            v-for="project in filteredProjects" 
             :key="project.id" 
             :project="project"
             @click="handleProjectClick"
@@ -67,6 +67,13 @@
             <span>Project created successfully!</span>
           </div>
         </div>
+
+        <ProjectEditModal
+          v-if="showEditModal && editingProject"
+          :project="editingProject"
+          @close="closeEditModal"
+          @updated="handleProjectUpdated"
+        />
       </main>
     </div>
   </div>
@@ -77,32 +84,40 @@ import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import CreateProjectInline from '@/components/Projects/CreateProjectInline.vue'
 import ProjectCard from '@/components/Projects/ProjectCard.vue'
-import { onMounted, ref } from 'vue'
+import ProjectEditModal from '@/components/Projects/ProjectEditModal.vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore, type Project } from '@/stores/projects'
 
 const router = useRouter()
 const projectsStore = useProjectsStore()
 const showSuccessToast = ref(false)
+const showEditModal = ref(false)
+const editingProject = ref<Project | null>(null)
 
 onMounted(async () => {
   await projectsStore.loadProjects()
 })
 
-const handleProjectCreated = (project: Project) => {
-  showSuccessToast.value = true
+const filteredProjects = computed(() =>
+  projectsStore.projects
+)
+
+const handleProjectCreated = async (project: Project) => {
+  showSuccessToast.value = true;
+  await projectsStore.loadProjects(); // Always reload from backend, do not push manually
   setTimeout(() => {
-    showSuccessToast.value = false
-  }, 3000)
-}
+    showSuccessToast.value = false;
+  }, 3000);
+};
 
 const handleProjectClick = (project: Project) => {
   router.push(`/projects/${project.id}`)
 }
 
 const handleProjectEdit = (project: Project) => {
-  // TODO: Implement edit functionality
-  console.log('Edit project:', project)
+  editingProject.value = project;
+  showEditModal.value = true;
 }
 
 const handleProjectDelete = async (project: Project) => {
@@ -118,5 +133,18 @@ const handleProjectDelete = async (project: Project) => {
       console.error('Failed to delete project:', error)
     }
   }
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false;
+  editingProject.value = null;
+}
+
+const handleProjectUpdated = async () => {
+  showEditModal.value = false;
+  editingProject.value = null;
+  await projectsStore.loadProjects();
+  showSuccessToast.value = true;
+  setTimeout(() => { showSuccessToast.value = false; }, 3000);
 }
 </script> 

@@ -106,19 +106,19 @@
         <!-- Quick Stats -->
         <div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-blue mb-2">12</div>
+            <div class="text-3xl font-bold text-neon-blue mb-2">{{ loadingStats ? '--' : stats.active_specs ?? '--' }}</div>
             <div class="text-gray-600 dark:text-gray-400">Active Specs</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-green mb-2">8</div>
+            <div class="text-3xl font-bold text-neon-green mb-2">{{ loadingStats ? '--' : stats.pending_reviews ?? '--' }}</div>
             <div class="text-gray-600 dark:text-gray-400">Pending Reviews</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-purple mb-2">5</div>
+            <div class="text-3xl font-bold text-neon-purple mb-2">{{ loadingStats ? '--' : stats.vendor_partners ?? '--' }}</div>
             <div class="text-gray-600 dark:text-gray-400">Vendor Partners</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-yellow-400 mb-2">95%</div>
+            <div class="text-3xl font-bold text-yellow-400 mb-2">{{ loadingStats ? '--' : (stats.quality_score !== undefined ? stats.quality_score + '%' : '--') }}</div>
             <div class="text-gray-600 dark:text-gray-400">Quality Score</div>
           </div>
         </div>
@@ -128,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
@@ -141,8 +141,40 @@ const goToProjects = () => {
   router.push('/projects')
 }
 
+const stats = ref<{ active_specs?: number; pending_reviews?: number; vendor_partners?: number; quality_score?: number }>({})
+const loadingStats = ref(true)
+const statsError = ref('')
+let statsInterval: number | undefined
+
+const fetchStats = async () => {
+  loadingStats.value = true
+  statsError.value = ''
+  try {
+    const headers: HeadersInit = {}
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    const res = await fetch('http://localhost:8000/api/v1/dashboard/stats', { headers })
+    if (!res.ok) throw new Error('Unable to load dashboard stats.')
+    stats.value = await res.json()
+  } catch (e: any) {
+    statsError.value = e.message || 'Unable to load dashboard stats.'
+    // Show toast (simple alert for now)
+    window.dispatchEvent(new CustomEvent('toast', { detail: { message: statsError.value, type: 'error' } }))
+  } finally {
+    loadingStats.value = false
+  }
+}
+
 onMounted(async () => {
   // Check authentication on mount
   await authStore.checkAuth()
+
+  await fetchStats()
+  statsInterval = window.setInterval(fetchStats, 10000)
+})
+
+onUnmounted(() => {
+  if (statsInterval) clearInterval(statsInterval)
 })
 </script> 

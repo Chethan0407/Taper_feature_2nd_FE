@@ -17,7 +17,7 @@
             <div class="card">
               <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl font-semibold text-white">Checklist Templates</h2>
-                <button class="btn-primary">Create Template</button>
+                <button class="btn-primary" @click="showCreateTemplateModal = true">Create Template</button>
               </div>
               
               <div class="space-y-4">
@@ -52,6 +52,7 @@
           </div>
         </div>
       </main>
+      <CreateTemplateModal v-if="showCreateTemplateModal" @close="showCreateTemplateModal = false" @created="fetchTemplates" />
     </div>
   </div>
 </template>
@@ -61,6 +62,7 @@ import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import CreateTemplateModal from '@/components/Checklist/CreateTemplateModal.vue'
 
 interface Template {
   id: string
@@ -90,12 +92,17 @@ const deleting = ref<string | null>(null)
 const exporting = ref<string | null>(null)
 const assigning = ref<string | null>(null)
 const checklistDetails = ref<Checklist | null>(null)
+const showCreateTemplateModal = ref(false)
 
-onMounted(async () => {
+const fetchTemplates = async () => {
   const templatesRes = await fetch('/api/v1/checklists/templates')
   if (templatesRes.ok) {
     templates.value = await templatesRes.json()
   }
+}
+
+onMounted(async () => {
+  await fetchTemplates()
   const activeRes = await fetch('/api/v1/checklists/')
   if (activeRes.ok) {
     activeChecklists.value = await activeRes.json()

@@ -329,6 +329,36 @@
         </div>
       </div>
     </div>
+
+    <!-- Metadata Modal -->
+    <div v-if="showMetadataModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="showMetadataModal = false">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Spec Metadata</h2>
+        <form class="space-y-4" @submit.prevent="submitMetadata">
+          <input class="input-field w-full" v-model="metadataForm.name" placeholder="Spec Name" required />
+          <textarea class="input-field w-full" v-model="metadataForm.description" placeholder="Description (optional)" rows="3"></textarea>
+          <select class="input-field w-full" v-model="metadataForm.projectId" required>
+            <option value="">Select Project</option>
+            <option v-for="p in projectsStore.projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+          <select class="input-field w-full" v-model="metadataForm.type" required>
+            <option value="">Select Type</option>
+            <option v-for="t in typeOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
+          </select>
+          <select class="input-field w-full" v-model="metadataForm.status" required>
+            <option value="">Select Status</option>
+            <option v-for="s in statusOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
+          </select>
+          <div class="text-gray-400 text-sm">File: <span class="font-mono">{{ metadataFile?.name }}</span></div>
+          <button class="btn-primary w-full py-3 text-lg font-semibold" :disabled="metadataLoading">
+            <span v-if="metadataLoading">Uploading...</span>
+            <span v-else>Upload</span>
+          </button>
+          <div v-if="metadataError" class="text-red-400 text-center mt-2">{{ metadataError }}</div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -338,6 +368,7 @@ import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useProjectsStore } from '@/stores/projects'
 
 interface Spec {
   id: string
@@ -395,6 +426,18 @@ const editSpecError = ref('')
 const editSpecSuccess = ref(false)
 const route = useRoute()
 const authStore = useAuthStore()
+const projectsStore = useProjectsStore()
+const typeOptions = [
+  { value: 'Functional', label: 'Functional' },
+  { value: 'Physical', label: 'Physical' },
+  { value: 'Timing', label: 'Timing' },
+  { value: 'Other', label: 'Other' },
+]
+const statusOptions = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'review', label: 'Review' },
+  { value: 'approved', label: 'Approved' },
+]
 
 // Add simple project ID management
 const currentProjectId = ref<number>(1)
@@ -471,6 +514,7 @@ onMounted(async () => {
   console.log('Loading specs for project:', projectId)
   
   await loadSpecsForProject(projectId)
+  await projectsStore.loadProjects()
 })
 
 const getStatusClass = (status: string) => {
@@ -490,77 +534,62 @@ const triggerFileInput = () => {
   if (fileInput.value) fileInput.value.click()
 }
 
-const handleFileChange = async (event: Event) => {
+const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (!target.files || target.files.length === 0) return
   const file = target.files[0]
-  uploading.value = true
-  uploadError.value = ''
-  uploadSuccess.value = false
-  
-  // DEBUG: Check authentication
-  console.log('=== File Upload Debug ===')
-  console.log('Auth token exists:', !!authStore.token)
-  console.log('Auth token value:', authStore.token)
-  console.log('Is authenticated:', authStore.isAuthenticated)
-  
+  metadataFile.value = file
+  metadataForm.value.name = file.name.replace(/\.[^/.]+$/, '')
+  metadataForm.value.description = ''
+  metadataForm.value.projectId = ''
+  metadataForm.value.type = ''
+  metadataForm.value.status = 'draft'
+  showMetadataModal.value = true
+}
+
+const submitMetadata = async () => {
+  metadataLoading.value = true
+  metadataError.value = ''
   try {
+    if (!metadataFile.value) throw new Error('No file selected')
+    if (!metadataForm.value.name) throw new Error('Name is required')
+    if (!metadataForm.value.projectId) throw new Error('Project is required')
+    if (!metadataForm.value.type) throw new Error('Type is required')
+    if (!metadataForm.value.status) throw new Error('Status is required')
     const formData = new FormData()
-    formData.append('file', file)
-    
-    // Add authentication header
+    formData.append('file', metadataFile.value)
+    formData.append('name', metadataForm.value.name)
+    formData.append('description', metadataForm.value.description)
+    formData.append('project_id', metadataForm.value.projectId)
+    formData.append('type', metadataForm.value.type)
+    formData.append('status', metadataForm.value.status)
     const headers: HeadersInit = {}
-    if (authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null') {
-      headers['Authorization'] = `Bearer ${authStore.token}`
-    }
-    
-    // DEBUG: Log the request details
-    console.log('Making request to:', 'http://localhost:8000/api/v1/specs/specs')
-    console.log('Headers being sent:', headers)
-    console.log('FormData entries:', Array.from(formData.entries()))
-    console.log('File details:', {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    })
-    
-    const res = await fetch('http://localhost:8000/api/v1/specs/specs', {
+    if (authStore.token) headers['Authorization'] = `Bearer ${authStore.token}`
+    const res = await fetch('http://localhost:8000/api/v1/specs/', {
       method: 'POST',
       headers,
-      body: formData
+      body: formData,
     })
-    
-    // DEBUG: Log the response details
-    console.log('Response status:', res.status)
-    console.log('Response status text:', res.statusText)
-    console.log('Response headers:', Object.fromEntries(res.headers.entries()))
-    
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.log('Error response body:', errorText)
-      throw new Error(errorText || 'Upload failed')
-    }
-    
-    const responseData = await res.json()
-    console.log('Success response:', responseData)
-    
-    uploadSuccess.value = true
-    setTimeout(() => { uploadSuccess.value = false }, 2000)
-    
-    // Refresh specs list after successful upload
-    const projectId = getProjectId()
-    const specsRes = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
-      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-    })
-    if (specsRes.ok) {
-      specs.value = await specsRes.json()
-    }
+    if (!res.ok) throw new Error(await res.text() || 'Failed to upload spec')
+    // Refresh specs list
+    await fetchRecentSpecs()
+    showMetadataModal.value = false
+    metadataFile.value = null
+    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Spec uploaded successfully!', type: 'success' } }))
   } catch (e: any) {
-    console.error('Upload error details:', e)
-    uploadError.value = e.message || 'Upload failed'
+    metadataError.value = e.message || 'Failed to upload spec'
+    window.dispatchEvent(new CustomEvent('toast', { detail: { message: metadataError.value, type: 'error' } }))
   } finally {
-    uploading.value = false
-    if (fileInput.value) fileInput.value.value = ''
+    metadataLoading.value = false
+  }
+}
+
+const fetchRecentSpecs = async () => {
+  const res = await fetch('http://localhost:8000/api/v1/specs/?sort=created_at', {
+    headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+  })
+  if (res.ok) {
+    specs.value = await res.json()
   }
 }
 
@@ -744,4 +773,17 @@ const handleEditSpec = async () => {
     editingSpec.value = false
   }
 }
+
+// Add new refs for metadata modal and file
+const showMetadataModal = ref(false)
+const metadataForm = ref({
+  name: '',
+  description: '',
+  projectId: '',
+  type: '',
+  status: 'draft',
+})
+const metadataFile = ref<File | null>(null)
+const metadataLoading = ref(false)
+const metadataError = ref('')
 </script> 

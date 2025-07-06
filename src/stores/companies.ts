@@ -8,8 +8,10 @@ export interface Company {
   description?: string
   status: 'active' | 'inactive'
   createdBy?: string
-  createdAt: string
-  updatedAt: string
+  created_at?: string
+  updated_at?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface CreateCompanyData {

@@ -27,9 +27,9 @@
     
     <!-- Platform + EDA Tool -->
     <div class="flex items-center space-x-2 mb-4">
-      <span class="text-neon-blue font-medium">{{ project.platform }}</span>
-      <span class="text-gray-500">•</span>
-      <span class="text-gray-300">{{ project.edaTool }}</span>
+      <span v-if="project.platform" class="text-neon-blue font-medium">{{ project.platform }}</span>
+      <span v-if="project.platform && project.edaTool" class="text-gray-500">•</span>
+      <span v-if="project.edaTool" class="text-gray-300">{{ project.edaTool }}</span>
     </div>
     
     <!-- Type Badge -->
@@ -83,7 +83,9 @@ interface Props {
   project: Project
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+console.log('ProjectCard.vue project:', props.project);
 
 defineEmits<{
   click: [project: Project]
@@ -117,25 +119,29 @@ const getTypeClass = (type: string) => {
   }
 }
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
-  })
+  });
 }
 
-const getDaysAgo = (dateString: string) => {
-  const now = new Date()
-  const created = new Date(dateString)
-  const diffTime = Math.abs(now.getTime() - created.getTime())
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 1) return '1 day ago'
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`
-  return `${Math.floor(diffDays / 365)} years ago`
+const getDaysAgo = (dateString: string | undefined) => {
+  if (!dateString) return '—';
+  const now = new Date();
+  const created = new Date(dateString);
+  if (isNaN(created.getTime())) return '—';
+  const diffTime = Math.abs(now.getTime() - created.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays === 1) return '1 day ago';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return `${Math.floor(diffDays / 365)} years ago`;
 }
 </script>
 

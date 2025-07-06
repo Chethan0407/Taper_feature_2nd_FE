@@ -19,7 +19,7 @@
             <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
-            + New Company
+            New Company
           </button>
         </div>
 
@@ -88,7 +88,7 @@
                     </span>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300 text-sm">{{ formatDate(company.createdAt) }}</p>
+                    <p class="text-gray-300 text-sm">{{ formatDate(company.created_at) }}</p>
                   </td>
                   <td class="p-6">
                     <div class="flex items-center justify-end space-x-2">
@@ -183,7 +183,7 @@
               v-model="form.name"
               type="text"
               placeholder="Enter company name"
-              class="input-field w-full bg-dark-700 border-dark-600 focus:border-neon-blue transition-colors"
+              class="input-field w-full bg-light-100 dark:bg-dark-700 border-light-300 dark:border-dark-600 focus:border-neon-blue transition-colors text-gray-900 dark:text-gray-100"
               required
             />
           </div>
@@ -194,7 +194,7 @@
               v-model="form.description"
               placeholder="Company description (optional)"
               rows="3"
-              class="input-field w-full bg-dark-700 border-dark-600 focus:border-neon-blue transition-colors resize-none"
+              class="input-field w-full bg-light-100 dark:bg-dark-700 border-light-300 dark:border-dark-600 focus:border-neon-blue transition-colors resize-none text-gray-900 dark:text-gray-100"
             ></textarea>
           </div>
 
@@ -275,7 +275,7 @@
 
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">CREATED</label>
-              <p class="text-white">{{ formatDate(selectedCompany.createdAt) }}</p>
+              <p class="text-white">{{ formatDate(selectedCompany.created_at) }}</p>
             </div>
 
             <div>
@@ -382,13 +382,16 @@ const getStatusClass = (status: string) => {
 }
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  });
 }
 
 const showToast = (message: string, isError = false) => {
