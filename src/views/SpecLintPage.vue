@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-dark-950">
+  <div class="min-h-screen bg-white dark:bg-dark-950">
     <Sidebar />
     
     <div class="ml-64">
@@ -7,17 +7,17 @@
       
       <main class="p-8">
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-white mb-2">SpecLint Engine</h1>
-          <p class="text-gray-400">Automate spec quality checks and validation</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">SpecLint Engine</h1>
+          <p class="text-gray-600 dark:text-gray-400">Automate spec quality checks and validation</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Rule Builder -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">Rule Builder</h2>
+          <div class="card bg-white dark:bg-dark-900">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-6">Rule Builder</h2>
             <div class="space-y-4">
-              <div class="p-4 bg-dark-800 rounded-lg border border-dark-600">
-                <h3 class="font-medium text-white mb-2">Keyword Detection</h3>
+              <div class="p-4 bg-gray-100 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600">
+                <h3 class="font-medium text-gray-700 dark:text-gray-200 mb-2">Keyword Detection</h3>
                 <input class="input-field w-full mb-2" placeholder="Enter keywords (comma separated)" />
                 <select class="input-field w-full">
                   <option>Error</option>
@@ -26,8 +26,8 @@
                 </select>
               </div>
               
-              <div class="p-4 bg-dark-800 rounded-lg border border-dark-600">
-                <h3 class="font-medium text-white mb-2">Date Format Validation</h3>
+              <div class="p-4 bg-gray-100 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600">
+                <h3 class="font-medium text-gray-700 dark:text-gray-200 mb-2">Date Format Validation</h3>
                 <input class="input-field w-full mb-2" placeholder="Date format pattern" />
                 <select class="input-field w-full">
                   <option>Error</option>
@@ -41,21 +41,21 @@
           </div>
 
           <!-- Spec Upload & Results -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">Validate Spec</h2>
+          <div class="card bg-white dark:bg-dark-900">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-6">Validate Spec</h2>
             
-            <div class="border-2 border-dashed border-dark-600 rounded-lg p-6 text-center mb-6">
+            <div class="border-2 border-dashed border-gray-200 dark:border-dark-600 rounded-lg p-6 text-center mb-6">
               <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <p class="text-gray-400 mb-2">Upload spec to validate</p>
+              <p class="text-gray-600 dark:text-gray-400 mb-2">Upload spec to validate</p>
               <button class="btn-primary">Run Linter</button>
             </div>
 
             <!-- Results -->
             <div v-if="lintResults.length > 0" class="space-y-3">
-              <h3 class="font-medium text-white">Lint Results</h3>
-              <div v-for="result in lintResults" :key="result.id" class="p-3 bg-dark-800 rounded-lg border-l-4" :class="getResultBorderClass(result.type)">
+              <h3 class="font-medium text-gray-700 dark:text-gray-200">Lint Results</h3>
+              <div v-for="result in lintResults" :key="result.id" class="p-3 bg-gray-100 dark:bg-dark-800 rounded-lg border-l-4" :class="getResultBorderClass(result.type)">
                 <div class="flex items-start justify-between">
                   <div>
                     <p class="text-sm font-medium" :class="getResultTextClass(result.type)">

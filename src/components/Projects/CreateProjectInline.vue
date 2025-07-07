@@ -38,44 +38,27 @@
             <!-- Platform -->
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">PLATFORM</label>
-              <select 
-                v-model="form.platform"
-                class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
-                required
-              >
+              <select v-model="form.platform" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" :disabled="metadataStore.loading" required>
                 <option value="">Select Platform</option>
-                <option value="ASIC">ASIC</option>
-                <option value="FPGA">FPGA</option>
-                <option value="SoC">SoC</option>
+                <option v-for="p in metadataStore.platforms" :key="p" :value="p">{{ p }}</option>
               </select>
             </div>
 
             <!-- EDA Tool -->
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">EDA TOOL</label>
-              <select 
-                v-model="form.edaTool"
-                class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
-                required
-              >
+              <select v-model="form.edaTool" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" :disabled="metadataStore.loading" required>
                 <option value="">Select EDA Tool</option>
-                <option value="Synopsys">Synopsys</option>
-                <option value="Cadence">Cadence</option>
-                <option value="Mentor">Mentor</option>
+                <option v-for="e in metadataStore.edaTools" :key="e" :value="e">{{ e }}</option>
               </select>
             </div>
 
             <!-- Type -->
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">TYPE</label>
-              <select 
-                v-model="form.type"
-                class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
-                required
-              >
+              <select v-model="form.type" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" :disabled="metadataStore.loading" required>
                 <option value="">Select Type</option>
-                <option value="TapeOut">TapeOut</option>
-                <option value="LintOnly">Lint Only</option>
+                <option v-for="t in metadataStore.types" :key="t" :value="t">{{ t }}</option>
               </select>
             </div>
           </div>
@@ -143,6 +126,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useProjectsStore, type Project } from '@/stores/projects'
 import CompanySelector from '@/components/Common/CompanySelector.vue'
+import { useMetadataStore } from '@/stores/metadata'
 
 interface Props {
   onProjectCreated?: (project: Project) => void
@@ -153,6 +137,8 @@ const props = defineProps<Props>()
 const projectsStore = useProjectsStore()
 const showForm = ref(true)
 const submitting = ref(false)
+
+const metadataStore = useMetadataStore()
 
 const form = reactive({
   name: '',
@@ -192,6 +178,8 @@ onMounted(async () => {
     loadingSpecs.value = false
     loadingChecklists.value = false
   }
+
+  if (!metadataStore.platforms.length) metadataStore.fetchMetadata()
 })
 
 const toggleForm = () => {

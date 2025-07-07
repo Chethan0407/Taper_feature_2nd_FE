@@ -63,7 +63,7 @@
         <!-- Feature Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
           <!-- SpecLint Engine Card -->
-          <div class="card group hover:neon-glow transition-all duration-300">
+          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 group">
             <div class="flex items-start space-x-4">
               <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +71,7 @@
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">SpecLint Engine</h3>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">SpecLint Engine</h3>
                 <p class="text-gray-600 dark:text-gray-400 mb-4">
                   Automatically validate your specifications for compliance, completeness, and best practices.
                 </p>
@@ -83,7 +83,7 @@
           </div>
 
           <!-- Checklist Automation Card -->
-          <div class="card group hover:neon-glow transition-all duration-300">
+          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 group">
             <div class="flex items-start space-x-4">
               <div class="w-12 h-12 bg-gradient-to-br from-neon-green to-neon-blue rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +91,7 @@
                 </svg>
               </div>
               <div class="flex-1">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Checklist Automation</h3>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Checklist Automation</h3>
                 <p class="text-gray-600 dark:text-gray-400 mb-4">
                   Create, assign, and track approval workflows with automated reminders and notifications.
                 </p>
@@ -101,6 +101,128 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Filter Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12 mt-12">
+          <!-- Platform Card -->
+          <div class="card bg-light-100 dark:bg-dark-800 p-6 min-h-[180px] flex flex-col justify-between shadow-lg hover:shadow-xl border border-gray-200 dark:border-dark-700">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-10 h-10 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+              </div>
+              <span class="text-lg font-semibold text-white">Platform</span>
+            </div>
+            <div v-if="metadataStore.loading">
+              <span class="text-gray-400">Loading...</span>
+            </div>
+            <div v-else-if="metadataStore.error">
+              <span class="text-red-400">Failed to load platforms</span>
+            </div>
+            <div v-else-if="!metadataStore.platforms.length">
+              <span class="text-gray-400">No platforms found</span>
+            </div>
+            <div v-else class="flex flex-wrap gap-3 mt-2">
+              <button v-for="platform in metadataStore.platforms" :key="platform" @click="handleFilter('platform', platform)" :class="['chip', isFilterSelected('platform', platform) ? 'bg-neon-blue text-white' : 'bg-dark-800 text-gray-300 hover:bg-dark-700']">
+                {{ platform }}
+              </button>
+            </div>
+          </div>
+          <!-- EDA Tool Card -->
+          <div class="card bg-light-100 dark:bg-dark-800 p-6 min-h-[180px] flex flex-col justify-between shadow-lg hover:shadow-xl border border-gray-200 dark:border-dark-700">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-10 h-10 bg-gradient-to-br from-neon-green to-neon-blue rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <span class="text-lg font-semibold text-white">EDA Tool</span>
+            </div>
+            <div v-if="metadataStore.loading">
+              <span class="text-gray-400">Loading...</span>
+            </div>
+            <div v-else-if="metadataStore.error">
+              <span class="text-red-400">Failed to load EDA tools</span>
+            </div>
+            <div v-else-if="!metadataStore.edaTools.length">
+              <span class="text-gray-400">No EDA tools found</span>
+            </div>
+            <div v-else class="flex flex-wrap gap-3 mt-2">
+              <button v-for="edaTool in metadataStore.edaTools" :key="edaTool" @click="handleFilter('edaTool', edaTool)" :class="['chip', isFilterSelected('edaTool', edaTool) ? 'bg-neon-green text-white' : 'bg-dark-800 text-gray-300 hover:bg-dark-700']">
+                {{ edaTool }}
+              </button>
+            </div>
+          </div>
+          <!-- Type Card -->
+          <div class="card bg-light-100 dark:bg-dark-800 p-6 min-h-[180px] flex flex-col justify-between shadow-lg hover:shadow-xl border border-gray-200 dark:border-dark-700">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-10 h-10 bg-gradient-to-br from-neon-purple to-neon-pink rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+              <span class="text-lg font-semibold text-white">Type</span>
+            </div>
+            <div v-if="metadataStore.loading">
+              <span class="text-gray-400">Loading...</span>
+            </div>
+            <div v-else-if="metadataStore.error">
+              <span class="text-red-400">Failed to load types</span>
+            </div>
+            <div v-else-if="!metadataStore.types.length">
+              <span class="text-gray-400">No types found</span>
+            </div>
+            <div v-else class="flex flex-wrap gap-3 mt-2">
+              <button v-for="type in metadataStore.types" :key="type" @click="handleFilter('type', type)" :class="['chip', isFilterSelected('type', type) ? 'bg-neon-purple text-white' : 'bg-dark-800 text-gray-300 hover:bg-dark-700']">
+                {{ type }}
+              </button>
+            </div>
+          </div>
+          <!-- Status Card -->
+          <div class="card bg-light-100 dark:bg-dark-800 p-6 min-h-[180px] flex flex-col justify-between shadow-lg hover:shadow-xl border border-gray-200 dark:border-dark-700">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <span class="text-lg font-semibold text-white">Status</span>
+            </div>
+            <div v-if="metadataStore.loading">
+              <span class="text-gray-400">Loading...</span>
+            </div>
+            <div v-else-if="metadataStore.error">
+              <span class="text-red-400">Failed to load statuses</span>
+            </div>
+            <div v-else-if="!metadataStore.statuses.length">
+              <span class="text-gray-400">No statuses found</span>
+            </div>
+            <div v-else class="flex flex-wrap gap-3 mt-2">
+              <button v-for="status in metadataStore.statuses" :key="status" @click="handleFilter('status', status)" :class="['chip', isFilterSelected('status', status) ? 'bg-yellow-400 text-white' : 'bg-dark-800 text-gray-300 hover:bg-dark-700']">
+                {{ status }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading state for tapeouts or metadata -->
+        <div v-if="metadataStore.loading || tapeoutsLoading" class="flex justify-center items-center py-12">
+          <div class="text-center">
+            <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <p class="text-gray-400">Loading data...</p>
+          </div>
+        </div>
+        <div v-else-if="tapeoutsError" class="text-center py-12">
+          <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-red-400 mb-2">Failed to Load Tapeouts</h3>
+          <p class="text-gray-400 mb-4">{{ tapeoutsError }}</p>
+          <button @click="fetchTapeouts" class="btn-primary">Try Again</button>
         </div>
 
         <!-- Quick Stats -->
@@ -128,14 +250,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onUnmounted } from 'vue'
+import { onMounted, ref, onUnmounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import { useMetadataStore } from '@/stores/metadata'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const metadataStore = useMetadataStore()
 
 const goToProjects = () => {
   router.push('/projects')
@@ -145,6 +269,17 @@ const stats = ref<{ active_specs?: number; pending_reviews?: number; vendor_part
 const loadingStats = ref(true)
 const statsError = ref('')
 let statsInterval: number | undefined
+
+const tapeouts = ref([])
+const tapeoutsLoading = ref(false)
+const tapeoutsError = ref('')
+
+const selectedFilters = ref({
+  platform: '',
+  edaTool: '',
+  type: '',
+  status: ''
+})
 
 const fetchStats = async () => {
   loadingStats.value = true
@@ -166,15 +301,50 @@ const fetchStats = async () => {
   }
 }
 
+const fetchTapeouts = async () => {
+  tapeoutsLoading.value = true
+  tapeoutsError.value = ''
+  try {
+    const params = []
+    if (selectedFilters.value.platform) params.push(`platform=${encodeURIComponent(selectedFilters.value.platform)}`)
+    if (selectedFilters.value.edaTool) params.push(`eda_tool=${encodeURIComponent(selectedFilters.value.edaTool)}`)
+    if (selectedFilters.value.type) params.push(`type=${encodeURIComponent(selectedFilters.value.type)}`)
+    if (selectedFilters.value.status) params.push(`status=${encodeURIComponent(selectedFilters.value.status)}`)
+    const query = params.length ? `?${params.join('&')}` : ''
+    const res = await fetch(`/api/v1/tapeouts${query}`)
+    if (!res.ok) throw new Error(await res.text() || 'Failed to fetch tapeouts')
+    tapeouts.value = await res.json()
+  } catch (e: any) {
+    tapeoutsError.value = e.message || 'Failed to fetch tapeouts'
+  } finally {
+    tapeoutsLoading.value = false
+  }
+}
+
 onMounted(async () => {
   // Check authentication on mount
   await authStore.checkAuth()
 
+  if (!metadataStore.platforms.length) await metadataStore.fetchMetadata()
   await fetchStats()
+  await fetchTapeouts()
   statsInterval = window.setInterval(fetchStats, 10000)
 })
 
 onUnmounted(() => {
   if (statsInterval) clearInterval(statsInterval)
 })
-</script> 
+
+const handleFilter = (key: keyof typeof selectedFilters.value, value: string) => {
+  selectedFilters.value[key] = value
+  fetchTapeouts()
+}
+
+const isFilterSelected = (key: keyof typeof selectedFilters.value, value: string) => selectedFilters.value[key] === value
+</script>
+
+<style scoped>
+.chip {
+  @apply px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 cursor-pointer;
+}
+</style> 

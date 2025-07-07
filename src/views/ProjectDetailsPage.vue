@@ -144,6 +144,14 @@
       </main>
     </div>
   </div>
+
+  <!-- Add ProjectEditModal -->
+  <ProjectEditModal
+    v-if="showEditModal && project"
+    :project="project"
+    @close="closeEditModal"
+    @updated="handleProjectUpdated"
+  />
 </template>
 
 <script setup lang="ts">
@@ -152,6 +160,7 @@ import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectsStore, type Project } from '@/stores/projects'
+import ProjectEditModal from '@/components/Projects/ProjectEditModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -160,6 +169,8 @@ const projectsStore = useProjectsStore()
 const project = ref<Project | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const showEditModal = ref(false)
 
 const loadProject = async () => {
   const projectId = route.params.id as string
@@ -197,8 +208,16 @@ const getStatusClass = (status: string) => {
 }
 
 const editProject = () => {
-  // TODO: Implement edit functionality
-  console.log('Edit project:', project.value)
+  showEditModal.value = true
+}
+
+const handleProjectUpdated = async () => {
+  showEditModal.value = false
+  await loadProject()
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false
 }
 
 const deleteProject = async () => {
