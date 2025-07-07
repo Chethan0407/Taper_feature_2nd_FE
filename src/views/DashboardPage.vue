@@ -16,7 +16,7 @@
             Streamline Your Tapeout Workflow
           </h1>
           <p class="text-xl text-gray-600 dark:text-gray-400 max-w-2xl">
-            Welcome back, {{ authStore.user?.name }}. Manage your semiconductor design specifications, 
+            Welcome back<span v-if="authStore.user?.name">, {{ authStore.user.name }}</span>. Manage your semiconductor design specifications, 
             automate quality checks, and collaborate with vendors all in one place.
           </p>
         </div>
@@ -75,7 +75,7 @@
                 <p class="text-gray-600 dark:text-gray-400 mb-4">
                   Automatically validate your specifications for compliance, completeness, and best practices.
                 </p>
-                <button class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors">
+                <button class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors" @click="router.push('/speclint')">
                   Try SpecLint →
                 </button>
               </div>
@@ -95,7 +95,7 @@
                 <p class="text-gray-600 dark:text-gray-400 mb-4">
                   Create, assign, and track approval workflows with automated reminders and notifications.
                 </p>
-                <button class="text-neon-green hover:text-neon-green/80 font-medium transition-colors">
+                <button class="text-neon-green hover:text-neon-green/80 font-medium transition-colors" @click="router.push('/checklists')">
                   Create Checklist →
                 </button>
               </div>

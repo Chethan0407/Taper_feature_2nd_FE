@@ -89,13 +89,18 @@ const handleSubmit = async () => {
   submitting.value = true
   error.value = ''
   try {
+    // Validate company_id is selected and is a valid number
+    const companyIdNum = parseInt(form.companyId)
+    if (!companyIdNum || isNaN(companyIdNum)) {
+      throw new Error('Please select a valid company')
+    }
     await projectsStore.updateProject(props.project.id, {
       name: form.name,
       description: form.description,
       platform: form.platform,
       edaTool: form.edaTool,
       type: form.type,
-      company_id: parseInt(form.companyId)
+      company_id: companyIdNum
     })
     emit('updated')
   } catch (e: any) {

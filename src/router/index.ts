@@ -39,6 +39,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/specs/:id',
+      name: 'SpecDetails',
+      component: () => import('@/views/SpecDetailsPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/checklists',
       name: 'Checklists',
       component: () => import('@/views/ChecklistsPage.vue'),
@@ -60,6 +66,12 @@ const router = createRouter({
       path: '/companies',
       name: 'Companies',
       component: () => import('@/views/CompaniesPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/companies/:id',
+      name: 'CompanyDetails',
+      component: () => import('@/views/CompanyDetailsPage.vue'),
       meta: { requiresAuth: true }
     },
     {

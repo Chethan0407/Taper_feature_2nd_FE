@@ -337,6 +337,7 @@
         <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Spec Metadata</h2>
         <form class="space-y-4" @submit.prevent="submitMetadata">
           <input class="input-field w-full" v-model="metadataForm.name" placeholder="Spec Name" required />
+          <input class="input-field w-full" v-model="metadataForm.version" placeholder="Version (e.g. 1.0.0)" required />
           <textarea class="input-field w-full" v-model="metadataForm.description" placeholder="Description (optional)" rows="3"></textarea>
           <select class="input-field w-full" v-model="metadataForm.projectId" required>
             <option value="">Select Project</option>
@@ -559,13 +560,15 @@ const submitMetadata = async () => {
     const formData = new FormData()
     formData.append('file', metadataFile.value)
     formData.append('name', metadataForm.value.name)
+    formData.append('version', metadataForm.value.version)
     formData.append('description', metadataForm.value.description)
-    formData.append('project_id', metadataForm.value.projectId)
     formData.append('type', metadataForm.value.type)
     formData.append('status', metadataForm.value.status)
+    // Use the correct endpoint for uploading a spec to a project
+    const projectId = metadataForm.value.projectId
     const headers: HeadersInit = {}
     if (authStore.token) headers['Authorization'] = `Bearer ${authStore.token}`
-    const res = await fetch('http://localhost:8000/api/v1/specs/', {
+    const res = await fetch(`http://localhost:8000/api/v1/specs/projects/${projectId}/specs`, {
       method: 'POST',
       headers,
       body: formData,
@@ -575,10 +578,10 @@ const submitMetadata = async () => {
     await fetchRecentSpecs()
     showMetadataModal.value = false
     metadataFile.value = null
-    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Spec uploaded successfully!', type: 'success' } }))
+    window.dispatchEvent(new CustomEvent('toast', { detail: `Spec uploaded successfully!|success` }))
   } catch (e: any) {
     metadataError.value = e.message || 'Failed to upload spec'
-    window.dispatchEvent(new CustomEvent('toast', { detail: { message: metadataError.value, type: 'error' } }))
+    window.dispatchEvent(new CustomEvent('toast', { detail: `${metadataError.value}|error` }))
   } finally {
     metadataLoading.value = false
   }
@@ -778,6 +781,7 @@ const handleEditSpec = async () => {
 const showMetadataModal = ref(false)
 const metadataForm = ref({
   name: '',
+  version: '',
   description: '',
   projectId: '',
   type: '',

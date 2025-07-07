@@ -32,8 +32,10 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
+      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+      console.log('Projects API: Authorization header:', headers)
       const response = await fetch(API_BASE, {
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+        headers
       })
       
       if (!response.ok) {
@@ -62,18 +64,19 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      // Map createdAt to created_at if present (type assertion for optional camelCase)
       const pd = projectData as any;
       const payload = {
         ...projectData,
         ...(pd.createdAt ? { created_at: pd.createdAt } : {})
       };
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
+      }
+      console.log('Projects API: Authorization header (create):', headers)
       const response = await fetch(API_BASE, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-        },
+        headers,
         body: JSON.stringify(payload)
       })
       
@@ -101,8 +104,10 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
+      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+      console.log('Projects API: Authorization header (get):', headers)
       const response = await fetch(`${API_BASE}${id}/`, {
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+        headers
       })
       
       if (!response.ok) {
@@ -128,18 +133,19 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      // Map createdAt to created_at if present (type assertion for optional camelCase)
       const pd = projectData as any;
       const payload = {
         ...projectData,
         ...(pd.createdAt ? { created_at: pd.createdAt } : {})
       };
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
+      }
+      console.log('Projects API: Authorization header (update):', headers)
       const response = await fetch(`${API_BASE}${id}/`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-        },
+        headers,
         body: JSON.stringify(payload)
       })
       
@@ -175,9 +181,11 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
+      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+      console.log('Projects API: Authorization header (delete):', headers)
       const response = await fetch(`${API_BASE}${id}/`, {
         method: 'DELETE',
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+        headers
       })
       
       // Remove from local list regardless of backend response

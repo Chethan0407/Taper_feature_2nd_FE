@@ -56,6 +56,7 @@
                   <th class="text-left p-6 text-gray-300 font-semibold">Created By</th>
                   <th class="text-left p-6 text-gray-300 font-semibold">Status</th>
                   <th class="text-left p-6 text-gray-300 font-semibold">Created</th>
+                  <th class="text-left p-6 text-gray-300 font-semibold">Last Updated By</th>
                   <th class="text-right p-6 text-gray-300 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -80,7 +81,7 @@
                     <p class="text-gray-300 max-w-xs truncate">{{ company.description || 'No description' }}</p>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300">{{ company.createdBy || 'Unknown' }}</p>
+                    <p class="text-gray-300">{{ company.createdBy || (company as any).created_by || 'Unknown' }}</p>
                   </td>
                   <td class="p-6">
                     <span :class="getStatusClass(company.status)" class="px-3 py-1 rounded-full text-xs font-medium">
@@ -88,7 +89,17 @@
                     </span>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300 text-sm">{{ formatDate(company.created_at) }}</p>
+                    <p class="text-gray-300 text-sm">{{ formatDate(company.created_at || '') }}</p>
+                  </td>
+                  <td class="p-6">
+                    <p class="text-gray-300">
+                      <template v-if="(company.updatedAt && company.updatedAt !== company.createdAt) || ((company as any).updated_by && (company as any).updated_by !== (company as any).created_by) || ((company as any).updatedBy && (company as any).updatedBy !== (company as any).createdBy)">
+                        {{ (company as any).updatedBy || (company as any).updated_by }}
+                      </template>
+                      <template v-else>
+                        —
+                      </template>
+                    </p>
                   </td>
                   <td class="p-6">
                     <div class="flex items-center justify-end space-x-2">
@@ -270,17 +281,22 @@
 
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">CREATED BY</label>
-              <p class="text-white">{{ selectedCompany.createdBy || 'Unknown' }}</p>
+              <p class="text-white">{{ selectedCompany.createdBy || (selectedCompany as any).created_by || 'Unknown' }}</p>
             </div>
 
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">CREATED</label>
-              <p class="text-white">{{ formatDate(selectedCompany.created_at) }}</p>
+              <p class="text-white">{{ formatDate(selectedCompany.created_at || '') }}</p>
             </div>
 
-            <div>
+            <div v-if="selectedCompany.updatedAt">
               <label class="block text-gray-300 text-sm font-medium mb-2">LAST UPDATED</label>
-              <p class="text-white">{{ formatDate(selectedCompany.updatedAt) }}</p>
+              <p class="text-white">{{ formatDate(selectedCompany.updatedAt || '') }}</p>
+            </div>
+
+            <div v-if="(selectedCompany as any).updatedBy || (selectedCompany as any).updated_by">
+              <label class="block text-gray-300 text-sm font-medium mb-2">LAST UPDATED BY</label>
+              <p class="text-white">{{ (selectedCompany as any).updatedBy || (selectedCompany as any).updated_by }}</p>
             </div>
           </div>
 
@@ -501,7 +517,12 @@ const confirmDelete = async () => {
     closeDeleteModal()
   } catch (error: any) {
     console.error('Failed to delete company:', error)
-    showToast(error.message || 'Failed to delete company', true)
+    const msg = error.message || ''
+    if (msg.includes('Cannot delete company with existing projects')) {
+      showToast('Cannot delete company with existing projects. Please delete all projects first.', true)
+    } else {
+      showToast(msg || 'Failed to delete company', true)
+    }
   } finally {
     deleting.value = false
   }

@@ -1,23 +1,5 @@
 <template>
-  <div class="mb-8">
-    <!-- Toggle Button -->
-    <div class="flex justify-end mb-4">
-      <button 
-        @click="toggleForm"
-        class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow rounded-xl"
-        :class="{ 'bg-gray-600': showForm }"
-      >
-        <svg v-if="!showForm" class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        <svg v-else class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-        {{ showForm ? 'Cancel' : 'New Project' }}
-      </button>
-    </div>
-
-    <!-- Inline Form -->
+  <div>
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="opacity-0 transform -translate-y-4 scale-95"
@@ -26,7 +8,7 @@
       leave-from-class="opacity-100 transform translate-y-0 scale-100"
       leave-to-class="opacity-0 transform -translate-y-4 scale-95"
     >
-      <div v-if="showForm" class="card bg-dark-900/50 backdrop-blur-sm border border-dark-600/50 rounded-2xl p-6 shadow-2xl">
+      <div class="card bg-dark-900/50 backdrop-blur-sm border border-dark-600/50 rounded-2xl p-6 shadow-2xl">
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <!-- Project Name -->
           <div>
@@ -135,7 +117,7 @@
           <div class="flex justify-end space-x-3 pt-4">
             <button 
               type="button"
-              @click="toggleForm"
+              @click="emit('cancel')"
               class="btn-secondary px-6 py-3 rounded-lg"
             >
               Cancel
@@ -169,7 +151,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const projectsStore = useProjectsStore()
-const showForm = ref(false)
+const showForm = ref(true)
 const submitting = ref(false)
 
 const form = reactive({
@@ -187,6 +169,8 @@ const allSpecs = ref<{ id: number; name: string }[]>([])
 const allChecklists = ref<{ id: number; name: string }[]>([])
 const loadingSpecs = ref(false)
 const loadingChecklists = ref(false)
+
+const emit = defineEmits(['project-created', 'cancel'])
 
 onMounted(async () => {
   loadingSpecs.value = true
@@ -214,6 +198,7 @@ const toggleForm = () => {
   showForm.value = !showForm.value
   if (!showForm.value) {
     resetForm()
+    emit('cancel')
   }
 }
 
@@ -246,7 +231,9 @@ const handleSubmit = async () => {
       status: 'active' as const,
       company_id: parseInt(form.companyId),
       spec_ids: form.linkedSpecs,
-      checklist_ids: form.linkedChecklists
+      checklist_ids: form.linkedChecklists,
+      created_at: '',
+      updated_at: ''
     }
     
     const newProject = await projectsStore.createProject(projectData)

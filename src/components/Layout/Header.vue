@@ -1,6 +1,11 @@
 <template>
   <header class="bg-light-100 dark:bg-dark-900 border-b border-light-300 dark:border-dark-700 px-6 py-4">
     <div class="flex items-center justify-between">
+      <!-- Branding Logo and Name -->
+      <div class="flex items-center mr-8">
+        <img v-if="branding.logo_url" :src="branding.logo_url" alt="Logo" class="h-10 w-10 rounded-lg mr-4" />
+        <span class="text-xl font-bold text-white tracking-wide">{{ branding.company_name }}</span>
+      </div>
       <!-- Left side - Search -->
       <div class="flex-1 max-w-lg">
         <div class="relative">
@@ -13,14 +18,31 @@
             v-model="searchQuery"
             type="text"
             class="input-field w-full pl-10 pr-4"
-            placeholder="Search specs, checklists, vendors..."
-            @keydown.ctrl.k.prevent="focusSearch"
-            @keydown.meta.k.prevent="focusSearch"
+            placeholder="Search companies, projects, specs..."
+            @focus="showDropdown = !!searchResults.length"
+            @blur="handleSearchBlur"
           />
           <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
             <kbd class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono text-gray-500 dark:text-gray-400 bg-light-200 dark:bg-dark-800 border border-light-300 dark:border-dark-600">
               ⌘K
             </kbd>
+          </div>
+          <!-- Results Dropdown -->
+          <div v-if="showDropdown" class="absolute left-0 right-0 mt-1 bg-dark-900 border border-dark-700 rounded-lg shadow-lg z-50">
+            <div v-if="searchLoading" class="p-4 text-gray-400">Searching...</div>
+            <div v-else-if="searchError" class="p-4 text-red-400">{{ searchError }}</div>
+            <div v-else-if="searchResults.length === 0" class="p-4 text-gray-400">No results found</div>
+            <div v-else>
+              <div v-for="group in searchResults" :key="group.type">
+                <div class="px-4 py-2 text-xs text-gray-500 font-bold">{{ group.type }}</div>
+                <ul>
+                  <li v-for="item in group.items" :key="item.id" class="p-3 hover:bg-dark-800 cursor-pointer flex items-center" @mousedown.prevent="handleResultClick(group.type, item)">
+                    <span class="text-white font-medium">{{ item.name || item.title }}</span>
+                    <span v-if="item.description" class="ml-2 text-gray-400 text-xs truncate">{{ item.description }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -78,7 +100,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetchNotificationSettings } from '@/utils/users.api'
+import { useBrandingStore } from '@/stores/branding'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 const searchQuery = ref('')
 const notificationCount = ref(3)
@@ -89,6 +117,14 @@ const showNotificationPanel = ref(false)
 const notificationSettings = ref(null)
 const notificationLoading = ref(false)
 const notificationError = ref('')
+
+const branding = useBrandingStore()
+
+const searchResults = ref<{ type: string, items: any[] }[]>([])
+const searchLoading = ref(false)
+const searchError = ref('')
+const showDropdown = ref(false)
+let searchTimeout: any = null
 
 const openNotifications = async () => {
   showNotificationPanel.value = !showNotificationPanel.value
@@ -121,12 +157,55 @@ const updateTheme = () => {
   }
 }
 
-const focusSearch = () => {
-  // Focus search input
-  const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
-  if (searchInput) {
-    searchInput.focus()
+watch(searchQuery, (newVal) => {
+  clearTimeout(searchTimeout)
+  if (!newVal) {
+    searchResults.value = []
+    showDropdown.value = false
+    return
   }
+  searchTimeout = setTimeout(() => {
+    doGlobalSearch(newVal)
+  }, 300)
+})
+
+async function doGlobalSearch(query: string) {
+  searchLoading.value = true
+  searchError.value = ''
+  showDropdown.value = true
+  try {
+    const res = await fetch(`/api/v1/search/?q=${encodeURIComponent(query)}`, {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    if (!res.ok) throw new Error('Failed to search')
+    const data = await res.json()
+    searchResults.value = [
+      { type: 'Companies', items: data.companies || [] },
+      { type: 'Projects', items: data.projects || [] },
+      { type: 'Specs', items: data.specs || [] }
+    ].filter(group => group.items.length > 0)
+  } catch (e) {
+    searchError.value = 'Failed to search'
+    searchResults.value = []
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+function handleResultClick(type: string, item: any) {
+  let route = null
+  if (type === 'Companies') route = `/companies/${item.id}`
+  else if (type === 'Projects') route = `/projects/${item.id}`
+  else if (type === 'Specs') route = `/specs/${item.id}`
+  if (route) router.push(route)
+  showDropdown.value = false
+  searchQuery.value = ''
+}
+
+function handleSearchBlur() {
+  setTimeout(() => {
+    showDropdown.value = false
+  }, 200)
 }
 
 onMounted(() => {
@@ -143,6 +222,8 @@ onMounted(() => {
   
   // Apply the theme
   updateTheme()
+
+  if (!branding.company_name) branding.fetchBranding()
 })
 
 // Watch for system theme changes

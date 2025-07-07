@@ -121,6 +121,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     loginWithGoogle,
     logout,
-    checkAuth
+    checkAuth,
+    getAuthHeader
   }
 }) 

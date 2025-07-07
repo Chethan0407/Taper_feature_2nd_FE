@@ -46,7 +46,11 @@ export const useCompaniesStore = defineStore('companies', () => {
         throw new Error('Failed to load companies')
       }
       
-      companies.value = await response.json()
+      const rawCompanies = await response.json()
+      companies.value = rawCompanies.map((c: any) => ({
+        ...c,
+        createdBy: c.created_by || c.createdBy
+      }))
     } catch (err: any) {
       error.value = err.message || 'Failed to load companies'
       console.error('Error loading companies:', err)
@@ -96,7 +100,11 @@ export const useCompaniesStore = defineStore('companies', () => {
         throw new Error(errorText || 'Failed to create company')
       }
       
-      const newCompany = await response.json()
+      const newCompanyRaw = await response.json()
+      const newCompany = {
+        ...newCompanyRaw,
+        createdBy: newCompanyRaw.created_by || newCompanyRaw.createdBy
+      }
       companies.value.push(newCompany)
       return newCompany
     } catch (err: any) {
@@ -126,7 +134,11 @@ export const useCompaniesStore = defineStore('companies', () => {
         throw new Error(errorText || 'Failed to update company')
       }
       
-      const updatedCompany = await response.json()
+      const updatedCompanyRaw = await response.json()
+      const updatedCompany = {
+        ...updatedCompanyRaw,
+        updatedBy: updatedCompanyRaw.updated_by || updatedCompanyRaw.updatedBy
+      }
       const index = companies.value.findIndex(c => c.id === id)
       if (index !== -1) {
         companies.value[index] = updatedCompany

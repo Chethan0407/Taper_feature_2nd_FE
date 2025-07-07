@@ -21,7 +21,7 @@
               </div>
               
               <div class="space-y-4">
-                <div v-for="vendor in vendors" :key="vendor.id" class="p-4 bg-dark-800 rounded-lg border border-dark-600">
+                <div v-for="vendor in vendorsStore.vendors" :key="vendor.id" class="p-4 bg-dark-800 rounded-lg border border-dark-600">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
                       <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
@@ -36,7 +36,7 @@
                       <span :class="getStatusClass(vendor.status)" class="px-3 py-1 rounded-full text-xs font-medium">
                         {{ vendor.status }}
                       </span>
-                      <button class="p-2 text-gray-400 hover:text-gray-300 transition-colors">
+                      <button class="p-2 text-gray-400 hover:text-gray-300 transition-colors" @click="handleEdit(vendor)">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
                         </svg>
@@ -101,42 +101,26 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
+import { useVendorsStore } from '@/stores/vendors'
+import type { Vendor, VendorActivity } from '@/stores/vendors'
 
-interface Vendor {
-  id: string
-  name: string
-  type: string
-  status: 'active' | 'pending' | 'inactive'
-}
-
-interface Activity {
-  id: string
-  message: string
-  time: string
-}
-
-const vendors = ref<Vendor[]>([])
-const activities = ref<Activity[]>([])
+const vendorsStore = useVendorsStore()
+const loading = computed(() => vendorsStore.loading)
+const error = computed(() => vendorsStore.error)
+const activities = ref<VendorActivity[]>([])
 const showVendorModal = ref(false)
 const editingVendor = ref<Vendor | null>(null)
 const vendorForm = ref({ name: '', type: '', status: 'active' })
 const deleting = ref<string | null>(null)
 const uploadingNDA = ref<string | null>(null)
 const acknowledging = ref<string | null>(null)
-const vendorDetails = ref<Vendor | null>(null)
+const vendorDetails = ref(null)
 
 onMounted(async () => {
-  const res = await fetch('/api/v1/vendors/')
-  if (res.ok) {
-    vendors.value = await res.json()
-  }
-  // Fetch activities for the first vendor as an example
-  if (vendors.value.length > 0) {
-    const actRes = await fetch(`/api/v1/vendors/${vendors.value[0].id}/timeline`)
-    if (actRes.ok) {
-      activities.value = await actRes.json()
-    }
+  await vendorsStore.fetchVendors()
+  if (vendorsStore.vendors.length > 0) {
+    activities.value = await vendorsStore.fetchTimeline(vendorsStore.vendors[0].id)
   }
 })
 
@@ -155,56 +139,23 @@ const getStatusClass = (status: string) => {
 
 const handleSubmit = async () => {
   if (editingVendor.value) {
-    await updateVendor()
+    await vendorsStore.updateVendor(editingVendor.value.id, vendorForm.value)
   } else {
-    await addVendor()
+    await vendorsStore.createVendor(vendorForm.value)
   }
+  showVendorModal.value = false
+  vendorForm.value = { name: '', type: '', status: 'active' }
+  editingVendor.value = null
 }
 
-const addVendor = async () => {
-  const res = await fetch('/api/v1/vendors/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(vendorForm.value)
-  })
-  if (res.ok) {
-    vendors.value.push(await res.json())
-    showVendorModal.value = false
-  }
+const handleEdit = (vendor: Vendor) => {
+  editingVendor.value = vendor
+  vendorForm.value = { name: vendor.name, type: vendor.type, status: vendor.status }
+  showVendorModal.value = true
 }
 
-const updateVendor = async () => {
-  if (editingVendor.value) {
-    const res = await fetch(`/api/v1/vendors/${editingVendor.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(vendorForm.value)
-    })
-    if (res.ok) {
-      const updatedVendor = await res.json()
-      const index = vendors.value.findIndex(v => v.id === updatedVendor.id)
-      if (index !== -1) {
-        vendors.value[index] = updatedVendor
-      }
-      showVendorModal.value = false
-    }
-  }
-}
-
-const deleteVendor = async () => {
-  if (deleting.value) {
-    const res = await fetch(`/api/v1/vendors/${deleting.value}`, {
-      method: 'DELETE'
-    })
-    if (res.ok) {
-      vendors.value = vendors.value.filter(v => v.id !== deleting.value)
-      deleting.value = null
-    }
-  }
+const handleDelete = async (id: string) => {
+  await vendorsStore.deleteVendor(id)
 }
 
 const uploadNDA = async () => {
