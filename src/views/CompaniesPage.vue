@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-dark-950">
+  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
     <Sidebar />
     
     <div class="ml-64">
@@ -9,8 +9,8 @@
         <!-- Page Header -->
         <div class="mb-8 flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-white mb-2">Companies</h1>
-            <p class="text-gray-400">Manage your organization's companies and subsidiaries</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Companies</h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage your organization's companies and subsidiaries</p>
           </div>
           <button 
             @click="openCreateModal"
@@ -46,25 +46,25 @@
         </div>
 
         <!-- Companies Table -->
-        <div v-else-if="companiesStore.companies.length > 0" class="card bg-dark-900/30 backdrop-blur-sm border border-dark-600/50 rounded-2xl shadow-2xl">
+        <div v-else-if="companiesStore.companies.length > 0" class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead>
-                <tr class="border-b border-dark-600/50">
-                  <th class="text-left p-6 text-gray-300 font-semibold">Company Name</th>
-                  <th class="text-left p-6 text-gray-300 font-semibold">Description</th>
-                  <th class="text-left p-6 text-gray-300 font-semibold">Created By</th>
-                  <th class="text-left p-6 text-gray-300 font-semibold">Status</th>
-                  <th class="text-left p-6 text-gray-300 font-semibold">Created</th>
-                  <th class="text-left p-6 text-gray-300 font-semibold">Last Updated By</th>
-                  <th class="text-right p-6 text-gray-300 font-semibold">Actions</th>
+                <tr class="border-b border-gray-200 dark:border-dark-600/50">
+                  <th class="text-left p-6 text-gray-700 dark:text-gray-300 font-semibold">Company Name</th>
+                  <th class="text-left p-6 text-gray-700 dark:text-gray-300 font-semibold">Description</th>
+                  <th class="text-left p-6 text-gray-700 dark:text-gray-300 font-semibold">Created By</th>
+                  <th class="text-left p-6 text-gray-700 dark:text-gray-300 font-semibold">Status</th>
+                  <th class="text-left p-6 text-gray-700 dark:text-gray-300 font-semibold">Created</th>
+                  <th class="text-left p-6 text-gray-700 dark:text-gray-300 font-semibold">Last Updated By</th>
+                  <th class="text-right p-6 text-gray-700 dark:text-gray-300 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr 
                   v-for="company in companiesStore.companies" 
                   :key="company.id"
-                  class="border-b border-dark-600/30 hover:bg-dark-800/30 transition-colors"
+                  class="border-b border-gray-100 dark:border-dark-600/30 hover:bg-gray-50 dark:hover:bg-dark-800/30 transition-colors"
                 >
                   <td class="p-6">
                     <div class="flex items-center space-x-3">
@@ -72,16 +72,16 @@
                         <span class="text-white font-semibold text-sm">{{ company.name.charAt(0) }}</span>
                       </div>
                       <div>
-                        <h3 class="font-semibold text-white">{{ company.name }}</h3>
-                        <p class="text-sm text-gray-400">ID: {{ company.id }}</p>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">{{ company.name }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">ID: {{ company.id }}</p>
                       </div>
                     </div>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300 max-w-xs truncate">{{ company.description || 'No description' }}</p>
+                    <p class="text-gray-700 dark:text-gray-300 max-w-xs truncate">{{ company.description || 'No description' }}</p>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300">{{ company.createdBy || (company as any).created_by || 'Unknown' }}</p>
+                    <p class="text-gray-700 dark:text-gray-300">{{ company.createdBy || (company as any).created_by || 'Unknown' }}</p>
                   </td>
                   <td class="p-6">
                     <span :class="getStatusClass(company.status)" class="px-3 py-1 rounded-full text-xs font-medium">
@@ -89,10 +89,10 @@
                     </span>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300 text-sm">{{ formatDate(company.created_at || '') }}</p>
+                    <p class="text-gray-700 dark:text-gray-300 text-sm">{{ formatDate(company.created_at || '') }}</p>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-300">
+                    <p class="text-gray-700 dark:text-gray-300">
                       <template v-if="(company.updatedAt && company.updatedAt !== company.createdAt) || ((company as any).updated_by && (company as any).updated_by !== (company as any).created_by) || ((company as any).updatedBy && (company as any).updatedBy !== (company as any).createdBy)">
                         {{ (company as any).updatedBy || (company as any).updated_by }}
                       </template>
@@ -141,7 +141,7 @@
 
         <!-- Empty State -->
         <div v-else class="text-center py-12">
-          <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
           </svg>
           <h3 class="text-xl font-semibold text-gray-400 mb-2">No Companies Yet</h3>
@@ -175,7 +175,7 @@
 
     <!-- Create/Edit Company Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-dark-800 p-8 rounded-2xl relative w-full max-w-lg shadow-2xl">
+      <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl relative w-full max-w-lg shadow-2xl border border-gray-200 dark:border-dark-600">
         <button 
           @click="closeModal"
           class="absolute top-6 right-6 text-gray-400 hover:text-gray-200 text-3xl font-bold"
@@ -183,37 +183,37 @@
           &times;
         </button>
         
-        <h2 class="text-3xl font-bold text-white mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">
           {{ isEditing ? 'Edit Company' : 'Create New Company' }}
         </h2>
         
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div>
-            <label class="block text-gray-300 text-sm font-medium mb-2">COMPANY NAME *</label>
+            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">COMPANY NAME *</label>
             <input 
               v-model="form.name"
               type="text"
               placeholder="Enter company name"
-              class="input-field w-full bg-light-100 dark:bg-dark-700 border-light-300 dark:border-dark-600 focus:border-neon-blue transition-colors text-gray-900 dark:text-gray-100"
+              class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors text-gray-900 dark:text-gray-100"
               required
             />
           </div>
 
           <div>
-            <label class="block text-gray-300 text-sm font-medium mb-2">DESCRIPTION</label>
+            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">DESCRIPTION</label>
             <textarea 
               v-model="form.description"
               placeholder="Company description (optional)"
               rows="3"
-              class="input-field w-full bg-light-100 dark:bg-dark-700 border-light-300 dark:border-dark-600 focus:border-neon-blue transition-colors resize-none text-gray-900 dark:text-gray-100"
+              class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors resize-none text-gray-900 dark:text-gray-100"
             ></textarea>
           </div>
 
           <div v-if="isEditing">
-            <label class="block text-gray-300 text-sm font-medium mb-2">STATUS</label>
+            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">STATUS</label>
             <select 
               v-model="form.status"
-              class="input-field w-full bg-dark-700 border-dark-600 focus:border-neon-blue transition-colors"
+              class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -245,7 +245,7 @@
 
     <!-- View Company Modal -->
     <div v-if="showViewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-dark-800 p-8 rounded-2xl relative w-full max-w-lg shadow-2xl">
+      <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl relative w-full max-w-lg shadow-2xl border border-gray-200 dark:border-dark-600">
         <button 
           @click="closeViewModal"
           class="absolute top-6 right-6 text-gray-400 hover:text-gray-200 text-3xl font-bold"
@@ -259,44 +259,44 @@
               <span class="text-white font-semibold text-xl">{{ selectedCompany.name.charAt(0) }}</span>
             </div>
             <div>
-              <h2 class="text-3xl font-bold text-white">{{ selectedCompany.name }}</h2>
+              <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ selectedCompany.name }}</h2>
               <p class="text-gray-400">Company ID: {{ selectedCompany.id }}</p>
             </div>
           </div>
 
           <div class="space-y-4">
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">DESCRIPTION</label>
-              <p class="text-white bg-dark-700 p-3 rounded-lg">
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">DESCRIPTION</label>
+              <p class="text-gray-900 dark:text-gray-100 bg-white dark:bg-dark-700 p-3 rounded-lg">
                 {{ selectedCompany.description || 'No description provided' }}
               </p>
             </div>
 
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">STATUS</label>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">STATUS</label>
               <span :class="getStatusClass(selectedCompany.status)" class="px-3 py-1 rounded-full text-sm font-medium">
                 {{ selectedCompany.status }}
               </span>
             </div>
 
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">CREATED BY</label>
-              <p class="text-white">{{ selectedCompany.createdBy || (selectedCompany as any).created_by || 'Unknown' }}</p>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">CREATED BY</label>
+              <p class="text-gray-900 dark:text-gray-100">{{ selectedCompany.createdBy || (selectedCompany as any).created_by || 'Unknown' }}</p>
             </div>
 
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">CREATED</label>
-              <p class="text-white">{{ formatDate(selectedCompany.created_at || '') }}</p>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">CREATED</label>
+              <p class="text-gray-900 dark:text-gray-100">{{ formatDate(selectedCompany.created_at || '') }}</p>
             </div>
 
             <div v-if="selectedCompany.updatedAt">
-              <label class="block text-gray-300 text-sm font-medium mb-2">LAST UPDATED</label>
-              <p class="text-white">{{ formatDate(selectedCompany.updatedAt || '') }}</p>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">LAST UPDATED</label>
+              <p class="text-gray-900 dark:text-gray-100">{{ formatDate(selectedCompany.updatedAt || '') }}</p>
             </div>
 
             <div v-if="(selectedCompany as any).updatedBy || (selectedCompany as any).updated_by">
-              <label class="block text-gray-300 text-sm font-medium mb-2">LAST UPDATED BY</label>
-              <p class="text-white">{{ (selectedCompany as any).updatedBy || (selectedCompany as any).updated_by }}</p>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">LAST UPDATED BY</label>
+              <p class="text-gray-900 dark:text-gray-100">{{ (selectedCompany as any).updatedBy || (selectedCompany as any).updated_by }}</p>
             </div>
           </div>
 
@@ -314,15 +314,15 @@
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-dark-800 p-8 rounded-2xl relative w-full max-w-md shadow-2xl">
+      <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl relative w-full max-w-md shadow-2xl border border-gray-200 dark:border-dark-600">
         <div class="text-center">
           <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           
-          <h3 class="text-xl font-bold text-white mb-4">Delete Company</h3>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Delete Company</h3>
           <p class="text-gray-400 mb-6">
-            Are you sure you want to delete <strong class="text-white">{{ companyToDelete?.name }}</strong>? 
+            Are you sure you want to delete <strong class="text-gray-900 dark:text-white">{{ companyToDelete?.name }}</strong>? 
             This action cannot be undone.
           </p>
           

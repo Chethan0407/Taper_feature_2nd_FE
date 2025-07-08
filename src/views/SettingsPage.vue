@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-dark-950">
+  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
     <Sidebar />
     
     <div class="ml-64">
@@ -7,26 +7,26 @@
       
       <main class="p-8">
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p class="text-gray-400">Manage your account and organization settings</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
+          <p class="text-gray-500 dark:text-gray-400">Manage your account and organization settings</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- User Settings -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">User Profile</h2>
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">User Profile</h2>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                <input class="input-field w-full" v-model="profile.name" />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.name" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                <input class="input-field w-full" v-model="profile.email" />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.email" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Role</label>
-                <select class="input-field w-full" v-model="profile.role">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
+                <select class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.role">
                   <option>Lead Engineer</option>
                   <option>Manager</option>
                   <option>Admin</option>
@@ -37,16 +37,16 @@
           </div>
 
           <!-- API Keys -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">API Keys</h2>
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">API Keys</h2>
             <div class="space-y-4">
-              <div class="p-4 bg-dark-800 rounded-lg border border-dark-600" v-for="key in apiKeys" :key="key.id">
+              <div class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600" v-for="key in apiKeys" :key="key.id">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="font-medium text-white">Production API Key</p>
-                    <p class="text-sm text-gray-400">••••••••••••••••••••</p>
+                    <p class="font-medium text-gray-900 dark:text-white">Production API Key</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400"> 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2</p>
                   </div>
-                  <button class="text-neon-blue hover:text-neon-blue/80 text-sm" @click="regenerateApiKey(key.id)">Regenerate</button>
+                  <button class="text-blue-600 dark:text-neon-blue hover:text-blue-700 dark:hover:text-neon-blue/80 text-sm" @click="regenerateApiKey(key.id)">Regenerate</button>
                 </div>
               </div>
               <button class="btn-secondary w-full" @click="generateApiKey">Generate New Key</button>
@@ -54,48 +54,48 @@
           </div>
 
           <!-- Notifications -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">Notifications</h2>
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Notifications</h2>
             <div class="space-y-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="font-medium text-white">Email Notifications</p>
-                  <p class="text-sm text-gray-400">Receive updates via email</p>
+                  <p class="font-medium text-gray-900 dark:text-white">Email Notifications</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Receive updates via email</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" class="sr-only peer" checked>
-                  <div class="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-blue"></div>
+                  <div class="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-blue"></div>
                 </label>
               </div>
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="font-medium text-white">Spec Review Alerts</p>
-                  <p class="text-sm text-gray-400">Get notified when specs need review</p>
+                  <p class="font-medium text-gray-900 dark:text-white">Spec Review Alerts</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Get notified when specs need review</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" class="sr-only peer" checked>
-                  <div class="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-blue"></div>
+                  <div class="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-blue"></div>
                 </label>
               </div>
             </div>
           </div>
 
           <!-- Branding -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">Branding</h2>
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Branding</h2>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Company Name</label>
-                <input class="input-field w-full" v-model="branding.company_name" />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
+                <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="branding.company_name" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Logo</label>
-                <label class="border-2 border-dashed border-dark-600 rounded-lg p-4 text-center cursor-pointer block" for="branding-logo-input">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Logo</label>
+                <label class="border-2 border-dashed border-gray-200 dark:border-dark-600 rounded-lg p-4 text-center cursor-pointer block" for="branding-logo-input">
                   <img :src="brandingLogoPreview" alt="Branding Logo Preview" class="w-16 h-16 mx-auto mb-2" v-if="brandingLogoPreview">
                   <svg v-else class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                   </svg>
-                  <p class="text-sm text-gray-400">Upload company logo</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Upload company logo</p>
                 </label>
                 <input id="branding-logo-input" type="file" @change="handleLogoChange" accept="image/*" class="hidden">
               </div>

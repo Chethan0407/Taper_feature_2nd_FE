@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-dark-950">
+  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
     <Sidebar />
     
     <div class="ml-64">
@@ -7,25 +7,25 @@
       
       <main class="p-8">
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-white mb-2">Checklists</h1>
-          <p class="text-gray-400">Build, reuse and sign-off tapeout checklists</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Checklists</h1>
+          <p class="text-gray-500 dark:text-gray-400">Build, reuse and sign-off tapeout checklists</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Checklist Templates -->
           <div class="lg:col-span-2">
-            <div class="card">
+            <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
               <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-semibold text-white">Checklist Templates</h2>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Checklist Templates</h2>
                 <button class="btn-primary" @click="showCreateTemplateModal = true">Create Template</button>
               </div>
               
               <div class="space-y-4">
-                <div v-for="template in templates" :key="template.id" class="p-4 bg-dark-800 rounded-lg border border-dark-600">
+                <div v-for="template in templates" :key="template.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
                   <div class="flex items-center justify-between">
                     <div>
-                      <h3 class="font-medium text-white">{{ template.name }}</h3>
-                      <p class="text-sm text-gray-400">{{ template.items }} items • {{ template.category }}</p>
+                      <h3 class="font-medium text-gray-900 dark:text-white">{{ template.name }}</h3>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">{{ template.items }} items • {{ template.category }}</p>
                     </div>
                     <button class="btn-secondary">Use Template</button>
                   </div>
@@ -35,13 +35,13 @@
           </div>
 
           <!-- Active Checklists -->
-          <div class="card">
-            <h2 class="text-xl font-semibold text-white mb-6">Active Checklists</h2>
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Active Checklists</h2>
             <div class="space-y-4">
-              <div v-for="checklist in activeChecklists" :key="checklist.id" class="p-4 bg-dark-800 rounded-lg border border-dark-600">
-                <h3 class="font-medium text-white mb-2">{{ checklist.name }}</h3>
+              <div v-for="checklist in activeChecklists" :key="checklist.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
+                <h3 class="font-medium text-gray-900 dark:text-white mb-2">{{ checklist.name }}</h3>
                 <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-400">{{ checklist.progress }}/{{ checklist.total }} completed</span>
+                  <span class="text-gray-500 dark:text-gray-400">{{ checklist.progress }}/{{ checklist.total }} completed</span>
                   <span :class="getProgressClass(checklist.progress, checklist.total)" class="px-2 py-1 rounded text-xs">
                     {{ Math.round((checklist.progress / checklist.total) * 100) }}%
                   </span>
