@@ -156,24 +156,18 @@ async function doCompanySearch(query: string) {
 }
 
 function handleResultClick(item: any) {
-  router.push(`/companies/${item.id}`)
+  // Instead of navigating to company details, route to Companies page with search param
+  router.push({ path: '/companies', query: { search: searchQuery.value } })
   showDropdown.value = false
-  searchQuery.value = ''
 }
 
 function handleKeydown(e: KeyboardEvent) {
   if (!showDropdown.value || searchResults.value.length === 0) return
-  if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    highlightedIndex.value = (highlightedIndex.value + 1) % searchResults.value.length
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    highlightedIndex.value = (highlightedIndex.value - 1 + searchResults.value.length) % searchResults.value.length
-  } else if (e.key === 'Enter') {
-    if (highlightedIndex.value >= 0 && highlightedIndex.value < searchResults.value.length) {
-      handleResultClick(searchResults.value[highlightedIndex.value])
-    }
+  if (e.key === 'Enter') {
+    router.push({ path: '/companies', query: { search: searchQuery.value } })
+    showDropdown.value = false
   }
+  // Remove arrow navigation and dropdown highlight logic
 }
 
 function handleResultMouseEnter(idx: number) {

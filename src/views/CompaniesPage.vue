@@ -416,6 +416,7 @@ import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref, reactive, computed, watch } from 'vue'
 import { useCompaniesStore, type Company, type CreateCompanyData, type UpdateCompanyData } from '@/stores/companies'
+import { useRoute } from 'vue-router'
 
 const companiesStore = useCompaniesStore()
 
@@ -459,8 +460,31 @@ watch(() => selectedCompany.value, (val) => {
   if (val) statusChangeValue.value = val.status
 })
 
+const route = useRoute()
+
+function syncSearchAndStatusFromRoute() {
+  const searchParam = route.query.search as string || ''
+  const statusParam = route.query.status as string || ''
+  searchQuery.value = searchParam
+  statusFilter.value = statusParam
+  handleSearch()
+}
+
 onMounted(async () => {
-  await companiesStore.loadCompanies()
+  const searchParam = route.query.search as string || ''
+  const statusParam = route.query.status as string || ''
+  searchQuery.value = searchParam
+  statusFilter.value = statusParam
+  if (searchQuery.value || statusFilter.value) {
+    await handleSearch()
+  } else {
+    await companiesStore.loadCompanies()
+    searchResults.value = companiesStore.companies
+  }
+})
+
+watch(() => [route.query.search, route.query.status], () => {
+  syncSearchAndStatusFromRoute()
 })
 
 // Utility functions
@@ -545,15 +569,7 @@ const handleStatusFilter = async () => {
 }
 
 // Computed property for filtered companies
-const filteredCompanies = computed(() => {
-  // If searching, use searchResults; else use companiesStore.companies
-  let base = searchQuery.value ? searchResults.value : companiesStore.companies
-  // If status filter is set, filter by status (case-insensitive)
-  if (statusFilter.value) {
-    return base.filter(c => c.status && c.status.toLowerCase() === statusFilter.value.toLowerCase())
-  }
-  return base
-})
+const filteredCompanies = computed(() => searchResults.value)
 
 // Modal functions
 const openCreateModal = () => {
