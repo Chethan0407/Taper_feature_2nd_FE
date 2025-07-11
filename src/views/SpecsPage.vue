@@ -72,7 +72,8 @@
                   <th class="py-3 px-4 text-gray-200 font-semibold">File Type</th>
                   <th class="py-3 px-4 text-gray-200 font-semibold">Status</th>
                   <th class="py-3 px-4 text-gray-200 font-semibold">Assigned To</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">Actions</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">Approval Info</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,28 +92,43 @@
                   </td>
                   <td class="py-3 px-4">{{ spec.status }}</td>
                   <td class="py-3 px-4">{{ spec.assigned_to || '—' }}</td>
-                  <td class="py-3 px-4 flex gap-2">
-                    <button class="btn-secondary text-green-400" @click="updateSpecStatus(spec, 'approved')" :disabled="spec.status === 'Approved'">✅</button>
-                    <button class="btn-secondary text-red-400" @click="updateSpecStatus(spec, 'rejected')" :disabled="spec.status === 'Rejected'">❌</button>
-                    <button
-                      @click="handleDownload(spec.id)"
-                      class="inline-flex items-center text-blue-400 hover:underline px-2 py-1 rounded transition-colors"
-                      title="Download"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 4v12" />
-                      </svg>
-                      Download
-                    </button>
-                    <button
-                      class="btn-secondary text-red-500"
-                      @click="() => confirmAndDelete(spec.id)"
-                      title="Delete"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                  <td class="py-3 px-4">
+                    <template v-if="spec.status === 'Approved' && spec.approved_by">
+                      Approved By: {{ spec.approved_by }}
+                    </template>
+                    <template v-else-if="spec.status === 'Rejected' && spec.rejected_by">
+                      Rejected By: {{ spec.rejected_by }}
+                    </template>
+                    <template v-else>
+                      —
+                    </template>
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400" @click="updateSpecStatus(spec, 'approved')" :disabled="spec.status === 'Approved'" title="Approve">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </button>
+                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500" @click="updateSpecStatus(spec, 'rejected')" :disabled="spec.status === 'Rejected'" title="Reject">
+                        <!-- Red X SVG for Reject -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" />
+                          <line x1="6" y1="18" x2="18" y2="6" stroke="currentColor" stroke-width="2" />
+                        </svg>
+                      </button>
+                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400" @click="handleDownload(spec.id)" title="Download">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 4v12" />
+                        </svg>
+                      </button>
+                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500" @click="() => confirmAndDelete(spec.id)" title="Delete">
+                        <!-- Trash/bin SVG for Delete -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -179,6 +195,17 @@
     <!-- Toast/Alert for upload feedback -->
     <div v-if="toastMessage" :class="['fixed top-6 right-6 z-50 px-6 py-3 rounded-xl shadow-xl', toastError ? 'bg-red-600 text-white' : 'bg-green-600 text-white']">
       {{ toastMessage }}
+    </div>
+
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+        <h2 class="text-2xl font-bold mb-4 text-center text-gradient">Delete Specification</h2>
+        <p class="text-gray-300 text-center mb-6">Are you sure you want to delete this specification?</p>
+        <div class="flex justify-center gap-4">
+          <button class="btn-secondary px-6 py-2" @click="showDeleteModal = false">Cancel</button>
+          <button class="btn-danger px-6 py-2" @click="() => handleDelete(specToDelete)">Delete</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -290,7 +317,16 @@ const handleDownload = async (id: string) => {
   }
 }
 
+const showDeleteModal = ref(false)
+const specToDelete = ref<any>(null)
+
+function confirmAndDelete(id: string) {
+  specToDelete.value = id
+  showDeleteModal.value = true
+}
+
 const handleDelete = async (id: string) => {
+  showDeleteModal.value = false
   try {
     let fetchOptions: RequestInit = {
       method: 'DELETE',
@@ -303,12 +339,8 @@ const handleDelete = async (id: string) => {
     await specificationsStore.loadSpecifications();
   } catch (e) {
     // Optionally show toast
-  }
-}
-
-function confirmAndDelete(id: string) {
-  if (confirm('Are you sure you want to delete this specification?')) {
-    handleDelete(id)
+  } finally {
+    specToDelete.value = null
   }
 }
 

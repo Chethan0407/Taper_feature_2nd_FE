@@ -19,6 +19,8 @@ export interface Specification {
   file_size?: number
   created_at?: string
   updated_at?: string
+  approved_by?: string | null
+  rejected_by?: string | null
 }
 
 export interface SpecificationFilters {
