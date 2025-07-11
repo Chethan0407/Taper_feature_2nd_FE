@@ -51,7 +51,7 @@
               <span class="text-sm text-gray-400">{{ specificationsStore.specifications.length }} specifications</span>
             </div>
           </div>
-          <div v-if="specificationsStore.loading" class="text-center py-8 text-gray-400">
+          <div v-if="showLoading" class="text-center py-8 text-gray-400">
             <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -209,9 +209,14 @@ const statusOptions = ref<string[]>([
 ]);
 const selectedStatus = ref('All Status');
 
+const showLoading = ref(false)
+let loadingTimeout: any = null
+
 // Handle filter changes
 const handleFilterChange = async (filters: any) => {
   await specificationsStore.updateFilters(filters)
+  // Use delayed spinner for filter changes
+  // (If updateFilters already calls loadSpecifications, you may want to call delayedLoadSpecs instead)
 }
 
 // --- Reviewer logic ---
@@ -234,7 +239,11 @@ const fetchSpecs = async () => {
     if (selectedStatus.value && selectedStatus.value !== 'All Status') {
       url += `?status=${encodeURIComponent(selectedStatus.value)}`;
     }
-    const res = await fetch(url);
+    let fetchOptions: RequestInit = {}
+    if (authStore.token) {
+      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` }
+    }
+    const res = await fetch(url, fetchOptions);
     if (!res.ok) throw new Error(await res.text() || 'Failed to fetch specifications');
     specs.value = await res.json();
   } catch (e: any) {
@@ -261,11 +270,11 @@ const handleStatusChange = (e: Event) => {
 
 const handleDownload = async (id: string) => {
   try {
-    const res = await fetch(`/api/v1/specifications/${id}/download`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
+    let fetchOptions: RequestInit = {}
+    if (authStore.token) {
+      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` }
+    }
+    const res = await fetch(`/api/v1/specifications/${id}/download`, fetchOptions)
     if (!res.ok) throw new Error('Failed to download file')
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
@@ -283,9 +292,15 @@ const handleDownload = async (id: string) => {
 
 const handleDelete = async (id: string) => {
   try {
-    const res = await fetch(`/api/v1/specifications/${id}`, { method: 'DELETE' })
+    let fetchOptions: RequestInit = {
+      method: 'DELETE',
+    };
+    if (authStore.token) {
+      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` };
+    }
+    const res = await fetch(`/api/v1/specifications/${id}`, fetchOptions);
     if (!res.ok) throw new Error('Failed to delete specification')
-    fetchSpecs()
+    await specificationsStore.loadSpecifications();
   } catch (e) {
     // Optionally show toast
   }
@@ -297,8 +312,21 @@ function confirmAndDelete(id: string) {
   }
 }
 
-onMounted(async () => {
+const delayedLoadSpecs = async () => {
+  // Start a timer to show the spinner after 300ms
+  loadingTimeout = setTimeout(() => {
+    showLoading.value = true
+  }, 300)
+
   await specificationsStore.loadSpecifications()
+
+  // Data loaded, clear timer and hide spinner
+  clearTimeout(loadingTimeout)
+  showLoading.value = false
+}
+
+onMounted(async () => {
+  await delayedLoadSpecs()
   fetchReviewers()
 })
 
@@ -359,9 +387,13 @@ async function updateSpecStatus(spec: any, status: string) {
     } else {
       throw new Error('Invalid status');
     }
-    const res = await fetch(endpoint, {
+    let fetchOptions: RequestInit = {
       method: 'POST',
-    });
+    };
+    if (authStore.token) {
+      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` };
+    }
+    const res = await fetch(endpoint, fetchOptions);
     if (!res.ok) throw new Error('Failed to update status');
     showToast(`Spec marked as ${status}.`);
     await specificationsStore.loadSpecifications();
