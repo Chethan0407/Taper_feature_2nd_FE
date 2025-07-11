@@ -200,7 +200,7 @@
         </div>
 
         <!-- Loading state for tapeouts or metadata -->
-        <div v-if="metadataStore.loading || tapeoutsLoading" class="flex justify-center items-center py-12">
+        <div v-if="metadataStore.loading || showTapeoutsLoading" class="flex justify-center items-center py-12">
           <div class="text-center">
             <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -208,12 +208,16 @@
             <p class="text-gray-400">Loading data...</p>
           </div>
         </div>
-        <div v-else-if="tapeoutsError" class="text-center py-12">
-          <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <div v-else-if="tapeoutsError" class="flex flex-col items-center justify-center py-12">
+          <svg class="w-16 h-16 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <h3 class="text-xl font-semibold text-red-400 mb-2">Failed to Load Tapeouts</h3>
-          <p class="text-gray-400 mb-4">{{ tapeoutsError }}</p>
+          <div class="text-2xl font-bold text-red-400 mb-2">Failed to Load Tapeouts</div>
+          <div class="text-gray-400 mb-4">
+            <span v-if="tapeoutsError.includes('Not authenticated')">You are not logged in. Please log in to view tapeouts.</span>
+            <span v-else>{{ tapeoutsError }}</span>
+          </div>
           <button @click="fetchTapeouts" class="btn-primary">Try Again</button>
         </div>
 
@@ -248,6 +252,7 @@ import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { useMetadataStore } from '@/stores/metadata'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -264,6 +269,9 @@ let statsInterval: number | undefined
 
 const tapeouts = ref([])
 const tapeoutsLoading = ref(false)
+const showTapeoutsLoading = ref(false) // NEW: controls the overlay
+let tapeoutsLoadingDelay: ReturnType<typeof setTimeout> | null = null
+let tapeoutsLoadingMin: ReturnType<typeof setTimeout> | null = null
 const tapeoutsError = ref('')
 
 const selectedFilters = ref({
@@ -294,7 +302,15 @@ const fetchStats = async () => {
 }
 
 const fetchTapeouts = async () => {
+  if (tapeoutsLoadingDelay) clearTimeout(tapeoutsLoadingDelay)
+  if (tapeoutsLoadingMin) clearTimeout(tapeoutsLoadingMin)
   tapeoutsLoading.value = true
+  // Only show overlay if fetch takes >200ms
+  tapeoutsLoadingDelay = setTimeout(() => {
+    showTapeoutsLoading.value = true
+    // If overlay appears, keep it for at least 400ms
+    tapeoutsLoadingMin = setTimeout(() => {}, 400)
+  }, 200)
   tapeoutsError.value = ''
   try {
     const params = []
@@ -303,13 +319,34 @@ const fetchTapeouts = async () => {
     if (selectedFilters.value.type) params.push(`type=${encodeURIComponent(selectedFilters.value.type)}`)
     if (selectedFilters.value.status) params.push(`status=${encodeURIComponent(selectedFilters.value.status)}`)
     const query = params.length ? `?${params.join('&')}` : ''
-    const res = await fetch(`/api/v1/specifications${query}`)
-    if (!res.ok) throw new Error(await res.text() || 'Failed to fetch specifications')
+    const res = await authenticatedFetch(`/api/v1/specifications${query}`)
+    if (!res.ok) {
+      const errText = await res.text()
+      if (errText.includes('Not authenticated')) {
+        router.push('/login')
+        return
+      }
+      throw new Error(errText || 'Failed to fetch specifications')
+    }
     tapeouts.value = await res.json()
   } catch (e: any) {
     tapeoutsError.value = e.message || 'Failed to fetch specifications'
   } finally {
     tapeoutsLoading.value = false
+    if (tapeoutsLoadingDelay) clearTimeout(tapeoutsLoadingDelay)
+    if (showTapeoutsLoading.value) {
+      // If overlay is visible, keep it for at least 400ms
+      if (tapeoutsLoadingMin) {
+        setTimeout(() => {
+          showTapeoutsLoading.value = false
+        }, 400)
+      } else {
+        showTapeoutsLoading.value = false
+      }
+    }
+    else {
+      showTapeoutsLoading.value = false
+    }
   }
 }
 
@@ -333,7 +370,7 @@ const handleFilter = (key: keyof typeof selectedFilters.value, value: string) =>
 }
 
 const isFilterSelected = (key: keyof typeof selectedFilters.value, value: string) => selectedFilters.value[key] === value
-</script>
+</script> 
 
 <style scoped>
 .chip {

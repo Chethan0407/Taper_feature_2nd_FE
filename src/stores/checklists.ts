@@ -25,146 +25,172 @@ export const useChecklistsStore = defineStore('checklists', () => {
   const loading = ref(false)
   const error = ref('')
 
-  // 1. List all checklists
-  async function fetchList() {
+  // 1. List all templates
+  async function fetchTemplates() {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch('http://localhost:8000/api/v1/checklists/')
-      if (!res.ok) throw new Error('Failed to fetch checklists')
+      const res = await fetch('/api/v1/checklists/templates')
+      if (!res.ok) throw new Error('Failed to fetch templates')
       list.value = await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to fetch checklists'
+      error.value = e.message || 'Failed to fetch templates'
     } finally {
       loading.value = false
     }
   }
-
-  // 2. Create a new checklist/template
-  async function createChecklist(data: Partial<Checklist>) {
+  // 2. Create a new template
+  async function createTemplate(data: Partial<Checklist>) {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch('http://localhost:8000/api/v1/checklists/', {
+      const res = await fetch('/api/v1/checklists/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      if (!res.ok) throw new Error('Failed to create checklist')
-      await fetchList()
+      if (!res.ok) throw new Error('Failed to create template')
+      await fetchTemplates()
       return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to create checklist'
+      error.value = e.message || 'Failed to create template'
       throw e
     } finally {
       loading.value = false
     }
   }
-
-  // 3. Get checklist details
-  async function fetchDetails(id: number | string) {
+  // 3. Add item to template
+  async function addItemToTemplate(templateId: string | number, item: any) {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/checklists/${id}`)
-      if (!res.ok) throw new Error('Failed to fetch checklist details')
-      details.value = await res.json()
+      const res = await fetch(`/api/v1/checklists/templates/${templateId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      })
+      if (!res.ok) throw new Error('Failed to add item to template')
+      return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to fetch checklist details'
+      error.value = e.message || 'Failed to add item to template'
+      throw e
     } finally {
       loading.value = false
     }
   }
-
-  // 4. Update checklist/template
-  async function updateChecklist(id: number | string, data: Partial<Checklist>) {
+  // 4. Get items of a template
+  async function fetchTemplateItems(templateId: string | number) {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/checklists/${id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/v1/checklists/templates/${templateId}/items`)
+      if (!res.ok) throw new Error('Failed to fetch template items')
+      return await res.json()
+    } catch (e: any) {
+      error.value = e.message || 'Failed to fetch template items'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+  // 5. Create active checklist from template
+  async function createActiveChecklist(data: any) {
+    loading.value = true
+    error.value = ''
+    try {
+      const res = await fetch('/api/v1/checklists/active', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      if (!res.ok) throw new Error('Failed to update checklist')
-      await fetchList()
+      if (!res.ok) throw new Error('Failed to create active checklist')
       return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to update checklist'
+      error.value = e.message || 'Failed to create active checklist'
       throw e
     } finally {
       loading.value = false
     }
   }
-
-  // 5. Delete checklist/template
-  async function deleteChecklist(id: number | string) {
+  // 6. List all active checklists
+  async function fetchActiveChecklists() {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/checklists/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete checklist')
-      await fetchList()
+      const res = await fetch('/api/v1/checklists/active')
+      if (!res.ok) throw new Error('Failed to fetch active checklists')
+      return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to delete checklist'
+      error.value = e.message || 'Failed to fetch active checklists'
       throw e
     } finally {
       loading.value = false
     }
   }
-
-  // 6. Assign checklist
-  async function assignChecklist(id: number | string, userId: number | string) {
+  // 7. Get items in an active checklist
+  async function fetchActiveChecklistItems(checklistId: string | number) {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/checklists/${id}/assign`, {
-        method: 'POST',
+      const res = await fetch(`/api/v1/checklists/active/${checklistId}/items`)
+      if (!res.ok) throw new Error('Failed to fetch active checklist items')
+      return await res.json()
+    } catch (e: any) {
+      error.value = e.message || 'Failed to fetch active checklist items'
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+  // 8. Update an active checklist item
+  async function updateActiveChecklistItem(checklistId: string | number, itemId: string | number, data: any) {
+    loading.value = true
+    error.value = ''
+    try {
+      const res = await fetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId })
+        body: JSON.stringify(data)
       })
-      if (!res.ok) throw new Error('Failed to assign checklist')
-      await fetchDetails(id)
+      if (!res.ok) throw new Error('Failed to update active checklist item')
+      return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to assign checklist'
+      error.value = e.message || 'Failed to update active checklist item'
       throw e
     } finally {
       loading.value = false
     }
   }
-
-  // 7. Approve checklist
-  async function approveChecklist(id: number | string) {
+  // 9. Upload evidence for an item
+  async function uploadEvidence(checklistId: string | number, itemId: string | number, file: File) {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/checklists/${id}/approve`, { method: 'POST' })
-      if (!res.ok) throw new Error('Failed to approve checklist')
-      await fetchDetails(id)
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}/evidence`, {
+        method: 'POST',
+        body: formData
+      })
+      if (!res.ok) throw new Error('Failed to upload evidence')
+      return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to approve checklist'
+      error.value = e.message || 'Failed to upload evidence'
       throw e
     } finally {
       loading.value = false
     }
   }
-
-  // 8. Export checklist
-  async function exportChecklist(id: number | string) {
+  // 10. Get checklist completion percent
+  async function fetchChecklistCompletion(checklistId: string | number) {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/checklists/${id}/export`)
-      if (!res.ok) throw new Error('Failed to export checklist')
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `checklist-${id}.pdf`
-      a.click()
-      window.URL.revokeObjectURL(url)
+      const res = await fetch(`/api/v1/checklists/active/${checklistId}/completion`)
+      if (!res.ok) throw new Error('Failed to fetch checklist completion')
+      return await res.json()
     } catch (e: any) {
-      error.value = e.message || 'Failed to export checklist'
+      error.value = e.message || 'Failed to fetch checklist completion'
       throw e
     } finally {
       loading.value = false
@@ -176,13 +202,15 @@ export const useChecklistsStore = defineStore('checklists', () => {
     details,
     loading,
     error,
-    fetchList,
-    createChecklist,
-    fetchDetails,
-    updateChecklist,
-    deleteChecklist,
-    assignChecklist,
-    approveChecklist,
-    exportChecklist
+    fetchTemplates,
+    createTemplate,
+    addItemToTemplate,
+    fetchTemplateItems,
+    createActiveChecklist,
+    fetchActiveChecklists,
+    fetchActiveChecklistItems,
+    updateActiveChecklistItem,
+    uploadEvidence,
+    fetchChecklistCompletion
   }
 }) 

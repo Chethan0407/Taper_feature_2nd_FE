@@ -22,48 +22,48 @@
           </div>
         </div>
         <div v-else>
-          <!-- Loading State -->
-          <div v-if="projectsStore.loading && projectsStore.projects.length === 0" class="flex justify-center items-center py-12">
-            <div class="text-center">
-              <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-              </svg>
-              <p class="text-gray-400">Loading projects...</p>
-            </div>
-          </div>
-
-          <!-- Error State -->
-          <div v-else-if="projectsStore.error && projectsStore.projects.length === 0" class="text-center py-12">
-            <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <!-- Loading State -->
+        <div v-if="projectsStore.loading && projectsStore.projects.length === 0" class="flex justify-center items-center py-12">
+          <div class="text-center">
+            <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
-            <h3 class="text-xl font-semibold text-red-400 mb-2">Failed to Load Projects</h3>
-            <p class="text-gray-400 mb-4">{{ projectsStore.error }}</p>
-            <button @click="projectsStore.loadProjects()" class="btn-primary">
-              Try Again
-            </button>
+            <p class="text-gray-400">Loading projects...</p>
           </div>
+        </div>
 
-          <!-- Projects Grid -->
-          <div v-else-if="filteredProjects.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ProjectCard 
-              v-for="project in filteredProjects" 
-              :key="project.id" 
-              :project="project"
+        <!-- Error State -->
+        <div v-else-if="projectsStore.error && projectsStore.projects.length === 0" class="text-center py-12">
+          <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-red-400 mb-2">Failed to Load Projects</h3>
+          <p class="text-gray-400 mb-4">{{ projectsStore.error }}</p>
+          <button @click="projectsStore.loadProjects()" class="btn-primary">
+            Try Again
+          </button>
+        </div>
+
+        <!-- Projects Grid -->
+        <div v-else-if="filteredProjects.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ProjectCard 
+            v-for="project in filteredProjects" 
+            :key="project.id" 
+            :project="project"
               class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl"
-              @click="handleProjectClick"
-              @edit="handleProjectEdit"
-              @delete="handleProjectDelete"
-            />
-          </div>
+            @click="handleProjectClick"
+            @edit="handleProjectEdit"
+            @delete="handleProjectDelete"
+          />
+        </div>
 
-          <!-- Empty State -->
-          <div v-else class="text-center py-12">
+        <!-- Empty State -->
+        <div v-else class="text-center py-12">
             <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-            </svg>
-            <h3 class="text-xl font-semibold text-gray-400 mb-2">No Projects Yet</h3>
-            <p class="text-gray-500 mb-6">Create your first project to get started with tapeout management</p>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-gray-400 mb-2">No Projects Yet</h3>
+          <p class="text-gray-500 mb-6">Create your first project to get started with tapeout management</p>
           </div>
         </div>
 

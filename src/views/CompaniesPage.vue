@@ -93,12 +93,7 @@
                   </td>
                   <td class="p-6">
                     <p class="text-gray-700 dark:text-gray-300">
-                      <template v-if="(company.updatedAt && company.updatedAt !== company.createdAt) || ((company as any).updated_by && (company as any).updated_by !== (company as any).created_by) || ((company as any).updatedBy && (company as any).updatedBy !== (company as any).createdBy)">
-                        {{ (company as any).updatedBy || (company as any).updated_by }}
-                      </template>
-                      <template v-else>
-                        —
-                      </template>
+                      {{ (company as any).updatedBy || (company as any).updated_by || '—' }}
                     </p>
                   </td>
                   <td class="p-6">

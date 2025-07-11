@@ -103,7 +103,7 @@ const fetchTemplates = async () => {
 
 onMounted(async () => {
   await fetchTemplates()
-  const activeRes = await fetch('/api/v1/checklists/')
+  const activeRes = await fetch('/api/v1/checklists/active')
   if (activeRes.ok) {
     activeChecklists.value = await activeRes.json()
   }
@@ -126,7 +126,7 @@ const approveChecklist = async (id: string) => {
     if (!res.ok) throw new Error('Approval failed')
     toast.value = { message: 'Checklist approved!', type: 'success' }
     // Optionally refresh list
-    const activeRes = await fetch('/api/v1/checklists/')
+    const activeRes = await fetch('/api/v1/checklists/active')
     if (activeRes.ok) {
       activeChecklists.value = await activeRes.json()
     }

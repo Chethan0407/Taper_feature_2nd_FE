@@ -12,7 +12,10 @@
             <h1 class="text-3xl font-bold text-gray-900 mb-2 dark:text-white">Specifications</h1>
             <p class="text-gray-500 dark:text-gray-400">Upload, manage and review your tapeout specifications</p>
           </div>
-          <button class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2" @click="showCreateModal = true">
+          <button
+            class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+            @click="showCreateModal = true"
+          >
             + Create Spec
           </button>
         </div>
@@ -28,52 +31,95 @@
         >
           <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-4 4h-4a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2z" />
-          </svg>
+              </svg>
           <p class="text-gray-600 dark:text-gray-400 mb-2 text-sm">Drag and drop a spec file here, or <span class="text-blue-600 underline">browse</span> to upload</p>
           <p class="text-xs text-gray-400">PDF, DOCX, PPT, XLS, PPTX, XLSX up to 50MB</p>
           <input ref="dragDropFileInput" type="file" class="hidden" @change="onDragDropFileChange" accept=".pdf,.docx,.ppt,.xls,.pptx,.xlsx" />
         </div>
 
+        <!-- Specifications Filter -->
+        <SpecificationsFilter
+          v-model="specificationsStore.filters"
+          @filter-change="handleFilterChange"
+        />
+
         <!-- Specs Table -->
-        <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl shadow-lg">
+        <div class="card bg-dark-900 border border-dark-700 rounded-xl shadow-lg">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Recent Specifications</h2>
-            <div>
-              <select class="input-field" v-model="selectedStatus" @change="handleStatusChange">
-                <option value="">All Status</option>
-                <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
-              </select>
+            <h2 class="text-xl font-semibold text-white">Recent Specifications</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-400">{{ specificationsStore.specifications.length }} specifications</span>
             </div>
           </div>
-          <div v-if="loadingSpecs" class="text-center py-8 text-gray-400">Loading specifications...</div>
-          <div v-else-if="specsError" class="text-center py-8 text-red-400">{{ specsError }}</div>
+          <div v-if="specificationsStore.loading" class="text-center py-8 text-gray-400">
+            <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+            Loading specifications...
+                </div>
+          <div v-else-if="specificationsStore.error" class="text-center py-8 text-red-400">
+            <span v-if="specificationsStore.error.includes('Not Found')">No specifications found.</span>
+            <span v-else>{{ specificationsStore.error }}</span>
+                </div>
           <div v-else>
-            <table class="min-w-full text-left bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl overflow-hidden">
+            <table class="min-w-full text-left bg-dark-900 border border-dark-700 rounded-xl overflow-hidden">
               <thead>
-                <tr class="border-b border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-800">
-                  <th class="py-3 px-4 text-gray-700 dark:text-gray-200 font-semibold">File Name</th>
-                  <th class="py-3 px-4 text-gray-700 dark:text-gray-200 font-semibold">Uploaded By</th>
-                  <th class="py-3 px-4 text-gray-700 dark:text-gray-200 font-semibold">Uploaded On</th>
-                  <th class="py-3 px-4 text-gray-700 dark:text-gray-200 font-semibold">File Type</th>
-                  <th class="py-3 px-4 text-gray-700 dark:text-gray-200 font-semibold">Status</th>
-                  <th class="py-3 px-4 text-gray-700 dark:text-gray-200 font-semibold">Actions</th>
+                <tr class="border-b border-dark-700 bg-dark-800">
+                  <th class="py-3 px-4 text-gray-200 font-semibold">File Name</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">Uploaded By</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">Uploaded On</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">File Type</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">Status</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">Assigned To</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="spec in specs" :key="spec.id" class="border-b border-gray-200 dark:border-dark-800 hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors">
-                  <td class="py-3 px-4">{{ spec.file_name || spec.name }}</td>
-                  <td class="py-3 px-4">{{ spec.uploaded_by || spec.uploader || '—' }}</td>
+                <tr v-for="spec in specificationsStore.specifications" :key="spec.id" class="border-b border-dark-800 hover:bg-dark-800/50 transition-colors">
+                  <td class="py-3 px-4 max-w-xs truncate">
+                    <button @click="handleDownload(spec.id)" class="text-neon-blue hover:underline font-medium truncate block text-left w-full" :title="spec.file_name || spec.name || 'Unnamed Spec'">
+                      {{ (spec.file_name || spec.name || 'Unnamed Spec').length > 8
+                        ? (spec.file_name || spec.name || 'Unnamed Spec').slice(0, 4) + '...' + (spec.file_name || spec.name || 'Unnamed Spec').slice(-4)
+                        : (spec.file_name || spec.name || 'Unnamed Spec') }}
+                  </button>
+                  </td>
+                  <td class="py-3 px-4">{{ spec.uploaded_by || '—' }}</td>
                   <td class="py-3 px-4">{{ spec.uploaded_on ? new Date(spec.uploaded_on).toLocaleString() : '—' }}</td>
-                  <td class="py-3 px-4">{{ spec.file_type || spec.type || '—' }}</td>
+                  <td class="py-3 px-4" :title="spec.mime_type || spec.file_type || spec.type || '—'">
+                    {{ getFileTypeLabel(spec.mime_type || spec.file_type || spec.type || '') }}
+                  </td>
                   <td class="py-3 px-4">{{ spec.status }}</td>
+                  <td class="py-3 px-4">{{ spec.assigned_to || '—' }}</td>
                   <td class="py-3 px-4 flex gap-2">
-                    <button class="btn-secondary focus:outline-none focus:ring-2 focus:ring-blue-400" @click="handleDownload(spec.id)">Download</button>
-                    <button class="btn-secondary text-red-400 focus:outline-none focus:ring-2 focus:ring-red-400" @click="handleDelete(spec.id)">Delete</button>
+                    <button class="btn-secondary text-green-400" @click="updateSpecStatus(spec, 'approved')" :disabled="spec.status === 'Approved'">✅</button>
+                    <button class="btn-secondary text-red-400" @click="updateSpecStatus(spec, 'rejected')" :disabled="spec.status === 'Rejected'">❌</button>
+                    <button
+                      @click="handleDownload(spec.id)"
+                      class="inline-flex items-center text-blue-400 hover:underline px-2 py-1 rounded transition-colors"
+                      title="Download"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 4v12" />
+                      </svg>
+                      Download
+                    </button>
+                    <button
+                      class="btn-secondary text-red-500"
+                      @click="() => confirmAndDelete(spec.id)"
+                      title="Delete"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
-            <div v-if="!specs.length" class="text-center py-8 text-gray-400">No specifications found.</div>
+            <div v-if="!specificationsStore.specifications.length" class="text-center py-8 text-gray-400">
+              No specifications uploaded yet. Drag and drop a file above to get started.
+            </div>
           </div>
         </div>
       </main>
@@ -104,6 +150,23 @@
               required
             />
           </div>
+          <!-- Reviewer Assignment: Combobox (autocomplete + free text) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assign Reviewer</label>
+            <input
+              class="input-field w-full"
+              v-model="createSpecForm.assigned_to"
+              :list="reviewers.length ? 'reviewer-list' : undefined"
+              placeholder="Enter reviewer name or email"
+              autocomplete="off"
+              required
+            />
+            <datalist v-if="reviewers.length" id="reviewer-list">
+              <option v-for="user in reviewers" :key="user.id || user.email" :value="user.email">
+                {{ user.name || user.email }}
+              </option>
+            </datalist>
+          </div>
           <button class="btn-primary w-full py-3 text-lg font-semibold" :disabled="creatingSpec">
             <span v-if="creatingSpec">Creating...</span>
             <span v-else>Create</span>
@@ -112,36 +175,72 @@
         </form>
       </div>
     </div>
+
+    <!-- Toast/Alert for upload feedback -->
+    <div v-if="toastMessage" :class="['fixed top-6 right-6 z-50 px-6 py-3 rounded-xl shadow-xl', toastError ? 'bg-red-600 text-white' : 'bg-green-600 text-white']">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import SpecificationsFilter from '@/components/Specifications/SpecificationsFilter.vue'
 import { onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useSpecificationsStore } from '@/stores/specifications'
 
+const specificationsStore = useSpecificationsStore()
+const authStore = useAuthStore()
+
+// Legacy variables for backward compatibility
 const specs = ref<any[]>([])
 const loadingSpecs = ref(false)
 const specsError = ref('')
-const statusOptions = ref<string[]>([])
-const selectedStatus = ref('')
+const statusOptions = ref<string[]>([
+  'All Status',
+  'Draft',
+  'Pending Review',
+  'Approved',
+  'Rejected',
+  'Updated After Rejection',
+  'Archived'
+]);
+const selectedStatus = ref('All Status');
 
-const authStore = useAuthStore()
+// Handle filter changes
+const handleFilterChange = async (filters: any) => {
+  await specificationsStore.updateFilters(filters)
+}
+
+// --- Reviewer logic ---
+const reviewers = ref<any[]>([])
+
+const fetchReviewers = async () => {
+  try {
+    const res = await fetch('/api/v1/users?role=reviewer', {
+      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    })
+    if (res.ok) reviewers.value = await res.json()
+  } catch {}
+}
 
 const fetchSpecs = async () => {
-  loadingSpecs.value = true
-  specsError.value = ''
+  loadingSpecs.value = true;
+  specsError.value = '';
   try {
-    let url = '/api/v1/specifications'
-    if (selectedStatus.value) url += `?status=${encodeURIComponent(selectedStatus.value)}`
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(await res.text() || 'Failed to fetch specifications')
-    specs.value = await res.json()
+    let url = '/api/v1/specifications';
+    if (selectedStatus.value && selectedStatus.value !== 'All Status') {
+      url += `?status=${encodeURIComponent(selectedStatus.value)}`;
+    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(await res.text() || 'Failed to fetch specifications');
+    specs.value = await res.json();
   } catch (e: any) {
-    specsError.value = e.message || 'Failed to fetch specifications'
+    specsError.value = e.message || 'Failed to fetch specifications';
   } finally {
-    loadingSpecs.value = false
+    loadingSpecs.value = false;
   }
 }
 
@@ -162,7 +261,11 @@ const handleStatusChange = (e: Event) => {
 
 const handleDownload = async (id: string) => {
   try {
-    const res = await fetch(`/api/v1/specifications/${id}/download`)
+    const res = await fetch(`/api/v1/specifications/${id}/download`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
     if (!res.ok) throw new Error('Failed to download file')
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
@@ -179,7 +282,6 @@ const handleDownload = async (id: string) => {
 }
 
 const handleDelete = async (id: string) => {
-  if (!confirm('Are you sure you want to delete this specification?')) return
   try {
     const res = await fetch(`/api/v1/specifications/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete specification')
@@ -189,16 +291,22 @@ const handleDelete = async (id: string) => {
   }
 }
 
-onMounted(() => {
-  fetchStatusOptions()
-  fetchSpecs()
+function confirmAndDelete(id: string) {
+  if (confirm('Are you sure you want to delete this specification?')) {
+    handleDelete(id)
+  }
+}
+
+onMounted(async () => {
+  await specificationsStore.loadSpecifications()
+  fetchReviewers()
 })
 
 // --- Create Spec Modal Logic ---
 const showCreateModal = ref(false)
 const allowedExtensions = ['pdf', 'docx', 'ppt', 'xls', 'pptx', 'xlsx'];
 const createSpecFile = ref<File | null>(null);
-const createSpecForm = ref({ name: '', version: '', description: '' });
+const createSpecForm = ref({ name: '', version: '', description: '', assigned_to: '', status: 'Pending' });
 const creatingSpec = ref(false);
 const createSpecError = ref('');
 const createSpecFileInput = ref<HTMLInputElement | null>(null);
@@ -228,8 +336,38 @@ function closeCreateModal() {
   if (dragDropFileInput.value) dragDropFileInput.value.value = '';
   if (createSpecFileInput.value) createSpecFileInput.value.value = '';
   createSpecFile.value = null;
-  createSpecForm.value = { name: '', version: '', description: '' };
+  createSpecForm.value = { name: '', version: '', description: '', assigned_to: '', status: 'Pending' };
   createSpecError.value = '';
+}
+
+const toastMessage = ref('');
+const toastError = ref(false);
+
+function showToast(message: string, isError = false) {
+  toastMessage.value = message;
+  toastError.value = isError;
+  setTimeout(() => { toastMessage.value = ''; }, 3000);
+}
+
+async function updateSpecStatus(spec: any, status: string) {
+  try {
+    let endpoint = '';
+    if (status === 'approved') {
+      endpoint = `/api/v1/specifications/${spec.id}/approve`;
+    } else if (status === 'rejected') {
+      endpoint = `/api/v1/specifications/${spec.id}/reject`;
+    } else {
+      throw new Error('Invalid status');
+    }
+    const res = await fetch(endpoint, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to update status');
+    showToast(`Spec marked as ${status}.`);
+    await specificationsStore.loadSpecifications();
+  } catch (e: any) {
+    showToast(e.message || 'Failed to update status', true);
+  }
 }
 
 async function handleCreateSpec() {
@@ -239,6 +377,15 @@ async function handleCreateSpec() {
   }
   if (!createSpecForm.value.name || !createSpecForm.value.version) {
     createSpecError.value = 'Name and version are required.';
+    return;
+  }
+  // Version format validation
+  if (!/^\d+\.\d+\.\d+$/.test(createSpecForm.value.version)) {
+    createSpecError.value = 'Version must be in the format major.minor.patch (e.g. 1.0.0)';
+    return;
+  }
+  if (!createSpecForm.value.assigned_to) {
+    createSpecError.value = 'Please assign a reviewer.';
     return;
   }
   if (createSpecFile.value.size > 50 * 1024 * 1024) {
@@ -254,19 +401,27 @@ async function handleCreateSpec() {
     formData.append('version', createSpecForm.value.version);
     formData.append('description', createSpecForm.value.description || '');
     formData.append('uploaded_by', authStore.user?.email || 'unknown');
-    const res = await fetch('/api/v1/specifications/upload', {
+    formData.append('assigned_to', createSpecForm.value.assigned_to);
+    formData.append('status', 'Pending'); // Always set to Pending on create
+    let fetchOptions: RequestInit = {
       method: 'POST',
       body: formData,
-    });
+    };
+    if (authStore.token) {
+      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` };
+    }
+    const res = await fetch('/api/v1/specifications/upload-spec', fetchOptions);
     if (!res.ok) {
       let errMsg = await res.text();
       try { errMsg = JSON.parse(errMsg).detail?.map((d: any) => d.msg).join(', ') || errMsg } catch {}
       throw new Error(errMsg || 'Failed to upload specification');
     }
     closeCreateModal();
-    fetchSpecs();
+    await specificationsStore.loadSpecifications();
+    showToast('Upload successful!');
   } catch (e: any) {
     createSpecError.value = e.message || 'Failed to upload specification';
+    showToast(createSpecError.value, true);
   } finally {
     creatingSpec.value = false;
   }
@@ -312,5 +467,18 @@ function handleFileForModal(file: File) {
 function removeSelectedFile() {
   createSpecFile.value = null;
   if (createSpecFileInput.value) createSpecFileInput.value.value = '';
+}
+
+// Add a helper to map MIME types to user-friendly labels
+function getFileTypeLabel(mimeType: string) {
+  if (!mimeType) return '—';
+  if (mimeType === 'application/pdf') return 'PDF';
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'Excel';
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'Word';
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'PowerPoint';
+  if (mimeType === 'application/vnd.ms-excel') return 'Excel';
+  if (mimeType === 'application/msword') return 'Word';
+  if (mimeType === 'application/vnd.ms-powerpoint') return 'PowerPoint';
+  return mimeType.split('/').pop()?.toUpperCase() || 'Unknown';
 }
 </script> 
