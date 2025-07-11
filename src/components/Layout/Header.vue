@@ -18,9 +18,10 @@
             v-model="searchQuery"
             type="text"
             class="input-field w-full pl-10 pr-4"
-            placeholder="Search companies, projects, specs..."
+            placeholder="Search companies by name, description, or creator..."
             @focus="showDropdown = !!searchResults.length"
             @blur="handleSearchBlur"
+            @keydown="handleKeydown"
           />
           <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
             <kbd class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono text-gray-500 dark:text-gray-400 bg-light-200 dark:bg-dark-800 border border-light-300 dark:border-dark-600">
@@ -28,25 +29,28 @@
             </kbd>
           </div>
           <!-- Results Dropdown -->
-          <div v-if="showDropdown" class="absolute left-0 right-0 mt-1 bg-dark-900 border border-dark-700 rounded-lg shadow-lg z-50">
+          <div v-if="showDropdown" class="absolute left-0 right-0 mt-1 bg-dark-900 border border-dark-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
             <div v-if="searchLoading" class="p-4 text-gray-400">Searching...</div>
             <div v-else-if="searchError" class="p-4 text-red-400">{{ searchError }}</div>
-            <div v-else-if="searchResults.length === 0" class="p-4 text-gray-400">No results found</div>
+            <div v-else-if="searchResults.length === 0" class="p-4 text-gray-400">No companies found</div>
             <div v-else>
-              <div v-for="group in searchResults" :key="group.type">
-                <div class="px-4 py-2 text-xs text-gray-500 font-bold">{{ group.type }}</div>
-                <ul>
-                  <li v-for="item in group.items" :key="item.id" class="p-3 hover:bg-dark-800 cursor-pointer flex items-center" @mousedown.prevent="handleResultClick(group.type, item)">
-                    <span class="text-white font-medium">{{ item.name || item.title }}</span>
-                    <span v-if="item.description" class="ml-2 text-gray-400 text-xs truncate">{{ item.description }}</span>
-                  </li>
-                </ul>
-              </div>
+              <ul>
+                <li v-for="(item, idx) in searchResults" :key="item.id"
+                  class="p-3 hover:bg-dark-800 cursor-pointer flex flex-col"
+                  :class="{ 'bg-dark-700': idx === highlightedIndex }"
+                  @mousedown.prevent="handleResultClick(item)"
+                  @mouseenter="handleResultMouseEnter(idx)"
+                >
+                  <span class="text-white font-medium">{{ item.name }}</span>
+                  <span v-if="item.description" class="text-gray-400 text-xs truncate">{{ item.description }}</span>
+                  <span v-if="item.createdBy" class="text-gray-500 text-xs truncate">{{ item.createdBy }}</span>
+                  <span v-if="item.status" :class="getStatusClass(item.status)" class="px-2 py-0.5 rounded-full text-xs font-medium mt-1 w-fit">{{ item.status }}</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
-
       <!-- Right side - Actions -->
       <div class="flex items-center space-x-4 ml-6">
         <!-- Notifications -->
@@ -94,9 +98,11 @@ import { useRouter } from 'vue-router'
 import { fetchNotificationSettings } from '@/utils/users.api'
 import { useBrandingStore } from '@/stores/branding'
 import { useAuthStore } from '@/stores/auth'
+import { useCompaniesStore } from '@/stores/companies'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const companiesStore = useCompaniesStore()
 
 const searchQuery = ref('')
 const notificationCount = ref(3)
@@ -109,55 +115,38 @@ const notificationError = ref('')
 
 const branding = useBrandingStore()
 
-const searchResults = ref<{ type: string, items: any[] }[]>([])
+const searchResults = ref<any[]>([])
 const searchLoading = ref(false)
 const searchError = ref('')
 const showDropdown = ref(false)
+const highlightedIndex = ref(-1)
 let searchTimeout: any = null
 
-const openNotifications = async () => {
-  showNotificationPanel.value = !showNotificationPanel.value
-  if (showNotificationPanel.value) {
-    notificationLoading.value = true
-    notificationError.value = ''
-    try {
-      const res = await fetchNotificationSettings()
-      notificationSettings.value = res.data
-    } catch (e) {
-      notificationError.value = (e as any).message || 'Failed to load notifications'
-    } finally {
-      notificationLoading.value = false
-    }
-  }
-}
+// Optionally, you can add a status filter for global search
+// const statusFilter = ref('')
 
 watch(searchQuery, (newVal) => {
   clearTimeout(searchTimeout)
+  highlightedIndex.value = -1
   if (!newVal) {
     searchResults.value = []
     showDropdown.value = false
     return
   }
   searchTimeout = setTimeout(() => {
-    doGlobalSearch(newVal)
+    doCompanySearch(newVal)
   }, 300)
 })
 
-async function doGlobalSearch(query: string) {
+async function doCompanySearch(query: string) {
   searchLoading.value = true
   searchError.value = ''
   showDropdown.value = true
   try {
-    const res = await fetch(`/api/v1/search/?q=${encodeURIComponent(query)}`, {
-      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-    })
-    if (!res.ok) throw new Error('Failed to search')
-    const data = await res.json()
-    searchResults.value = [
-      { type: 'Companies', items: data.companies || [] },
-      { type: 'Projects', items: data.projects || [] },
-      { type: 'Specs', items: data.specs || [] }
-    ].filter(group => group.items.length > 0)
+    // If you want to support status filter, pass it as the second argument
+    // const companies = await companiesStore.searchCompanies(query, statusFilter.value)
+    const companies = await companiesStore.searchCompanies(query)
+    searchResults.value = companies
   } catch (e) {
     searchError.value = 'Failed to search'
     searchResults.value = []
@@ -166,20 +155,46 @@ async function doGlobalSearch(query: string) {
   }
 }
 
-function handleResultClick(type: string, item: any) {
-  let route = null
-  if (type === 'Companies') route = `/companies/${item.id}`
-  else if (type === 'Projects') route = `/projects/${item.id}`
-  else if (type === 'Specs') route = `/specs/${item.id}`
-  if (route) router.push(route)
+function handleResultClick(item: any) {
+  router.push(`/companies/${item.id}`)
   showDropdown.value = false
   searchQuery.value = ''
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (!showDropdown.value || searchResults.value.length === 0) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    highlightedIndex.value = (highlightedIndex.value + 1) % searchResults.value.length
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    highlightedIndex.value = (highlightedIndex.value - 1 + searchResults.value.length) % searchResults.value.length
+  } else if (e.key === 'Enter') {
+    if (highlightedIndex.value >= 0 && highlightedIndex.value < searchResults.value.length) {
+      handleResultClick(searchResults.value[highlightedIndex.value])
+    }
+  }
+}
+
+function handleResultMouseEnter(idx: number) {
+  highlightedIndex.value = idx
 }
 
 function handleSearchBlur() {
   setTimeout(() => {
     showDropdown.value = false
   }, 200)
+}
+
+function getStatusClass(status: string) {
+  switch (status) {
+    case 'active':
+      return 'bg-green-500/20 text-green-400 border border-green-500/30'
+    case 'inactive':
+      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+    default:
+      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  }
 }
 
 onMounted(() => {

@@ -481,7 +481,7 @@ async function handleCreateSpec() {
       throw new Error(errMsg || 'Failed to upload specification');
     }
     closeCreateModal();
-    await specificationsStore.loadSpecifications();
+    await delayedLoadSpecs();
     showToast('Upload successful!');
   } catch (e: any) {
     createSpecError.value = e.message || 'Failed to upload specification';

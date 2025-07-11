@@ -6,7 +6,7 @@ export interface Company {
   id: number
   name: string
   description?: string
-  status: 'active' | 'inactive'
+  status: string
   createdBy?: string
   created_at?: string
   updated_at?: string
@@ -57,6 +57,39 @@ export const useCompaniesStore = defineStore('companies', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // Search companies (optionally by status)
+  const searchCompanies = async (query: string, status?: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const params = new URLSearchParams()
+      if (query) params.append('search', query)
+      if (status) params.append('status', status)
+      const response = await fetch(`${API_BASE}/?${params.toString()}`, {
+        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+      })
+      if (!response.ok) {
+        throw new Error('Failed to search companies')
+      }
+      const rawCompanies = await response.json()
+      return rawCompanies.map((c: any) => ({
+        ...c,
+        createdBy: c.created_by || c.createdBy
+      }))
+    } catch (err: any) {
+      error.value = err.message || 'Failed to search companies'
+      console.error('Error searching companies:', err)
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Filter companies by status (optionally with search)
+  const filterCompaniesByStatus = async (status: string, query?: string) => {
+    return searchCompanies(query || '', status)
   }
 
   // Get single company
@@ -180,6 +213,8 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading,
     error,
     loadCompanies,
+    searchCompanies,
+    filterCompaniesByStatus,
     getCompany,
     createCompany,
     updateCompany,

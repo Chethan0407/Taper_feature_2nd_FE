@@ -23,13 +23,55 @@
           </button>
         </div>
 
+        <!-- Search Bar -->
+        <div class="mb-6">
+          <div class="relative max-w-md">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="input-field w-full pl-10 pr-4"
+              placeholder="Search companies by name, description, or creator..."
+              @input="handleSearch"
+            />
+            <button 
+              v-if="searchQuery"
+              @click="clearSearch"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div v-if="searchQuery" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Searching for: "{{ searchQuery }}"
+          </div>
+        </div>
+
+        <!-- Status Filter Dropdown -->
+        <div class="mb-6 max-w-xs">
+          <label class="block text-gray-300 text-sm font-medium mb-2">Filter by Status</label>
+          <select v-model="statusFilter" @change="handleStatusFilter" class="input-field w-full">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Pending">Pending</option>
+            <option value="Blocked">Blocked</option>
+          </select>
+        </div>
+
         <!-- Loading State -->
-        <div v-if="companiesStore.loading && companiesStore.companies.length === 0" class="flex justify-center items-center py-12">
+        <div v-if="(companiesStore.loading && companiesStore.companies.length === 0) || isSearching" class="flex justify-center items-center py-12">
           <div class="text-center">
             <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
-            <p class="text-gray-400">Loading companies...</p>
+            <p class="text-gray-400">{{ isSearching ? 'Searching companies...' : 'Loading companies...' }}</p>
           </div>
         </div>
 
@@ -46,7 +88,7 @@
         </div>
 
         <!-- Companies Table -->
-        <div v-else-if="companiesStore.companies.length > 0" class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+        <div v-else-if="(searchQuery ? searchResults.length > 0 : companiesStore.companies.length > 0)" class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead>
@@ -62,7 +104,7 @@
               </thead>
               <tbody>
                 <tr 
-                  v-for="company in companiesStore.companies" 
+                  v-for="company in filteredCompanies" 
                   :key="company.id"
                   class="border-b border-gray-100 dark:border-dark-600/30 hover:bg-gray-50 dark:hover:bg-dark-800/30 transition-colors"
                 >
@@ -135,7 +177,19 @@
         </div>
 
         <!-- Empty State -->
-        <div v-else class="text-center py-12">
+        <div v-else-if="searchQuery && searchResults.length === 0 && !isSearching" class="text-center py-12">
+          <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-gray-400 mb-2">No Companies Found</h3>
+          <p class="text-gray-500 mb-6">No companies match your search criteria</p>
+          <button @click="clearSearch" class="btn-secondary">
+            Clear Search
+          </button>
+        </div>
+        
+        <!-- Empty State -->
+        <div v-else-if="!searchQuery && companiesStore.companies.length === 0" class="text-center py-12">
           <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
           </svg>
@@ -210,8 +264,8 @@
               v-model="form.status"
               class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors"
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
             </select>
           </div>
 
@@ -269,9 +323,21 @@
 
             <div>
               <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">STATUS</label>
-              <span :class="getStatusClass(selectedCompany.status)" class="px-3 py-1 rounded-full text-sm font-medium">
-                {{ selectedCompany.status }}
-              </span>
+              <div class="flex items-center gap-3">
+                <span :class="getStatusClass(selectedCompany.status)" class="px-3 py-1 rounded-full text-sm font-medium">
+                  {{ selectedCompany.status }}
+                </span>
+                <select v-model="statusChangeValue" :disabled="statusChangeLoading" class="input-field w-32">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Blocked">Blocked</option>
+                </select>
+                <button v-if="statusChangeValue !== selectedCompany.status && !statusChangeLoading" @click="updateCompanyStatus" class="btn-primary px-3 py-1 text-xs">Update</button>
+                <span v-if="statusChangeLoading" class="text-xs text-gray-400 ml-2">Updating...</span>
+              </div>
+              <div v-if="statusChangeError" class="text-xs text-red-400 mt-1">{{ statusChangeError }}</div>
+              <div v-if="statusChangeSuccess" class="text-xs text-green-400 mt-1">Status updated!</div>
             </div>
 
             <div>
@@ -348,7 +414,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref, reactive, computed, watch } from 'vue'
 import { useCompaniesStore, type Company, type CreateCompanyData, type UpdateCompanyData } from '@/stores/companies'
 
 const companiesStore = useCompaniesStore()
@@ -363,6 +429,14 @@ const deleting = ref(false)
 const selectedCompany = ref<Company | null>(null)
 const companyToDelete = ref<Company | null>(null)
 
+// Search state
+const searchQuery = ref('')
+const searchResults = ref<Company[]>([])
+const isSearching = ref(false)
+
+// Status filter state
+const statusFilter = ref('')
+
 // Toast state
 const showSuccessToast = ref(false)
 const showErrorToast = ref(false)
@@ -373,7 +447,16 @@ const errorMessage = ref('')
 const form = reactive({
   name: '',
   description: '',
-  status: 'active' as 'active' | 'inactive'
+  status: 'Active' as string
+})
+
+const statusChangeValue = ref<string>('')
+const statusChangeLoading = ref(false)
+const statusChangeError = ref('')
+const statusChangeSuccess = ref(false)
+
+watch(() => selectedCompany.value, (val) => {
+  if (val) statusChangeValue.value = val.status
 })
 
 onMounted(async () => {
@@ -382,13 +465,18 @@ onMounted(async () => {
 
 // Utility functions
 const getStatusClass = (status: string) => {
-  switch (status) {
+  if (!status) return 'bg-gray-500 text-white border border-gray-500'
+  switch (status.toLowerCase()) {
     case 'active':
-      return 'bg-green-500/20 text-green-400 border border-green-500/30'
+      return 'bg-green-500 text-white border border-green-500'
     case 'inactive':
-      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+      return 'bg-gray-500 text-white border border-gray-500'
+    case 'pending':
+      return 'bg-yellow-500 text-white border border-yellow-500'
+    case 'blocked':
+      return 'bg-red-500 text-white border border-red-500'
     default:
-      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+      return 'bg-gray-500 text-white border border-gray-500'
   }
 }
 
@@ -420,6 +508,52 @@ const showToast = (message: string, isError = false) => {
     }, 3000)
   }
 }
+
+// Search functions
+const handleSearch = async () => {
+  isSearching.value = true
+  try {
+    const results = await companiesStore.searchCompanies(searchQuery.value, statusFilter.value)
+    searchResults.value = results
+  } catch (error) {
+    console.error('Search failed:', error)
+    searchResults.value = []
+  } finally {
+    isSearching.value = false
+  }
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+  searchResults.value = []
+  isSearching.value = false
+  handleStatusFilter() // Refresh with just status filter
+}
+
+// Status filter functions
+const handleStatusFilter = async () => {
+  isSearching.value = true
+  try {
+    const results = await companiesStore.searchCompanies(searchQuery.value, statusFilter.value)
+    searchResults.value = results
+  } catch (error) {
+    console.error('Status filter failed:', error)
+    searchResults.value = []
+  } finally {
+    isSearching.value = false
+  }
+}
+
+// Computed property for filtered companies
+const filteredCompanies = computed(() => {
+  // If searching, use searchResults; else use companiesStore.companies
+  let base = searchQuery.value ? searchResults.value : companiesStore.companies
+  // If status filter is set, filter by status (case-insensitive)
+  if (statusFilter.value) {
+    return base.filter(c => c.status && c.status.toLowerCase() === statusFilter.value.toLowerCase())
+  }
+  return base
+})
 
 // Modal functions
 const openCreateModal = () => {
@@ -465,7 +599,7 @@ const closeDeleteModal = () => {
 const resetForm = () => {
   form.name = ''
   form.description = ''
-  form.status = 'active'
+  form.status = 'Active'
   selectedCompany.value = null
 }
 
@@ -520,6 +654,23 @@ const confirmDelete = async () => {
     }
   } finally {
     deleting.value = false
+  }
+}
+
+const updateCompanyStatus = async () => {
+  if (!selectedCompany.value) return
+  statusChangeLoading.value = true
+  statusChangeError.value = ''
+  statusChangeSuccess.value = false
+  try {
+    await companiesStore.updateCompany(selectedCompany.value.id, { status: statusChangeValue.value })
+    selectedCompany.value.status = statusChangeValue.value
+    statusChangeSuccess.value = true
+    setTimeout(() => { statusChangeSuccess.value = false }, 2000)
+  } catch (e: any) {
+    statusChangeError.value = e.message || 'Failed to update status'
+  } finally {
+    statusChangeLoading.value = false
   }
 }
 </script> 
