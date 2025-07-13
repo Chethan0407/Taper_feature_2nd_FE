@@ -222,14 +222,18 @@
         </div>
 
         <!-- Quick Stats -->
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-5 gap-6">
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-blue mb-2">{{ loadingStats ? '--' : stats.active_specs ?? '--' }}</div>
-            <div class="text-gray-600 dark:text-gray-400">Active Specs</div>
+            <div class="text-3xl font-bold text-neon-blue mb-2">{{ loadingStats ? '--' : stats.approved_specs ?? '--' }}</div>
+            <div class="text-gray-600 dark:text-gray-400">Approved Specs</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-green mb-2">{{ loadingStats ? '--' : stats.pending_reviews ?? '--' }}</div>
-            <div class="text-gray-600 dark:text-gray-400">Pending Reviews</div>
+            <div class="text-3xl font-bold text-neon-green mb-2">{{ loadingStats ? '--' : stats.pending_specs ?? '--' }}</div>
+            <div class="text-gray-600 dark:text-gray-400">Pending Specs</div>
+          </div>
+          <div class="card text-center">
+            <div class="text-3xl font-bold text-red-500 mb-2">{{ loadingStats ? '--' : stats.rejected_specs ?? '--' }}</div>
+            <div class="text-gray-600 dark:text-gray-400">Rejected Specs</div>
           </div>
           <div class="card text-center">
             <div class="text-3xl font-bold text-neon-purple mb-2">{{ loadingStats ? '--' : stats.vendor_partners ?? '--' }}</div>
@@ -262,7 +266,7 @@ const goToProjects = () => {
   router.push('/projects')
 }
 
-const stats = ref<{ active_specs?: number; pending_reviews?: number; vendor_partners?: number; quality_score?: number }>({})
+const stats = ref<{ approved_specs?: number; pending_specs?: number; rejected_specs?: number; vendor_partners?: number; quality_score?: number }>({})
 const loadingStats = ref(true)
 const statsError = ref('')
 let statsInterval: number | undefined

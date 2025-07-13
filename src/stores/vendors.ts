@@ -9,6 +9,8 @@ export interface Vendor {
   type: string
   status: 'active' | 'pending' | 'inactive'
   nda_url?: string
+  linked_specs?: string[]
+  linked_checklists?: string[]
   // Add more fields as needed
 }
 

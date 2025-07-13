@@ -99,6 +99,22 @@
               <option value="inactive">Inactive</option>
             </select>
           </div>
+          <div>
+            <label class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Linked Specs</label>
+            <select v-model="vendorForm.linkedSpecs" class="input-field w-full" multiple>
+              <option v-for="spec in allSpecs" :key="spec.id" :value="spec.id">
+                {{ spec.name || spec.file_name || 'Unnamed Spec' }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Linked Checklists</label>
+            <select v-model="vendorForm.linkedChecklists" class="input-field w-full" multiple>
+              <option v-for="checklist in allChecklists" :key="checklist.id" :value="checklist.id">
+                {{ checklist.name }}
+              </option>
+            </select>
+          </div>
           <div class="pt-2">
             <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="vendorsStore.loading">{{ editingVendor ? 'Update' : 'Add' }}<span v-if="vendorsStore.loading" class="ml-2 animate-spin">⏳</span></button>
           </div>
@@ -148,7 +164,7 @@ const activitiesLoading = ref(false)
 const activitiesError = ref('')
 const showVendorModal = ref(false)
 const editingVendor = ref<Vendor | null>(null)
-const vendorForm = ref({ name: '', type: '', status: 'active' })
+const vendorForm = ref({ name: '', type: '', status: 'active', linkedSpecs: [], linkedChecklists: [] })
 const deleting = ref<string | null>(null)
 const uploadingNDA = ref<string | null>(null)
 const acknowledging = ref<string | null>(null)
@@ -156,6 +172,9 @@ const vendorDetails = ref(null)
 
 const vendorList = computed(() => vendorsStore.vendors as Vendor[])
 const authStore = useAuthStore()
+
+const allSpecs = ref([])
+const allChecklists = ref([])
 
 // Fetch recent activity from API
 const fetchActivities = async () => {
@@ -184,6 +203,12 @@ const fetchActivities = async () => {
 onMounted(async () => {
   await vendorsStore.fetchVendors()
   await fetchActivities()
+  // Fetch specs
+  const specsRes = await fetch('/api/v1/specifications', { headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined })
+  if (specsRes.ok) allSpecs.value = await specsRes.json()
+  // Fetch checklists
+  const checklistsRes = await fetch('/api/v1/checklists', { headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined })
+  if (checklistsRes.ok) allChecklists.value = await checklistsRes.json()
 })
 
 const getStatusClass = (status: string) => {
@@ -207,14 +232,14 @@ const handleSubmit = async () => {
     await vendorsStore.createVendor(vendorForm.value)
   }
   showVendorModal.value = false
-  vendorForm.value = { name: '', type: '', status: 'active' }
+  vendorForm.value = { name: '', type: '', status: 'active', linkedSpecs: [], linkedChecklists: [] }
   editingVendor.value = null
   await fetchActivities()
 }
 
 const handleEdit = (vendor: Vendor) => {
   editingVendor.value = vendor
-  vendorForm.value = { name: vendor.name, type: vendor.type, status: vendor.status }
+  vendorForm.value = { name: vendor.name, type: vendor.type, status: vendor.status, linkedSpecs: vendor.linked_specs, linkedChecklists: vendor.linked_checklists }
   showVendorModal.value = true
 }
 

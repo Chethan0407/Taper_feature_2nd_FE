@@ -68,4 +68,42 @@ export async function handleApiError(response: Response, defaultMessage: string)
     }
   }
   return defaultMessage
+}
+
+/**
+ * Helper function to fetch project dashboard data
+ */
+export async function fetchProjectDashboard(projectId: string): Promise<{
+  specs: any[]
+  checklists: any[]
+  specLints: any[]
+  qualityScore: any
+}> {
+  const headers = getAuthHeaders()
+  
+  const [specsRes, checklistsRes, specLintsRes, qualityScoreRes] = await Promise.all([
+    authenticatedFetch(`/api/v1/projects/${projectId}/specs/with-status`),
+    authenticatedFetch(`/api/v1/projects/${projectId}/checklists/with-status`),
+    authenticatedFetch(`/api/v1/projects/${projectId}/spec-lints/with-status`),
+    authenticatedFetch(`/api/v1/projects/${projectId}/quality-score`)
+  ])
+  
+  if (!specsRes.ok) throw new Error(`Failed to load specs: ${await specsRes.text()}`)
+  if (!checklistsRes.ok) throw new Error(`Failed to load checklists: ${await checklistsRes.text()}`)
+  if (!specLintsRes.ok) throw new Error(`Failed to load spec lints: ${await specLintsRes.text()}`)
+  if (!qualityScoreRes.ok) throw new Error(`Failed to load quality score: ${await qualityScoreRes.text()}`)
+  
+  const [specs, checklists, specLints, qualityScore] = await Promise.all([
+    specsRes.json(),
+    checklistsRes.json(),
+    specLintsRes.json(),
+    qualityScoreRes.json()
+  ])
+  
+  return {
+    specs: specs || [],
+    checklists: checklists || [],
+    specLints: specLints || [],
+    qualityScore: qualityScore || null
+  }
 } 
