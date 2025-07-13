@@ -19,9 +19,11 @@
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Vendor Partners</h2>
                 <button class="btn-primary" @click="showVendorModal = true">Add Vendor</button>
               </div>
-              
-              <div class="space-y-4">
-                <div v-for="vendor in vendorsStore.vendors" :key="vendor.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
+              <div v-if="error" class="text-red-500 text-center mb-4">{{ error }}</div>
+              <div v-if="loading" class="text-gray-400 text-center mb-4">Loading...</div>
+              <div v-if="!loading && vendorList.length === 0" class="text-gray-400 text-center mb-4">No vendors yet.</div>
+              <div v-else class="space-y-4">
+                <div v-for="vendor in vendorList" :key="vendor.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
                       <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
@@ -41,6 +43,11 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
                         </svg>
                       </button>
+                      <button class="p-2 text-red-400 hover:text-red-600 transition-colors" @click="confirmDelete(vendor)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -51,12 +58,15 @@
           <!-- Communication Timeline -->
           <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Recent Activity</h2>
-            <div class="space-y-4">
-              <div v-for="activity in activities" :key="activity.id" class="flex items-start space-x-3">
+            <div v-if="activitiesLoading" class="text-center text-gray-400 py-4">Loading...</div>
+            <div v-else-if="activitiesError" class="text-center text-red-400 py-4">Activity feed unavailable</div>
+            <div v-else-if="activities.length === 0" class="text-center text-gray-400 py-4">No recent activity.</div>
+            <div v-else class="space-y-4">
+              <div v-for="activity in activities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
                 <div class="w-2 h-2 bg-neon-blue rounded-full mt-2"></div>
                 <div class="flex-1">
-                  <p class="text-sm text-gray-900 dark:text-white">{{ activity.message }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ activity.time }}</p>
+                  <p class="text-sm text-gray-900 dark:text-white">{{ activity.action }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ new Date(activity.timestamp).toLocaleString() }}</p>
                 </div>
               </div>
             </div>
@@ -90,9 +100,24 @@
             </select>
           </div>
           <div class="pt-2">
-            <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold">{{ editingVendor ? 'Update' : 'Add' }}</button>
+            <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="vendorsStore.loading">{{ editingVendor ? 'Update' : 'Add' }}<span v-if="vendorsStore.loading" class="ml-2 animate-spin">⏳</span></button>
           </div>
+          <div v-if="vendorsStore.error" class="text-red-500 text-center mt-2">{{ vendorsStore.error }}</div>
         </form>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold" @click="showDeleteModal = false">&times;</button>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Delete Vendor</h2>
+        <p class="mb-6 text-gray-300 text-center">Are you sure you want to delete <span class="font-semibold">{{ vendorToDelete?.name }}</span>?</p>
+        <div class="flex justify-end gap-2">
+          <button class="btn-secondary" @click="showDeleteModal = false">Cancel</button>
+          <button class="btn-primary bg-red-500 hover:bg-red-600" @click="deleteVendor" :disabled="deletingVendor">Delete<span v-if="deletingVendor" class="ml-2 animate-spin">⏳</span></button>
+        </div>
+        <div v-if="deleteError" class="text-red-400 mt-2 text-center">{{ deleteError }}</div>
       </div>
     </div>
   </div>
@@ -103,19 +128,24 @@ import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref, computed } from 'vue'
 import { useVendorsStore } from '@/stores/vendors'
+import { useAuthStore } from '@/stores/auth'
 import type { Vendor } from '@/stores/vendors'
 
-// Add or fix VendorActivity type for activities
-interface VendorActivity {
-  id: string;
-  message: string;
-  time: string;
+// Replace VendorActivity interface and activities ref with new structure
+interface Activity {
+  timestamp: string;
+  user: string;
+  action: string;
+  entity: string;
+  entity_id: number;
 }
 
 const vendorsStore = useVendorsStore()
 const loading = computed(() => vendorsStore.loading)
 const error = computed(() => vendorsStore.error)
-const activities = ref<VendorActivity[]>([])
+const activities = ref<Activity[]>([])
+const activitiesLoading = ref(false)
+const activitiesError = ref('')
 const showVendorModal = ref(false)
 const editingVendor = ref<Vendor | null>(null)
 const vendorForm = ref({ name: '', type: '', status: 'active' })
@@ -124,11 +154,36 @@ const uploadingNDA = ref<string | null>(null)
 const acknowledging = ref<string | null>(null)
 const vendorDetails = ref(null)
 
+const vendorList = computed(() => vendorsStore.vendors as Vendor[])
+const authStore = useAuthStore()
+
+// Fetch recent activity from API
+const fetchActivities = async () => {
+  activitiesLoading.value = true
+  activitiesError.value = ''
+  try {
+    const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    const res = await fetch('/api/v1/activity/', { headers })
+    if (!res.ok) {
+      if (res.status === 401) {
+        await authStore.logout()
+        window.location.href = '/login'
+        throw new Error('Session expired. Please log in again.')
+      }
+      throw new Error('Failed to fetch activity')
+    }
+    activities.value = await res.json()
+  } catch (e: any) {
+    activitiesError.value = e.message || 'Failed to fetch activity'
+    activities.value = []
+  } finally {
+    activitiesLoading.value = false
+  }
+}
+
 onMounted(async () => {
   await vendorsStore.fetchVendors()
-  if (vendorsStore.vendors.length > 0) {
-    activities.value = await vendorsStore.fetchTimeline(vendorsStore.vendors[0].id)
-  }
+  await fetchActivities()
 })
 
 const getStatusClass = (status: string) => {
@@ -144,6 +199,7 @@ const getStatusClass = (status: string) => {
   }
 }
 
+// Call fetchActivities after vendor CRUD
 const handleSubmit = async () => {
   if (editingVendor.value) {
     await vendorsStore.updateVendor(editingVendor.value.id, vendorForm.value)
@@ -153,6 +209,7 @@ const handleSubmit = async () => {
   showVendorModal.value = false
   vendorForm.value = { name: '', type: '', status: 'active' }
   editingVendor.value = null
+  await fetchActivities()
 }
 
 const handleEdit = (vendor: Vendor) => {
@@ -161,8 +218,32 @@ const handleEdit = (vendor: Vendor) => {
   showVendorModal.value = true
 }
 
-const handleDelete = async (id: string) => {
-  await vendorsStore.deleteVendor(id)
+const showDeleteModal = ref(false)
+const vendorToDelete = ref<Vendor | null>(null)
+const deletingVendor = ref(false)
+const deleteError = ref('')
+
+function confirmDelete(vendor: Vendor) {
+  vendorToDelete.value = vendor
+  showDeleteModal.value = true
+  deleteError.value = ''
+}
+
+async function deleteVendor() {
+  if (!vendorToDelete.value) return
+  const id = (vendorToDelete.value as Vendor).id
+  deletingVendor.value = true
+  deleteError.value = ''
+  try {
+    await vendorsStore.deleteVendor(id)
+    showDeleteModal.value = false
+    vendorToDelete.value = null
+    await fetchActivities()
+  } catch (e: any) {
+    deleteError.value = e.message || 'Failed to delete vendor'
+  } finally {
+    deletingVendor.value = false
+  }
 }
 
 const uploadNDA = async () => {

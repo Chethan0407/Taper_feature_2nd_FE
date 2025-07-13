@@ -42,9 +42,7 @@
                   @mouseenter="handleResultMouseEnter(idx)"
                 >
                   <span class="text-white font-medium">{{ item.name }}</span>
-                  <span v-if="item.description" class="text-gray-400 text-xs truncate">{{ item.description }}</span>
-                  <span v-if="item.createdBy" class="text-gray-500 text-xs truncate">{{ item.createdBy }}</span>
-                  <span v-if="item.status" :class="getStatusClass(item.status)" class="px-2 py-0.5 rounded-full text-xs font-medium mt-1 w-fit">{{ item.status }}</span>
+                  <!-- Removed description, createdBy, and status -->
                 </li>
               </ul>
             </div>
@@ -71,9 +69,30 @@
           </svg>
         </button>
 
-        <!-- Theme Toggle -->
-        <!-- Remove the theme toggle button and related logic from the template -->
-        <!-- Remove all script logic for theme toggling, isDark, updateTheme, etc. -->
+        <!-- Profile Section with Dropdown -->
+        <div class="relative flex items-center space-x-3" tabindex="0"
+          @click="showProfileDropdown = !showProfileDropdown"
+          @blur="showProfileDropdown = false"
+        >
+          <img v-if="branding.logo_url" :src="branding.logo_url" alt="Brand Logo" class="h-8 w-8 rounded-full" />
+          <span class="text-white font-semibold text-base cursor-pointer">{{ authStore.user?.name || 'User' }}</span>
+          <svg class="w-4 h-4 text-white ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          <div v-if="showProfileDropdown" class="absolute right-0 top-full mt-2 w-56 bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl z-50 py-2 px-2">
+            <ul>
+              <li>
+                <router-link to="/profile" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Profile</router-link>
+              </li>
+              <li>
+                <router-link to="/settings" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Settings</router-link>
+              </li>
+              <li>
+                <button @click.stop="handleLogout" class="block w-full text-left px-4 py-3 text-red-400 hover:bg-dark-800 rounded-lg">Logout</button>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -189,6 +208,14 @@ function getStatusClass(status: string) {
     default:
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
   }
+}
+
+const showProfileDropdown = ref(false)
+
+function handleLogout() {
+  showProfileDropdown.value = false
+  authStore.logout()
+  router.push('/login')
 }
 
 onMounted(() => {

@@ -9,10 +9,9 @@
         <div>
           <label class="block text-gray-300 text-sm font-medium mb-2">Items</label>
           <div v-for="(item, idx) in form.items" :key="idx" class="flex gap-2 mb-2">
-            <input v-model="item.text" class="input-field flex-1" placeholder="Item text" required />
-            <label class="flex items-center text-xs text-gray-400">
-              <input type="checkbox" v-model="item.required" class="mr-1" /> Required
-            </label>
+            <input v-model="item.title" class="input-field flex-1" placeholder="Item title" required />
+            <textarea v-model="item.description" class="input-field flex-1" placeholder="Item description" rows="1" />
+            <input v-model.number="item.order" type="number" class="input-field w-16" placeholder="Order" min="1" />
             <button type="button" class="btn-secondary" @click="removeItem(idx)">Remove</button>
           </div>
           <button type="button" class="btn-primary" @click="addItem">+ Add Item</button>
@@ -28,26 +27,85 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
 const emit = defineEmits(['close', 'created'])
+const authStore = useAuthStore()
+
 const form = reactive({
   name: '',
   description: '',
-  items: [{ text: '', required: false }]
+  items: [{ title: '', description: '', order: 1 }]
 })
+
 const submitting = ref(false)
 const error = ref('')
-const addItem = () => form.items.push({ text: '', required: false })
-const removeItem = (idx: number) => form.items.splice(idx, 1)
+
+const addItem = () => {
+  const nextOrder = form.items.length + 1
+  form.items.push({ title: '', description: '', order: nextOrder })
+}
+
+const removeItem = (idx: number) => {
+  form.items.splice(idx, 1)
+  // Reorder remaining items
+  form.items.forEach((item, index) => {
+    item.order = index + 1
+  })
+}
+
 const handleSubmit = async () => {
   submitting.value = true
   error.value = ''
+  
   try {
-    const res = await fetch('http://localhost:8000/api/v1/checklists/', {
+    // Validate form
+    if (!form.name.trim()) {
+      throw new Error('Template name is required')
+    }
+    
+    if (!authStore.user?.id) {
+      throw new Error('User not authenticated')
+    }
+    
+    // Filter out empty items
+    const validItems = form.items.filter(item => item.title.trim())
+    
+    // Prepare request body according to API specification
+    const requestBody: any = {
+      name: form.name.trim(),
+      created_by: String(authStore.user.id)
+    }
+    
+    if (form.description.trim()) {
+      requestBody.description = form.description.trim()
+    }
+    
+    if (validItems.length > 0) {
+      requestBody.items = validItems.map(item => ({
+        title: item.title.trim(),
+        description: item.description.trim(),
+        order: item.order
+      }))
+    }
+    
+    const res = await fetch('http://localhost:8000/api/v1/checklists/templates', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, is_template: true })
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
+      },
+      body: JSON.stringify(requestBody)
     })
-    if (!res.ok) throw new Error('Failed to create template')
+    
+    if (!res.ok) {
+      const errorData = await res.text()
+      throw new Error(errorData || 'Failed to create template')
+    }
+    
+    const createdTemplate = await res.json()
+    console.log('Template created successfully:', createdTemplate)
+    
     emit('created')
     emit('close')
   } catch (e: any) {

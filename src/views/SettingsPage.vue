@@ -21,10 +21,6 @@
                 <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.name" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-                <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.email" />
-              </div>
-              <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
                 <select class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.role">
                   <option>Lead Engineer</option>
@@ -56,27 +52,21 @@
           <!-- Notifications -->
           <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Notifications</h2>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
+            <div v-if="notificationsLoading" class="text-center text-gray-400 py-4">Loading...</div>
+            <div v-else-if="notificationsError" class="text-center text-red-400 py-4">{{ notificationsError }}</div>
+            <div v-else class="space-y-4">
+              <div v-for="(value, key) in notifications" :key="key" class="flex items-center justify-between">
                 <div>
-                  <p class="font-medium text-gray-900 dark:text-white">Email Notifications</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Receive updates via email</p>
+                  <p class="font-medium text-gray-900 dark:text-white">{{ String(key).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ notificationDescription(String(key)) }}</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" class="sr-only peer" checked>
+                  <input type="checkbox" class="sr-only peer" v-model="notifications[key]">
                   <div class="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-blue"></div>
                 </label>
               </div>
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="font-medium text-gray-900 dark:text-white">Spec Review Alerts</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Get notified when specs need review</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" class="sr-only peer" checked>
-                  <div class="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-blue"></div>
-                </label>
-              </div>
+              <button class="btn-primary w-full mt-4" :disabled="notificationsLoading" @click="updateNotifications()">Save Preferences</button>
+              <div v-if="notificationsSuccess" class="text-green-400 text-center mt-2">Preferences saved!</div>
             </div>
           </div>
 
@@ -105,6 +95,7 @@
         </div>
         <div v-if="brandingError" class="text-red-400 text-center mt-2">{{ brandingError }}</div>
         <div v-if="brandingSuccess" class="text-green-400 text-center mt-2">Branding saved successfully!</div>
+        <div v-if="profileSuccess" class="text-green-400 text-center mt-2">Profile updated successfully!</div>
       </main>
     </div>
   </div>
@@ -114,6 +105,8 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore()
 
 const profile = ref({ name: '', email: '', role: '' })
 const apiKeys = ref<{ id: string; [key: string]: any }[]>([])
@@ -127,11 +120,26 @@ const brandingLogoPreview = ref('')
 const brandingError = ref('')
 const brandingLoading = ref(false)
 const brandingSuccess = ref(false)
-const notifications = ref({})
+const notifications = ref<any>({})
+const notificationsLoading = ref(false)
+const notificationsError = ref('')
+const notificationsSuccess = ref(false)
 const deletingKey = ref<string | null>(null)
 const patchingProfile = ref(false)
 const updatingBranding = ref(false)
 const updatingNotifications = ref(false)
+const profileSuccess = ref(false)
+
+function notificationDescription(key: string) {
+  switch (key) {
+    case 'email_notifications':
+      return 'Receive updates via email';
+    case 'spec_review_alerts':
+      return 'Get notified when specs need review';
+    default:
+      return '';
+  }
+}
 
 onMounted(async () => {
   const profileRes = await fetch('/api/v1/settings/profile/')
@@ -143,6 +151,7 @@ onMounted(async () => {
     apiKeys.value = await keysRes.json()
   }
   await fetchBranding()
+  await fetchNotifications()
 })
 
 const fetchBranding = async () => {
@@ -228,11 +237,21 @@ const saveBranding = async () => {
 }
 
 const updateProfile = async () => {
-  await fetch('/api/v1/settings/profile/', {
+  const res = await fetch('/api/v1/settings/profile/', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profile.value)
   })
+  if (res.ok) {
+    // Re-fetch the updated profile
+    const profileRes = await fetch('/api/v1/settings/profile/')
+    if (profileRes.ok) {
+      profile.value = await profileRes.json()
+    }
+    await authStore.checkAuth() // Refresh global user for sidebar
+    profileSuccess.value = true
+    setTimeout(() => { profileSuccess.value = false }, 2000)
+  }
 }
 
 const generateApiKey = async () => {
@@ -241,5 +260,40 @@ const generateApiKey = async () => {
 
 const regenerateApiKey = async (keyId: string) => {
   await fetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, { method: 'POST' })
+}
+
+const fetchNotifications = async () => {
+  notificationsLoading.value = true
+  notificationsError.value = ''
+  try {
+    const res = await fetch('/api/v1/settings/notifications/')
+    if (!res.ok) throw new Error('Failed to fetch notifications')
+    notifications.value = await res.json()
+  } catch (e: any) {
+    notificationsError.value = e.message || 'Failed to fetch notifications'
+  } finally {
+    notificationsLoading.value = false
+  }
+}
+
+const updateNotifications = async (changedOnly = false) => {
+  notificationsLoading.value = true
+  notificationsError.value = ''
+  notificationsSuccess.value = false
+  try {
+    const method = changedOnly ? 'PATCH' : 'PUT'
+    const res = await fetch('/api/v1/settings/notifications/', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(notifications.value)
+    })
+    if (!res.ok) throw new Error('Failed to update notifications')
+    notificationsSuccess.value = true
+    setTimeout(() => { notificationsSuccess.value = false }, 2000)
+  } catch (e: any) {
+    notificationsError.value = e.message || 'Failed to update notifications'
+  } finally {
+    notificationsLoading.value = false
+  }
 }
 </script> 

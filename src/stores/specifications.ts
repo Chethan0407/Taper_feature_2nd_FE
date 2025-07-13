@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
+import { useRouter } from 'vue-router'
 
 export interface Specification {
   id: string
@@ -39,6 +40,7 @@ export const useSpecificationsStore = defineStore('specifications', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const authStore = useAuthStore()
+  const router = useRouter()
 
   // Filter states
   const filters = ref<SpecificationFilters>({
@@ -125,9 +127,17 @@ export const useSpecificationsStore = defineStore('specifications', () => {
       const response = await fetch(url, { headers })
       
       if (!response.ok) {
-        throw new Error('Failed to load specifications')
+        if (response.status === 401) {
+          await authStore.logout()
+          router.push('/login')
+          throw new Error('Session expired. Please log in again.')
+        }
+        let errorText = ''
+        try {
+          errorText = await response.text()
+        } catch {}
+        throw new Error(errorText || 'Failed to load specifications')
       }
-      
       const data = await response.json()
       specifications.value = Array.isArray(data) ? data : []
     } catch (err: any) {

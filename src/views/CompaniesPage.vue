@@ -58,10 +58,8 @@
           <label class="block text-gray-300 text-sm font-medium mb-2">Filter by Status</label>
           <select v-model="statusFilter" @change="handleStatusFilter" class="input-field w-full">
             <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Pending">Pending</option>
-            <option value="Blocked">Blocked</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
           </select>
         </div>
 
@@ -264,8 +262,8 @@
               v-model="form.status"
               class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors"
             >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
           </div>
 
@@ -327,17 +325,7 @@
                 <span :class="getStatusClass(selectedCompany.status)" class="px-3 py-1 rounded-full text-sm font-medium">
                   {{ selectedCompany.status }}
                 </span>
-                <select v-model="statusChangeValue" :disabled="statusChangeLoading" class="input-field w-32">
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Blocked">Blocked</option>
-                </select>
-                <button v-if="statusChangeValue !== selectedCompany.status && !statusChangeLoading" @click="updateCompanyStatus" class="btn-primary px-3 py-1 text-xs">Update</button>
-                <span v-if="statusChangeLoading" class="text-xs text-gray-400 ml-2">Updating...</span>
               </div>
-              <div v-if="statusChangeError" class="text-xs text-red-400 mt-1">{{ statusChangeError }}</div>
-              <div v-if="statusChangeSuccess" class="text-xs text-green-400 mt-1">Status updated!</div>
             </div>
 
             <div>
@@ -436,7 +424,7 @@ const searchResults = ref<Company[]>([])
 const isSearching = ref(false)
 
 // Status filter state
-const statusFilter = ref('')
+const statusFilter = ref<"active" | "inactive" | "">('')
 
 // Toast state
 const showSuccessToast = ref(false)
@@ -448,16 +436,7 @@ const errorMessage = ref('')
 const form = reactive({
   name: '',
   description: '',
-  status: 'Active' as string
-})
-
-const statusChangeValue = ref<string>('')
-const statusChangeLoading = ref(false)
-const statusChangeError = ref('')
-const statusChangeSuccess = ref(false)
-
-watch(() => selectedCompany.value, (val) => {
-  if (val) statusChangeValue.value = val.status
+  status: 'active' as 'active' | 'inactive'
 })
 
 const route = useRoute()
@@ -466,7 +445,7 @@ function syncSearchAndStatusFromRoute() {
   const searchParam = route.query.search as string || ''
   const statusParam = route.query.status as string || ''
   searchQuery.value = searchParam
-  statusFilter.value = statusParam
+  statusFilter.value = (statusParam === 'active' || statusParam === 'inactive') ? statusParam : ''
   handleSearch()
 }
 
@@ -474,7 +453,7 @@ onMounted(async () => {
   const searchParam = route.query.search as string || ''
   const statusParam = route.query.status as string || ''
   searchQuery.value = searchParam
-  statusFilter.value = statusParam
+  statusFilter.value = (statusParam === 'active' || statusParam === 'inactive') ? statusParam : ''
   if (searchQuery.value || statusFilter.value) {
     await handleSearch()
   } else {
@@ -569,7 +548,12 @@ const handleStatusFilter = async () => {
 }
 
 // Computed property for filtered companies
-const filteredCompanies = computed(() => searchResults.value)
+const filteredCompanies = computed(() =>
+  searchResults.value.filter(company =>
+    !statusFilter.value ||
+    (company.status && company.status.toLowerCase() === statusFilter.value.toLowerCase())
+  )
+)
 
 // Modal functions
 const openCreateModal = () => {
@@ -583,7 +567,7 @@ const editCompany = (company: Company) => {
   selectedCompany.value = company
   form.name = company.name
   form.description = company.description || ''
-  form.status = company.status
+  form.status = (company.status === 'active' || company.status === 'inactive') ? company.status : 'active'
   showModal.value = true
 }
 
@@ -615,7 +599,7 @@ const closeDeleteModal = () => {
 const resetForm = () => {
   form.name = ''
   form.description = ''
-  form.status = 'Active'
+  form.status = 'active'
   selectedCompany.value = null
 }
 
@@ -670,23 +654,6 @@ const confirmDelete = async () => {
     }
   } finally {
     deleting.value = false
-  }
-}
-
-const updateCompanyStatus = async () => {
-  if (!selectedCompany.value) return
-  statusChangeLoading.value = true
-  statusChangeError.value = ''
-  statusChangeSuccess.value = false
-  try {
-    await companiesStore.updateCompany(selectedCompany.value.id, { status: statusChangeValue.value })
-    selectedCompany.value.status = statusChangeValue.value
-    statusChangeSuccess.value = true
-    setTimeout(() => { statusChangeSuccess.value = false }, 2000)
-  } catch (e: any) {
-    statusChangeError.value = e.message || 'Failed to update status'
-  } finally {
-    statusChangeLoading.value = false
   }
 }
 </script> 
