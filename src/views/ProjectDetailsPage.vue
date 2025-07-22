@@ -6,6 +6,24 @@
       <Header />
       
       <main class="p-8">
+        <!-- Quality Score Breakdown at the very top -->
+        <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quality Score Breakdown</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-green-500 mb-2">{{ dashboardData.qualityScore?.approval_rate || 0 }}%</div>
+              <div class="text-gray-400">Approval Rate</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-blue-500 mb-2">{{ dashboardData.qualityScore?.completion_rate || 0 }}%</div>
+              <div class="text-gray-400">Completion Rate</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-purple-500 mb-2">{{ dashboardData.qualityScore?.pass_rate || 0 }}%</div>
+              <div class="text-gray-400">Pass Rate</div>
+            </div>
+          </div>
+        </div>
         <!-- Tab Switcher -->
         <div class="flex space-x-4 mb-8 border-b border-gray-200 dark:border-dark-700">
           <button
@@ -263,25 +281,6 @@
                     <p v-if="lint.comments" class="mt-2 text-gray-600 dark:text-gray-300">{{ lint.comments }}</p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quality Score -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quality Score Breakdown</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="text-center">
-                <div class="text-3xl font-bold text-green-500 mb-2">{{ dashboardData.qualityScore?.approval_rate || 0 }}%</div>
-                <div class="text-gray-400">Approval Rate</div>
-              </div>
-              <div class="text-center">
-                <div class="text-3xl font-bold text-blue-500 mb-2">{{ dashboardData.qualityScore?.completion_rate || 0 }}%</div>
-                <div class="text-gray-400">Completion Rate</div>
-              </div>
-              <div class="text-center">
-                <div class="text-3xl font-bold text-purple-500 mb-2">{{ dashboardData.qualityScore?.pass_rate || 0 }}%</div>
-                <div class="text-gray-400">Pass Rate</div>
               </div>
             </div>
           </div>

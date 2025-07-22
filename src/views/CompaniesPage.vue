@@ -63,13 +63,13 @@
           </select>
         </div>
 
-        <!-- Loading State -->
-        <div v-if="(companiesStore.loading && companiesStore.companies.length === 0) || isSearching" class="flex justify-center items-center py-12">
+        <!-- Loading State (only for initial load) -->
+        <div v-if="companiesStore.loading && companiesStore.companies.length === 0" class="flex justify-center items-center py-12">
           <div class="text-center">
             <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
-            <p class="text-gray-400">{{ isSearching ? 'Searching companies...' : 'Loading companies...' }}</p>
+            <p class="text-gray-400">Loading companies...</p>
           </div>
         </div>
 
@@ -83,6 +83,14 @@
           <button @click="companiesStore.loadCompanies()" class="btn-primary">
             Try Again
           </button>
+        </div>
+
+        <!-- Inline loader for filtering/searching -->
+        <div v-if="isSearching && (companiesStore.companies.length > 0 || searchResults.length > 0)" class="flex items-center mb-2">
+          <svg class="w-5 h-5 text-neon-blue animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span class="text-gray-400">Filtering companies...</span>
         </div>
 
         <!-- Companies Table -->
@@ -513,8 +521,14 @@ const showToast = (message: string, isError = false) => {
 }
 
 // Search functions
+let searchLoaderTimeout: ReturnType<typeof setTimeout> | null = null
 const handleSearch = async () => {
-  isSearching.value = true
+  if (searchLoaderTimeout) clearTimeout(searchLoaderTimeout)
+  let loaderShown = false
+  searchLoaderTimeout = setTimeout(() => {
+    isSearching.value = true
+    loaderShown = true
+  }, 300)
   try {
     const results = await companiesStore.searchCompanies(searchQuery.value, statusFilter.value)
     searchResults.value = results
@@ -522,7 +536,8 @@ const handleSearch = async () => {
     console.error('Search failed:', error)
     searchResults.value = []
   } finally {
-    isSearching.value = false
+    if (searchLoaderTimeout) clearTimeout(searchLoaderTimeout)
+    if (loaderShown) isSearching.value = false
   }
 }
 
@@ -534,8 +549,14 @@ const clearSearch = () => {
 }
 
 // Status filter functions
+let statusLoaderTimeout: ReturnType<typeof setTimeout> | null = null
 const handleStatusFilter = async () => {
-  isSearching.value = true
+  if (statusLoaderTimeout) clearTimeout(statusLoaderTimeout)
+  let loaderShown = false
+  statusLoaderTimeout = setTimeout(() => {
+    isSearching.value = true
+    loaderShown = true
+  }, 300)
   try {
     const results = await companiesStore.searchCompanies(searchQuery.value, statusFilter.value)
     searchResults.value = results
@@ -543,7 +564,8 @@ const handleStatusFilter = async () => {
     console.error('Status filter failed:', error)
     searchResults.value = []
   } finally {
-    isSearching.value = false
+    if (statusLoaderTimeout) clearTimeout(statusLoaderTimeout)
+    if (loaderShown) isSearching.value = false
   }
 }
 

@@ -50,7 +50,7 @@
           </div>
 
           <!-- Active Checklists -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl max-h-[600px] overflow-y-auto">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Active Checklists</h2>
             <div v-if="activeChecklistsLoading" class="text-center py-8">
               <div class="text-gray-500 dark:text-gray-400">Loading active checklists...</div>
