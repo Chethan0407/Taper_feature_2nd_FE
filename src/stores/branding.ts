@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 
 export const useBrandingStore = defineStore('branding', () => {
   const logo_url = ref('')
@@ -13,7 +14,9 @@ export const useBrandingStore = defineStore('branding', () => {
     loading.value = true
     error.value = ''
     try {
-      const res = await fetch('/api/v1/settings/branding/')
+      const authStore = useAuthStore()
+      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+      const res = await fetch('/api/v1/settings/branding/', { headers })
       if (!res.ok) throw new Error('Failed to fetch branding')
       const data = await res.json()
       logo_url.value = data.logo_url || ''
@@ -31,9 +34,14 @@ export const useBrandingStore = defineStore('branding', () => {
     loading.value = true
     error.value = ''
     try {
+      const authStore = useAuthStore()
+      const headers: any = { 'Content-Type': 'application/json' }
+      if (authStore.token) {
+        headers['Authorization'] = `Bearer ${authStore.token}`
+      }
       const res = await fetch('/api/v1/settings/branding/', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       })
       if (!res.ok) throw new Error('Failed to update branding')

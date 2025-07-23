@@ -72,24 +72,36 @@
 
           <!-- Branding -->
           <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Branding</h2>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
-                <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="branding.company_name" />
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Branding & Organization</h2>
+              <router-link 
+                to="/settings/branding" 
+                class="text-neon-blue hover:text-neon-blue/80 text-sm font-medium transition-colors"
+              >
+                Manage Branding →
+              </router-link>
+            </div>
+            <div class="space-y-8">
+              <div class="flex items-center space-x-3">
+                <img 
+                  v-if="branding.logo_url" 
+                  :src="branding.logo_url" 
+                  alt="Company Logo" 
+                  class="w-12 h-12 object-contain rounded-lg border border-gray-200 dark:border-dark-600"
+                />
+                <div class="flex-1">
+                  <p class="font-medium text-gray-900 dark:text-white mb-2">{{ branding.company_name || 'No company name set' }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Company branding settings</p>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Logo</label>
-                <label class="border-2 border-dashed border-gray-200 dark:border-dark-600 rounded-lg p-4 text-center cursor-pointer block" for="branding-logo-input">
-                  <img :src="brandingLogoPreview" alt="Branding Logo Preview" class="w-16 h-16 mx-auto mb-2" v-if="brandingLogoPreview">
-                  <svg v-else class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Upload company logo</p>
-                </label>
-                <input id="branding-logo-input" type="file" @change="handleLogoChange" accept="image/*" class="hidden">
+              <div class="pt-2">
+                <router-link 
+                  to="/settings/branding" 
+                  class="btn-primary w-full text-center"
+                >
+                  Customize Branding
+                </router-link>
               </div>
-              <button class="btn-primary" @click="saveBranding">Save Branding</button>
             </div>
           </div>
         </div>
@@ -142,11 +154,12 @@ function notificationDescription(key: string) {
 }
 
 onMounted(async () => {
-  const profileRes = await fetch('/api/v1/settings/profile/')
+  const headers = authStore.getAuthHeader() || {}
+  const profileRes = await fetch('/api/v1/settings/profile/', { headers })
   if (profileRes.ok) {
     profile.value = await profileRes.json()
   }
-  const keysRes = await fetch('/api/v1/settings/api-keys/')
+  const keysRes = await fetch('/api/v1/settings/api-keys/', { headers })
   if (keysRes.ok) {
     apiKeys.value = await keysRes.json()
   }
@@ -158,7 +171,8 @@ const fetchBranding = async () => {
   brandingLoading.value = true
   brandingError.value = ''
   try {
-    const res = await fetch('/api/v1/settings/branding/')
+    const headers = authStore.getAuthHeader() || {}
+    const res = await fetch('/api/v1/settings/branding/', { headers })
     if (!res.ok) throw new Error('Failed to fetch branding')
     const data = await res.json()
     branding.value = {
@@ -190,8 +204,10 @@ const uploadLogo = async () => {
   try {
     const formData = new FormData()
     formData.append('file', brandingLogoFile.value)
+    const headers = authStore.getAuthHeader() || {}
     const res = await fetch('/api/v1/settings/branding/logo', {
       method: 'POST',
+      headers,
       body: formData
     })
     if (!res.ok) throw new Error('Failed to upload logo')
@@ -216,9 +232,13 @@ const saveBranding = async () => {
       await uploadLogo()
     }
     // Save branding info
+    const headers = {
+      ...authStore.getAuthHeader(),
+      'Content-Type': 'application/json'
+    }
     const res = await fetch('/api/v1/settings/branding/', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         company_name: branding.value.company_name,
         logo_url: branding.value.logo_url,
@@ -237,14 +257,18 @@ const saveBranding = async () => {
 }
 
 const updateProfile = async () => {
+  const headers = {
+    ...authStore.getAuthHeader(),
+    'Content-Type': 'application/json'
+  }
   const res = await fetch('/api/v1/settings/profile/', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(profile.value)
   })
   if (res.ok) {
     // Re-fetch the updated profile
-    const profileRes = await fetch('/api/v1/settings/profile/')
+    const profileRes = await fetch('/api/v1/settings/profile/', { headers })
     if (profileRes.ok) {
       profile.value = await profileRes.json()
     }
@@ -255,18 +279,27 @@ const updateProfile = async () => {
 }
 
 const generateApiKey = async () => {
-  await fetch('/api/v1/settings/api-keys/', { method: 'POST' })
+  const headers = authStore.getAuthHeader() || {}
+  await fetch('/api/v1/settings/api-keys/', { 
+    method: 'POST',
+    headers
+  })
 }
 
 const regenerateApiKey = async (keyId: string) => {
-  await fetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, { method: 'POST' })
+  const headers = authStore.getAuthHeader() || {}
+  await fetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, { 
+    method: 'POST',
+    headers
+  })
 }
 
 const fetchNotifications = async () => {
   notificationsLoading.value = true
   notificationsError.value = ''
   try {
-    const res = await fetch('/api/v1/settings/notifications/')
+    const headers = authStore.getAuthHeader() || {}
+    const res = await fetch('/api/v1/settings/notifications/', { headers })
     if (!res.ok) throw new Error('Failed to fetch notifications')
     notifications.value = await res.json()
   } catch (e: any) {
@@ -282,9 +315,13 @@ const updateNotifications = async (changedOnly = false) => {
   notificationsSuccess.value = false
   try {
     const method = changedOnly ? 'PATCH' : 'PUT'
+    const headers = {
+      ...authStore.getAuthHeader(),
+      'Content-Type': 'application/json'
+    }
     const res = await fetch('/api/v1/settings/notifications/', {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(notifications.value)
     })
     if (!res.ok) throw new Error('Failed to update notifications')

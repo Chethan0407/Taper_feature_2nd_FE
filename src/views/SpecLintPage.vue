@@ -14,25 +14,25 @@
           <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 flex flex-col gap-6">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Rule Builder</h2>
             <form @submit.prevent="addRule" class="space-y-6">
-              <div>
+          <div>
                 <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Rule Type</label>
                 <select v-model="ruleForm.ruleType" class="input-field w-full rounded-full px-4 py-2" required>
-                  <option value="">Select type</option>
-                  <option value="ForbiddenKeyword">Forbidden Keyword</option>
-                  <option value="RegexMatch">Regex Match</option>
-                  <option value="Naming">Naming</option>
-                </select>
-              </div>
-              <div>
+                      <option value="">Select type</option>
+                      <option value="ForbiddenKeyword">Forbidden Keyword</option>
+                      <option value="RegexMatch">Regex Match</option>
+                      <option value="Naming">Naming</option>
+                    </select>
+                  </div>
+                  <div>
                 <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Pattern</label>
                 <input v-model="ruleForm.pattern" class="input-field w-full rounded-full px-4 py-2" placeholder="Pattern or keyword" required />
-              </div>
-              <div>
+                  </div>
+                  <div>
                 <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Severity</label>
                 <select v-model="ruleForm.severity" class="input-field w-full rounded-full px-4 py-2" required>
-                  <option value="error">Error</option>
-                  <option value="warning">Warning</option>
-                </select>
+                      <option value="error">Error</option>
+                      <option value="warning">Warning</option>
+                    </select>
               </div>
               <button class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95" type="submit" :disabled="ruleLoading">
                 <span>➕</span> <span>{{ ruleLoading ? 'Adding...' : 'Add Rule' }}</span>
@@ -41,7 +41,7 @@
                 <div v-if="ruleError || ruleSuccess" class="min-h-[40px]">
                   <div v-if="ruleError" class="text-red-500 mt-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-sm font-medium">{{ ruleError }}</div>
                   <div v-if="ruleSuccess" class="text-green-600 mt-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">{{ ruleSuccess }}</div>
-                </div>
+            </div>
               </transition>
             </form>
           </div>
@@ -51,12 +51,12 @@
             <div>
               <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Spec ID</label>
               <select v-model="specId" class="input-field w-full rounded-full px-4 py-2">
-                <option value="">Select a spec...</option>
-                <option v-for="spec in availableSpecs" :key="spec.id" :value="spec.id">
-                  {{ (spec.name || spec.file_name || 'Unnamed Spec') }} ({{ spec.id.slice(0, 8) }}…) | {{ spec.status }} | {{ spec.uploaded_by }}
-                </option>
-              </select>
-            </div>
+                  <option value="">Select a spec...</option>
+                  <option v-for="spec in availableSpecs" :key="spec.id" :value="spec.id">
+                    {{ (spec.name || spec.file_name || 'Unnamed Spec') }} ({{ spec.id.slice(0, 8) }}…) | {{ spec.status }} | {{ spec.uploaded_by }}
+                  </option>
+                </select>
+              </div>
             <button class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95 mb-2" @click="runLinter" :disabled="runningLint || !specId">
               <span>🧪</span> <span>{{ runningLint ? 'Running...' : 'Run Linter' }}</span>
             </button>
@@ -86,29 +86,12 @@
         </div>
         <!-- All Rules Section -->
         <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 w-full">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">All Rules</h2>
-            <div class="flex flex-wrap items-center gap-3">
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                </span>
-                <input v-model="ruleSearch" type="text" class="input-field w-full max-w-xs pl-10 rounded-full" placeholder="Search rules..." />
-              </div>
-              <select v-model="typeFilter" class="input-field max-w-xs rounded-full">
-                <option value="">All Types</option>
-                <option value="ForbiddenKeyword">Forbidden Keyword</option>
-                <option value="RegexMatch">Regex Match</option>
-                <option value="Naming">Naming</option>
-              </select>
-              <select v-model="severityFilter" class="input-field max-w-xs rounded-full">
-                <option value="">All Severities</option>
-                <option value="error">Error</option>
-                <option value="warning">Warning</option>
-              </select>
-              <span class="text-gray-500 dark:text-gray-400 text-base ml-2">{{ totalResults }} rule{{ totalResults === 1 ? '' : 's' }}</span>
-            </div>
-          </div>
+          <EnterpriseFilterBar
+            :filters="filterConfig"
+            :activeFilters="ruleFilters"
+            @filter-change="handleRuleFilterChange"
+            @reset="resetRuleFilters"
+          />
           <!-- All Rules Table Section: Debounced loader and scrollable table -->
           <div>
             <div v-if="showLoader" class="text-gray-400 p-8">Loading rules...</div>
@@ -116,7 +99,7 @@
               <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
               <div class="text-lg text-gray-500 dark:text-gray-400 font-medium">No rules found. Try adjusting your filters.</div>
             </div>
-            <div v-else class="overflow-x-auto max-h-[500px] overflow-y-auto transition-all duration-200 scrollbar-none hide-scrollbar">
+            <div v-else class="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar transition-all duration-200">
               <table class="w-full text-sm border-separate border-spacing-0">
                 <thead class="sticky top-0 z-10 bg-white dark:bg-dark-900">
                   <tr class="border-b border-gray-200 dark:border-dark-700">
@@ -171,6 +154,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import EnterpriseFilterBar from '@/components/Common/EnterpriseFilterBar.vue'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSpecificationsStore } from '@/stores/specifications'
@@ -229,9 +213,11 @@ const fetchRules = async () => {
     const params = new URLSearchParams()
     params.append('page', String(page.value))
     params.append('page_size', String(pageSize.value))
-    if (ruleSearch.value) params.append('search', ruleSearch.value)
-    if (typeFilter.value) params.append('type', typeFilter.value)
-    if (severityFilter.value) params.append('severity', severityFilter.value)
+    if (ruleFilters.value.search) params.append('search', ruleFilters.value.search)
+    if (ruleFilters.value.rule_type) params.append('type', ruleFilters.value.rule_type)
+    if (ruleFilters.value.severity) params.append('severity', ruleFilters.value.severity)
+    if (ruleFilters.value.created_from) params.append('created_from', ruleFilters.value.created_from)
+    if (ruleFilters.value.created_to) params.append('created_to', ruleFilters.value.created_to)
     const headers = authStore.getAuthHeader() || {}
     const res = await fetch(`/api/v1/lint-results/speclint/rules?${params.toString()}`, { headers })
     if (!res.ok) throw new Error('Failed to fetch rules')
@@ -247,10 +233,39 @@ const fetchRules = async () => {
   }
 }
 
-watch([ruleSearch, typeFilter, severityFilter, pageSize], () => {
+interface RuleFilters {
+  [key: string]: string;
+  search: string;
+  rule_type: string;
+  severity: string;
+  created_from: string;
+  created_to: string;
+}
+const ruleFilters = ref<RuleFilters>({
+  search: '',
+  rule_type: '',
+  severity: '',
+  created_from: '',
+  created_to: ''
+})
+const filterConfig = [
+  { type: 'search', label: 'Search rules...', key: 'search' },
+  { type: 'dropdown', label: 'Rule Type', key: 'rule_type', options: ['ForbiddenKeyword', 'RegexMatch', 'Naming'] },
+  { type: 'dropdown', label: 'Severity', key: 'severity', options: ['error', 'warning'] },
+  { type: 'date', label: 'Created From', key: 'created_from' },
+  { type: 'date', label: 'Created To', key: 'created_to' }
+]
+function handleRuleFilterChange({ key, value }: { key: string, value: string }) {
+  ruleFilters.value[key] = value
+}
+function resetRuleFilters() {
+  ruleFilters.value = { search: '', rule_type: '', severity: '', created_from: '', created_to: '' }
+}
+// Watch for filter changes and refetch rules
+watch(ruleFilters, () => {
   page.value = 1
   fetchRules()
-})
+}, { deep: true })
 watch([page], () => {
   fetchRules()
 })
@@ -371,11 +386,20 @@ const pageNumbers = computed(() => {
 </script> 
 
 <style scoped>
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
 }
-.hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #6b7280; /* cement/medium gray */
+  border-radius: 6px;
+  min-height: 40px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 transparent;
 }
 </style> 

@@ -10,8 +10,6 @@
           <label class="block text-gray-300 text-sm font-medium mb-2">Items</label>
           <div v-for="(item, idx) in form.items" :key="idx" class="flex gap-2 mb-2">
             <input v-model="item.title" class="input-field flex-1" placeholder="Item title" required />
-            <textarea v-model="item.description" class="input-field flex-1" placeholder="Item description" rows="1" />
-            <input v-model.number="item.order" type="number" class="input-field w-16" placeholder="Order" min="1" />
             <button type="button" class="btn-secondary" @click="removeItem(idx)">Remove</button>
           </div>
           <button type="button" class="btn-primary" @click="addItem">+ Add Item</button>
@@ -35,15 +33,14 @@ const authStore = useAuthStore()
 const form = reactive({
   name: '',
   description: '',
-  items: [{ title: '', description: '', order: 1 }]
+  items: [{ title: '', order: 1 }]
 })
 
 const submitting = ref(false)
 const error = ref('')
 
 const addItem = () => {
-  const nextOrder = form.items.length + 1
-  form.items.push({ title: '', description: '', order: nextOrder })
+  form.items.push({ title: '', order: form.items.length + 1 })
 }
 
 const removeItem = (idx: number) => {
@@ -82,10 +79,9 @@ const handleSubmit = async () => {
     }
     
     if (validItems.length > 0) {
-      requestBody.items = validItems.map(item => ({
+      requestBody.items = validItems.map((item, idx) => ({
         title: item.title.trim(),
-        description: item.description.trim(),
-        order: item.order
+        order: idx + 1
       }))
     }
     

@@ -76,48 +76,44 @@
     </div>
 
     <!-- Vendor Modal -->
-    <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-dark-800 p-10 rounded-2xl relative w-full max-w-lg shadow-2xl border border-gray-200 dark:border-dark-600">
-        <button class="absolute top-6 right-6 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-3xl font-bold" @click="showVendorModal = false">&times;</button>
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-10">
-          {{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}
-        </h2>
-        <form @submit.prevent="handleSubmit" class="space-y-7">
+    <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+      <div class="bg-dark-900 p-6 rounded-2xl relative w-[420px] max-w-full shadow-2xl border border-dark-700">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="showVendorModal = false">&times;</button>
+        <h2 class="text-2xl font-bold text-gradient mb-6">{{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}</h2>
+        <form @submit.prevent="handleSubmit" class="space-y-4">
           <div>
-            <label for="name" class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Name</label>
-            <input id="name" v-model="vendorForm.name" class="input-field w-full py-3 px-4 text-base rounded-lg bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100" required>
+            <label for="name" class="block text-base font-medium text-gray-200 mb-1">Name</label>
+            <input id="name" v-model="vendorForm.name" class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-400" placeholder="Vendor name" required>
           </div>
           <div>
-            <label for="type" class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Type</label>
-            <input id="type" v-model="vendorForm.type" class="input-field w-full py-3 px-4 text-base rounded-lg bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100" required>
+            <label for="type" class="block text-base font-medium text-gray-200 mb-1">Type</label>
+            <input id="type" v-model="vendorForm.type" class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-400" placeholder="Type" required>
           </div>
           <div>
-            <label for="status" class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Status</label>
-            <select id="status" v-model="vendorForm.status" class="input-field w-full py-3 px-4 text-base rounded-lg bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100">
+            <label for="status" class="block text-base font-medium text-gray-200 mb-1">Status</label>
+            <select id="status" v-model="vendorForm.status" class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white">
               <option value="active">Active</option>
               <option value="pending">Pending</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
           <div>
-            <label class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Linked Specs</label>
-            <select v-model="vendorForm.linkedSpecs" class="input-field w-full" multiple>
+            <label class="block text-base font-medium text-gray-200 mb-1">Linked Specs</label>
+            <select v-model="vendorForm.linkedSpecs" class="input-field w-full bg-dark-800 border border-dark-700 text-white" multiple>
               <option v-for="spec in allSpecs" :key="spec.id" :value="spec.id">
                 {{ spec.name || spec.file_name || 'Unnamed Spec' }}
               </option>
             </select>
           </div>
           <div>
-            <label class="block text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Linked Checklists</label>
-            <select v-model="vendorForm.linkedChecklists" class="input-field w-full" multiple>
+            <label class="block text-base font-medium text-gray-200 mb-1">Linked Checklists</label>
+            <select v-model="vendorForm.linkedChecklists" class="input-field w-full bg-dark-800 border border-dark-700 text-white" multiple>
               <option v-for="checklist in allChecklists" :key="checklist.id" :value="checklist.id">
                 {{ checklist.name }}
               </option>
             </select>
           </div>
-          <div class="pt-2">
-            <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="vendorsStore.loading">{{ editingVendor ? 'Update' : 'Add' }}<span v-if="vendorsStore.loading" class="ml-2 animate-spin">⏳</span></button>
-          </div>
+          <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="vendorsStore.loading">{{ editingVendor ? 'Update' : 'Add' }}<span v-if="vendorsStore.loading" class="ml-2 animate-spin">⏳</span></button>
           <div v-if="vendorsStore.error" class="text-red-500 text-center mt-2">{{ vendorsStore.error }}</div>
         </form>
       </div>

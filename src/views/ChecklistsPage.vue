@@ -5,44 +5,46 @@
     <div class="ml-64">
       <Header />
       
-      <main class="p-8">
+      <main class="p-6">
         <div class="mb-8">
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Checklists</h1>
           <p class="text-gray-500 dark:text-gray-400">Build, reuse and sign-off tapeout checklists</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           <!-- Checklist Templates -->
-          <div class="lg:col-span-2">
-            <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
-              <div class="flex items-center justify-between mb-6">
+          <div class="xl:col-span-2 w-full">
+            <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl h-[480px] flex flex-col">
+              <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-dark-700">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Checklist Templates</h2>
                 <button class="btn-primary" @click="showCreateTemplateModal = true">Create Template</button>
               </div>
               
-              <div v-if="checklistsStore.loading" class="text-center py-8">
-                <div class="text-gray-500 dark:text-gray-400">Loading templates...</div>
-              </div>
-              
-              <div v-else-if="checklistsStore.error" class="text-center py-8">
-                <div class="text-red-500">{{ checklistsStore.error }}</div>
-              </div>
-              
-              <div v-else-if="checklistsStore.list.length === 0" class="text-center py-8">
-                <div class="text-gray-500 dark:text-gray-400">No templates found. Create your first template!</div>
-              </div>
-              
-              <div v-else class="space-y-4">
-                <div v-for="template in checklistsStore.list" :key="template.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="font-medium text-gray-900 dark:text-white">{{ template.name }}</h3>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ template.items?.length || 0 }} items
-                        <span v-if="template.description">• {{ template.description }}</span>
-                      </p>
+              <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
+                <div v-if="checklistsStore.loading" class="text-center py-8">
+                  <div class="text-gray-500 dark:text-gray-400">Loading templates...</div>
+                </div>
+                
+                <div v-else-if="checklistsStore.error" class="text-center py-8">
+                  <div class="text-red-500">{{ checklistsStore.error }}</div>
+                </div>
+                
+                <div v-else-if="checklistsStore.list.length === 0" class="text-center py-8">
+                  <div class="text-gray-500 dark:text-gray-400">No templates found. Create your first template!</div>
+                </div>
+                
+                <div v-else class="space-y-2">
+                  <div v-for="template in checklistsStore.list.filter(t => t && t.name)" :key="template.id" class="bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors p-4">
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1">
+                        <h3 class="font-medium text-gray-900 dark:text-white text-base">{{ template.name }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                          {{ template.items?.length || 0 }} items
+                          <span v-if="template.description">• {{ template.description }}</span>
+                        </p>
+                      </div>
+                      <button class="btn-secondary flex-shrink-0 text-sm px-3 py-1.5" @click="useTemplate(template.id)">Use Template</button>
                     </div>
-                    <button class="btn-secondary" @click="useTemplate(template.id)">Use Template</button>
                   </div>
                 </div>
               </div>
@@ -50,48 +52,112 @@
           </div>
 
           <!-- Active Checklists -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl max-h-[600px] overflow-y-auto">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Active Checklists</h2>
-            <div v-if="activeChecklistsLoading" class="text-center py-8">
-              <div class="text-gray-500 dark:text-gray-400">Loading active checklists...</div>
+          <div class="w-full bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl h-[480px] flex flex-col">
+            <div class="p-6 pb-4 border-b border-gray-200 dark:border-dark-700">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Active Checklists</h2>
             </div>
-            <div v-else-if="activeChecklistsError" class="text-center py-8">
-              <div class="text-red-500">{{ activeChecklistsError }}</div>
-            </div>
-            <div v-else-if="activeChecklists.length === 0" class="text-center py-8">
-              <div class="text-gray-500 dark:text-gray-400">No active checklists found.</div>
-            </div>
-            <div v-else class="space-y-4">
-              <div v-for="checklist in activeChecklists" :key="checklist.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                <h3 class="font-medium text-gray-900 dark:text-white mb-2">{{ checklist.name }}</h3>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-500 dark:text-gray-400">
-                    <template v-if="checklistCompletion[checklist.id]?.loading">
-                      Loading progress...
-                    </template>
-                    <template v-else>
-                      {{ checklistCompletion[checklist.id]?.progress }}/{{ checklistCompletion[checklist.id]?.total }} completed
-                    </template>
-                  </span>
-                  <span :class="getProgressClass(checklistCompletion[checklist.id]?.percent || 0, 100)" class="px-2 py-1 rounded text-xs">
-                    <template v-if="checklistCompletion[checklist.id]?.loading">
-                      ...
-                    </template>
-                    <template v-else>
-                      {{ checklistCompletion[checklist.id]?.percent ?? 0 }}%
-                    </template>
-                  </span>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
+              <div v-if="activeChecklistsLoading" class="text-center py-8">
+                <div class="text-gray-500 dark:text-gray-400">Loading active checklists...</div>
+              </div>
+              <div v-else-if="activeChecklistsError" class="text-center py-8">
+                <div class="text-red-500">{{ activeChecklistsError }}</div>
+              </div>
+              <div v-else-if="activeChecklists.length === 0" class="text-center py-8">
+                <div class="text-gray-500 dark:text-gray-400">No active checklists found.</div>
+              </div>
+              <div v-else class="space-y-4">
+                <div v-for="checklist in activeChecklists" :key="checklist.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
+                  <h3 class="font-medium text-gray-900 dark:text-white mb-2">{{ checklist.name }}</h3>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">
+                      <template v-if="checklistCompletion[checklist.id]?.loading">
+                        Loading progress...
+                      </template>
+                      <template v-else>
+                        {{ checklistCompletion[checklist.id]?.progress }}/{{ checklistCompletion[checklist.id]?.total }} completed
+                      </template>
+                    </span>
+                    <span :class="getProgressClass(checklistCompletion[checklist.id]?.percent || 0, 100)" class="px-2 py-1 rounded text-xs">
+                      <template v-if="checklistCompletion[checklist.id]?.loading">
+                        ...
+                      </template>
+                      <template v-else>
+                        {{ checklistCompletion[checklist.id]?.percent ?? 0 }}%
+                      </template>
+                    </span>
+                  </div>
+                  <div class="mt-2 flex items-center gap-2">
+                    <button 
+                      class="btn-secondary" 
+                      @click="approveChecklist(checklist.id)"
+                      :disabled="approving === checklist.id || checklist.status === 'approved'"
+                    >
+                      {{ checklist.status === 'approved' ? 'Approved' : (approving === checklist.id ? 'Approving...' : 'Approve') }}
+                    </button>
+                    <span v-if="checklist.status === 'approved'" class="bg-green-500/20 text-green-500 px-3 py-1 rounded text-xs font-semibold ml-2">Approved</span>
+                  </div>
                 </div>
-                <div class="mt-2 flex items-center gap-2">
-                  <button 
-                    class="btn-secondary" 
-                    @click="approveChecklist(checklist.id)"
-                    :disabled="approving === checklist.id || checklist.status === 'approved'"
-                  >
-                    {{ checklist.status === 'approved' ? 'Approved' : (approving === checklist.id ? 'Approving...' : 'Approve') }}
-                  </button>
-                  <span v-if="checklist.status === 'approved'" class="bg-green-500/20 text-green-500 px-3 py-1 rounded text-xs font-semibold ml-2">Approved</span>
-                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Templates</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ checklistsStore.list.length }}</p>
+              </div>
+              <div class="p-3 bg-blue-500/10 rounded-lg">
+                <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Active Checklists</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ activeChecklists.length }}</p>
+              </div>
+              <div class="p-3 bg-green-500/10 rounded-lg">
+                <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Approved</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ approvedCount }}</p>
+              </div>
+              <div class="p-3 bg-purple-500/10 rounded-lg">
+                <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Avg. Completion</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ averageCompletion }}%</p>
+              </div>
+              <div class="p-3 bg-orange-500/10 rounded-lg">
+                <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
               </div>
             </div>
           </div>
@@ -108,7 +174,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChecklistsStore } from '@/stores/checklists'
 import CreateTemplateModal from '@/components/Checklist/CreateTemplateModal.vue'
@@ -133,6 +199,18 @@ const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 
 // Store completion percentages for each checklist
 const checklistCompletion = ref<Record<string, { progress: number; total: number; percent: number; loading: boolean }>>({})
+
+// Computed properties for statistics
+const approvedCount = computed(() => {
+  return activeChecklists.value.filter(c => c.status === 'approved').length
+})
+
+const averageCompletion = computed(() => {
+  const completions = Object.values(checklistCompletion.value).filter(c => !c.loading)
+  if (completions.length === 0) return 0
+  const sum = completions.reduce((acc, c) => acc + c.percent, 0)
+  return Math.round(sum / completions.length)
+})
 
 const fetchTemplates = async () => {
   await checklistsStore.fetchTemplates()
@@ -177,8 +255,8 @@ const fetchChecklistCompletion = async (checklistId: string) => {
 
 const handleTemplateCreated = async () => {
   await fetchTemplates()
-  // Show success message
-  console.log('Template created successfully!')
+  toast.value = { message: 'Template created successfully!', type: 'success' }
+  setTimeout(() => { toast.value = null }, 2500)
 }
 
 const useTemplate = async (templateId: string | number) => {
@@ -241,3 +319,22 @@ const approveChecklist = async (id: string) => {
   }
 }
 </script> 
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #b0b4ba; /* soft light gray */
+  border-radius: 6px;
+  min-height: 40px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b4ba transparent;
+}
+</style> 

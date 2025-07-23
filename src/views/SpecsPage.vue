@@ -44,7 +44,31 @@
         />
 
         <!-- Specs Table -->
-        <div class="card bg-dark-900 border border-dark-700 rounded-xl shadow-lg">
+        <div class="card bg-dark-900 border border-dark-700 rounded-xl shadow-lg overflow-hidden">
+          <div class="px-6 py-3 bg-gradient-to-r from-dark-800 to-dark-700 border-b border-dark-600">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-neon-blue animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                  </svg>
+                  <svg class="w-4 h-4 text-neon-blue animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 13l5-5m0 0l5 5m-5-5H18"/>
+                  </svg>
+                </div>
+                <span class="text-sm text-gray-300 font-medium">Scrollable Table</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
+                  <span class="text-xs text-gray-400 animate-pulse">←</span>
+                  <span class="text-xs text-gray-400 animate-pulse delay-100">→</span>
+                  <span class="text-xs text-gray-400 animate-pulse delay-200">↑</span>
+                  <span class="text-xs text-gray-400 animate-pulse delay-300">↓</span>
+                </div>
+                <span class="text-xs text-gray-400">scroll to explore</span>
+              </div>
+            </div>
+          </div>
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-white">Recent Specifications</h2>
             <div class="flex items-center gap-2">
@@ -62,47 +86,50 @@
             <span v-if="specificationsStore.error.includes('Not Found')">No specifications found.</span>
             <span v-else>{{ specificationsStore.error }}</span>
                 </div>
-          <div v-else>
-            <table class="min-w-full text-left bg-dark-900 border border-dark-700 rounded-xl overflow-hidden">
-              <thead>
+          <div v-else class="max-h-[600px] overflow-y-auto relative" ref="tableContainer" style="scrollbar-width: none; -ms-overflow-style: none;">
+            <table class="min-w-full text-left bg-dark-900 border border-dark-700 rounded-xl overflow-hidden" style="min-width: 1200px;">
+              <thead class="sticky top-0 z-10">
                 <tr class="border-b border-dark-700 bg-dark-800">
-                  <th class="py-3 px-4 text-gray-200 font-semibold">File Name</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">Uploaded By</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">Uploaded On</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">File Type</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">Status</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">Assigned To</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold">Approval Info</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold text-center">Actions</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 200px;">Spec Name</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 150px;">Uploaded By</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 150px;">Uploaded On</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 100px;">File Type</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 120px;">Status</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 120px;">Assigned To</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold text-center" style="min-width: 140px;">Actions</th>
+                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 180px;">Approval Info</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="spec in specificationsStore.specifications" :key="spec.id" class="border-b border-dark-800 hover:bg-dark-800/50 transition-colors">
-                  <td class="py-3 px-4 max-w-xs truncate">
-                    <button @click="handleDownload(spec.id)" class="text-neon-blue hover:underline font-medium truncate block text-left w-full" :title="spec.file_name || spec.name || 'Unnamed Spec'">
-                      {{ (spec.file_name || spec.name || 'Unnamed Spec').length > 8
-                        ? (spec.file_name || spec.name || 'Unnamed Spec').slice(0, 4) + '...' + (spec.file_name || spec.name || 'Unnamed Spec').slice(-4)
-                        : (spec.file_name || spec.name || 'Unnamed Spec') }}
-                  </button>
+                  <td class="py-3 px-4 max-w-xs">
+                    <a
+                      @click.prevent="handleDownload(spec.id)"
+                      class="text-neon-blue hover:underline font-medium cursor-pointer block"
+                      :title="spec.name || spec.file_name || 'Unnamed Spec'"
+                    >
+                      <span class="truncate block max-w-[180px]">
+                        {{ formatSpecName(spec.name || spec.file_name || 'Unnamed Spec') }}
+                      </span>
+                    </a>
                   </td>
                   <td class="py-3 px-4">{{ spec.uploaded_by || '—' }}</td>
                   <td class="py-3 px-4">{{ spec.uploaded_on ? new Date(spec.uploaded_on).toLocaleString() : '—' }}</td>
-                  <td class="py-3 px-4" :title="spec.mime_type || spec.file_type || spec.type || '—'">
+                  <td class="py-3 px-4 text-sm text-gray-300">
                     {{ getFileTypeLabel(spec.mime_type || spec.file_type || spec.type || '') }}
                   </td>
-                  <td class="py-3 px-4">{{ spec.status }}</td>
-                  <td class="py-3 px-4">{{ spec.assigned_to || '—' }}</td>
                   <td class="py-3 px-4">
-                    <template v-if="spec.status === 'Approved' && spec.approved_by">
-                      Approved By: {{ spec.approved_by }}
-                    </template>
-                    <template v-else-if="spec.status === 'Rejected' && spec.rejected_by">
-                      Rejected By: {{ spec.rejected_by }}
-                    </template>
-                    <template v-else>
-                      —
-                    </template>
+                    <span 
+                      :class="{
+                        'text-green-400': spec.status === 'Approved',
+                        'text-yellow-400': spec.status === 'Pending Review',
+                        'text-red-400': spec.status === 'Rejected'
+                      }"
+                    >
+                      {{ spec.status }}
+                    </span>
                   </td>
+                  <td class="py-3 px-4">{{ spec.assigned_to || '—' }}</td>
                   <td class="py-3 px-4 text-center">
                     <div class="flex items-center justify-center gap-2">
                       <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400" @click="updateSpecStatus(spec, 'approved')" :disabled="spec.status === 'Approved'" title="Approve">
@@ -130,11 +157,37 @@
                       </button>
                     </div>
                   </td>
+                  <td class="py-3 px-4">
+                    <template v-if="spec.status === 'Approved' && spec.approved_by">
+                      Approved By: {{ spec.approved_by }}
+                    </template>
+                    <template v-else-if="spec.status === 'Rejected' && spec.rejected_by">
+                      Rejected By: {{ spec.rejected_by }}
+                    </template>
+                    <template v-else>
+                      —
+                    </template>
+                  </td>
                 </tr>
               </tbody>
             </table>
             <div v-if="!specificationsStore.specifications.length" class="text-center py-8 text-gray-400">
               No specifications uploaded yet. Drag and drop a file above to get started.
+            </div>
+            
+            <!-- Floating Scroll Indicator -->
+            <div v-if="showScrollIndicator" class="absolute bottom-4 right-4 bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 shadow-lg z-20 animate-fade-in">
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
+                  <svg class="w-3 h-3 text-neon-blue animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                  </svg>
+                  <svg class="w-3 h-3 text-neon-blue animate-bounce delay-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 13l5-5m0 0l5 5m-5-5H18"/>
+                  </svg>
+                </div>
+                <span class="text-xs text-gray-300 font-medium">Scrolling...</span>
+              </div>
             </div>
           </div>
         </div>
@@ -238,6 +291,11 @@ const selectedStatus = ref('All Status');
 
 const showLoading = ref(false)
 let loadingTimeout: any = null
+
+// Scroll indicator
+const showScrollIndicator = ref(false)
+const tableContainer = ref<HTMLElement>()
+let scrollTimeout: any = null
 
 // Handle filter changes
 const handleFilterChange = async (filters: any) => {
@@ -360,7 +418,27 @@ const delayedLoadSpecs = async () => {
 onMounted(async () => {
   await delayedLoadSpecs()
   fetchReviewers()
+  
+  // Add scroll event listener after component is mounted
+  setTimeout(() => {
+    if (tableContainer.value) {
+      tableContainer.value.addEventListener('scroll', handleTableScroll)
+    }
+  }, 100)
 })
+
+// Handle table scroll events
+const handleTableScroll = () => {
+  showScrollIndicator.value = true
+  
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
+  
+  scrollTimeout = setTimeout(() => {
+    showScrollIndicator.value = false
+  }, 1000)
+}
 
 // --- Create Spec Modal Logic ---
 const showCreateModal = ref(false)
@@ -545,4 +623,75 @@ function getFileTypeLabel(mimeType: string) {
   if (mimeType === 'application/vnd.ms-powerpoint') return 'PowerPoint';
   return mimeType.split('/').pop()?.toUpperCase() || 'Unknown';
 }
-</script> 
+
+// Format spec name with proper truncation preserving file extension
+function formatSpecName(name: string) {
+  if (!name) return 'Unnamed Spec';
+  
+  // If it's a UUID-like string (no extension), return as is
+  if (name.length > 20 && !name.includes('.')) {
+    return name.substring(0, 16) + '...';
+  }
+  
+  // If it has an extension, preserve it
+  const lastDotIndex = name.lastIndexOf('.');
+  if (lastDotIndex !== -1) {
+    const nameWithoutExt = name.substring(0, lastDotIndex);
+    const extension = name.substring(lastDotIndex);
+    
+    if (nameWithoutExt.length > 12) {
+      return nameWithoutExt.substring(0, 12) + '...' + extension;
+    }
+  }
+  
+  // If no extension or short name, truncate normally
+  if (name.length > 15) {
+    return name.substring(0, 15) + '...';
+  }
+  
+  return name;
+}
+</script>
+
+<style scoped>
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.delay-75 {
+  animation-delay: 75ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+/* Hide scrollbar for webkit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-y-auto {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+</style> 

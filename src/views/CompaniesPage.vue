@@ -526,7 +526,7 @@ const handleSearch = async () => {
   if (searchLoaderTimeout) clearTimeout(searchLoaderTimeout)
   let loaderShown = false
   searchLoaderTimeout = setTimeout(() => {
-    isSearching.value = true
+  isSearching.value = true
     loaderShown = true
   }, 300)
   try {
@@ -554,7 +554,7 @@ const handleStatusFilter = async () => {
   if (statusLoaderTimeout) clearTimeout(statusLoaderTimeout)
   let loaderShown = false
   statusLoaderTimeout = setTimeout(() => {
-    isSearching.value = true
+  isSearching.value = true
     loaderShown = true
   }, 300)
   try {

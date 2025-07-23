@@ -1,28 +1,36 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950 flex flex-col items-center justify-center">
-    <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-10 w-full max-w-md">
-      <div class="flex flex-col items-center mb-8">
-        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-neon-blue to-neon-purple flex items-center justify-center text-3xl font-bold text-white mb-4">
-          {{ profile.name ? profile.name.charAt(0).toUpperCase() : '?' }}
-        </div>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ profile.name }}</h2>
-      </div>
-      <form @submit.prevent="updateProfile" class="space-y-6">
+  <div class="min-h-screen bg-gray-50 dark:bg-dark-950 flex items-center justify-center py-12">
+    <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 w-full max-w-lg">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">User Profile</h1>
+      <form @submit.prevent="saveProfile" class="space-y-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
-          <input v-model="profileForm.name" class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" required />
+          <input v-model="form.name" :disabled="loading" class="input-field w-full rounded-full px-4 py-2" placeholder="Your name" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+          <input :value="form.email" disabled class="input-field w-full rounded-full px-4 py-2 bg-gray-100 dark:bg-dark-800 text-gray-400" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
-          <select v-model="profileForm.role" class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100">
-            <option value="Lead Engineer">Lead Engineer</option>
-            <option value="Manager">Manager</option>
-            <option value="Admin">Admin</option>
+          <select v-model="form.role" :disabled="!canEditRole || loading" class="input-field w-full rounded-full px-4 py-2">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
           </select>
+          <div v-if="!canEditRole" class="text-xs text-gray-400 mt-1">You do not have permission to change your role.</div>
         </div>
-        <button type="submit" class="btn-primary w-full" :disabled="loading">Save Changes</button>
-        <div v-if="success" class="text-green-400 text-center mt-2">Profile updated successfully!</div>
-        <div v-if="error" class="text-red-400 text-center mt-2">{{ error }}</div>
+        <button type="submit" class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95" :disabled="loading">
+          <span v-if="loading" class="animate-spin">⏳</span>
+          <span v-else>💾</span>
+          <span>{{ loading ? 'Saving...' : 'Save Changes' }}</span>
+        </button>
+        <transition name="fade">
+          <div v-if="error" class="text-red-500 mt-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-sm font-medium">{{ error }}</div>
+        </transition>
+        <transition name="fade">
+          <div v-if="success" class="text-green-600 mt-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">Profile updated!</div>
+        </transition>
       </form>
     </div>
   </div>
@@ -31,23 +39,33 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+
 const authStore = useAuthStore()
 
-const profile = ref({ name: '', email: '', role: '' })
-const profileForm = ref({ name: '', role: '' })
-const loading = ref(false)
-const success = ref(false)
-const error = ref('')
+interface UserProfile {
+  name: string
+  email: string
+  role: string
+}
 
-const fetchProfile = async () => {
+const form = ref<UserProfile>({ name: '', email: '', role: 'user' })
+const loading = ref(false)
+const error = ref('')
+const success = ref(false)
+// Mock permission (replace with real permission logic)
+const canEditRole = ref(true)
+
+async function fetchProfile() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch('/api/v1/settings/profile/')
+    const headers = authStore.getAuthHeader() || {}
+    const res = await fetch('/api/v1/user/profile', { headers })
     if (!res.ok) throw new Error('Failed to fetch profile')
     const data = await res.json()
-    profile.value = data
-    profileForm.value = { name: data.name || '', role: data.role || '' }
+    form.value = { name: data.name, email: data.email, role: data.role }
+    // Set canEditRole based on permissions if available
+    // canEditRole.value = data.can_edit_role
   } catch (e: any) {
     error.value = e.message || 'Failed to fetch profile'
   } finally {
@@ -55,19 +73,21 @@ const fetchProfile = async () => {
   }
 }
 
-const updateProfile = async () => {
+async function saveProfile() {
   loading.value = true
   error.value = ''
   success.value = false
   try {
-    const res = await fetch('/api/v1/settings/profile/', {
+    const headers = {
+      ...authStore.getAuthHeader(),
+      'Content-Type': 'application/json'
+    }
+    const res = await fetch('/api/v1/user/profile', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: profileForm.value.name, role: profileForm.value.role })
+      headers,
+      body: JSON.stringify({ name: form.value.name, role: form.value.role })
     })
     if (!res.ok) throw new Error('Failed to update profile')
-    await fetchProfile()
-    await authStore.checkAuth() // Refresh global user for sidebar
     success.value = true
     setTimeout(() => { success.value = false }, 2000)
   } catch (e: any) {

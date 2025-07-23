@@ -88,6 +88,9 @@
                 <router-link to="/settings" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Settings</router-link>
               </li>
               <li>
+                <router-link to="/settings/branding" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Branding</router-link>
+              </li>
+              <li>
                 <button @click.stop="handleLogout" class="block w-full text-left px-4 py-3 text-red-400 hover:bg-dark-800 rounded-lg">Logout</button>
               </li>
             </ul>
@@ -211,6 +214,11 @@ function getStatusClass(status: string) {
 }
 
 const showProfileDropdown = ref(false)
+
+function openNotifications() {
+  // TODO: Implement notifications panel
+  console.log('Open notifications')
+}
 
 function handleLogout() {
   showProfileDropdown.value = false
