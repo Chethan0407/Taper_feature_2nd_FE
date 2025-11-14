@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth'
+import { getLinkedContent, type LinkedContentResponse } from '@/utils/spec-linking-api'
 
 export interface Project {
   id: string
@@ -33,7 +34,8 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
     try {
       const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      console.log('Projects API: Authorization header:', headers)
+      console.log('🔍 DEBUG - Projects API: Authorization header:', headers)
+      console.log('🔍 DEBUG - Loading projects from:', API_BASE)
       const response = await fetch(API_BASE, {
         headers
       })
@@ -43,6 +45,7 @@ export const useProjectsStore = defineStore('projects', () => {
       }
       
       const data = await response.json();
+      console.log('🔍 DEBUG - Raw projects data from backend:', data)
       projects.value = Array.isArray(data)
         ? data.map((p: any) => ({
             ...p,
@@ -50,10 +53,10 @@ export const useProjectsStore = defineStore('projects', () => {
             updatedAt: p.updated_at
           }))
         : [];
-      console.log('Loaded projects:', projects.value);
+      console.log('🔍 DEBUG - Processed projects:', projects.value);
     } catch (err: any) {
       error.value = err.message || 'Failed to load projects'
-      console.error('Error loading projects:', err)
+      console.error('🔍 DEBUG - Error loading projects:', err)
     } finally {
       loading.value = false
     }
@@ -204,6 +207,21 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  // Get linked content for a project
+  const getProjectLinkedContent = async (projectId: string): Promise<LinkedContentResponse> => {
+    loading.value = true
+    error.value = null
+    try {
+      const linkedContent = await getLinkedContent(projectId)
+      return linkedContent
+    } catch (err: any) {
+      error.value = err.message || 'Failed to load linked content'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     projects,
     loading,
@@ -212,6 +230,7 @@ export const useProjectsStore = defineStore('projects', () => {
     createProject,
     getProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    getProjectLinkedContent
   }
 }) 

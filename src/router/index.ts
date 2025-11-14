@@ -96,12 +96,25 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
+  // If we have a token but no user data, try to load it
+  if (authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null' && !authStore.user) {
+    console.log('🔄 Router: Token exists but no user data, attempting to load user')
+    const authResult = await authStore.checkAuth()
+    if (!authResult) {
+      console.log('❌ Router: Failed to load user data, redirecting to login')
+      next('/login')
+      return
+    }
+  }
+  
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    console.log('🚫 Router: Route requires auth but user not authenticated, redirecting to login')
     next('/login')
   } else if (to.path === '/login' && authStore.isAuthenticated) {
+    console.log('✅ Router: User is authenticated, redirecting to dashboard')
     next('/dashboard')
   } else {
     next()

@@ -16,7 +16,17 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('tapeout_token'))
   const isLoading = ref(false)
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => {
+    const authenticated = !!token.value && !!user.value
+    console.log('🔐 Authentication state changed:', {
+      hasToken: !!token.value,
+      hasUser: !!user.value,
+      isAuthenticated: authenticated,
+      tokenValue: token.value,
+      userValue: user.value
+    })
+    return authenticated
+  })
 
   function getAuthHeader(): HeadersInit | undefined {
     if (token.value && token.value !== 'undefined' && token.value !== 'null') {
@@ -85,34 +95,80 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
+    console.log('🚪 LOGOUT CALLED')
+    console.log('📍 Stack trace:', new Error().stack)
+    console.log('👤 Current user:', user.value)
+    console.log('🎫 Current token:', token.value)
+    
     try {
       if (token.value && token.value !== 'undefined' && token.value !== 'null') {
         const authHeaders = getAuthHeader()
+        console.log('🔗 Calling backend logout endpoint')
         await fetch(`${API_BASE}/logout`, {
           method: 'POST',
           headers: authHeaders
         })
+        console.log('✅ Backend logout successful')
       }
-    } catch {}
+    } catch (error) {
+      console.log('⚠️ Backend logout failed:', error)
+    }
+    
     user.value = null
     token.value = null
     localStorage.removeItem('tapeout_token')
+    
+    console.log('✅ Logout completed - user and token cleared')
   }
 
   const checkAuth = async () => {
-    if (!token.value || token.value === 'undefined' || token.value === 'null') return false
+    console.log('🔍 checkAuth called')
+    console.log('Token exists:', !!token.value)
+    console.log('Token value:', token.value)
+    
+    if (!token.value || token.value === 'undefined' || token.value === 'null') {
+      console.log('❌ No valid token found')
+      return false
+    }
+    
     try {
       const authHeaders = getAuthHeader()
+      console.log('🔗 Making auth check request to:', `${API_BASE}/me`)
+      console.log('📋 Headers:', authHeaders)
+      
       const response = await fetch(`${API_BASE}/me`, authHeaders ? { headers: authHeaders } : undefined)
-      if (!response.ok) throw new Error('Not authenticated')
-      user.value = await response.json()
+      console.log('📡 Response status:', response.status)
+      console.log('📡 Response ok:', response.ok)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.log('❌ Auth check failed:', response.status, errorText)
+        throw new Error(`Not authenticated: ${response.status} ${errorText}`)
+      }
+      
+      const userData = await response.json()
+      console.log('✅ Auth check successful, user data:', userData)
+      user.value = userData
       return true
     } catch (error) {
+      console.log('💥 Auth check error:', error)
+      console.log('🚪 Calling logout due to auth failure')
       logout()
       return false
     }
   }
 
+  // Auto-load user data if token exists but user is missing
+  const initializeAuth = async () => {
+    if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
+      console.log('🔄 Auto-loading user data for existing token')
+      await checkAuth()
+    }
+  }
+  
+  // Initialize auth on store creation
+  initializeAuth()
+  
   return {
     user,
     token,
@@ -122,6 +178,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     logout,
     checkAuth,
-    getAuthHeader
+    getAuthHeader,
+    initializeAuth
   }
 }) 
