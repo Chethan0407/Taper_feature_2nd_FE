@@ -50,10 +50,11 @@
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Validate Spec</h2>
             <div>
               <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Spec ID</label>
-              <select v-model="specId" class="input-field w-full rounded-full px-4 py-2">
+              <select v-model="specId" class="input-field w-full rounded-full px-4 py-2" :disabled="loadingSpecs">
                   <option value="">Select a spec...</option>
-                  <option v-for="spec in availableSpecs" :key="spec.id" :value="spec.id">
-                    {{ (spec.name || spec.file_name || 'Unnamed Spec') }} ({{ spec.id.slice(0, 8) }}…) | {{ spec.status }} | {{ spec.uploaded_by }}
+                  <option v-if="loadingSpecs" value="" disabled>Loading specs...</option>
+                  <option v-for="spec in allAvailableSpecs" :key="spec.id" :value="spec.id">
+                    {{ formatSpecDisplayName(spec) }}
                   </option>
                 </select>
               </div>
@@ -67,18 +68,28 @@
               </div>
             </transition>
             <div v-if="lintResults.length > 0" class="space-y-3 mt-4">
-              <h3 class="font-semibold text-gray-900 dark:text-white">Lint Results</h3>
-              <div v-for="result in lintResults" :key="result.id" class="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border-l-4" :class="getResultBorderClass(result.type)">
-                <div class="flex items-start justify-between">
-                  <div>
-                    <p class="text-sm font-medium" :class="getResultTextClass(result.type)">
-                      {{ result.message }}
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">Line {{ result.line }} • {{ result.rule }}</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Lint Results ({{ lintResults.length }} issue{{ lintResults.length !== 1 ? 's' : '' }})</h3>
+              <!-- Group by severity -->
+              <div v-for="(group, severity) in groupedResults" :key="severity" class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 capitalize">{{ severity }}s ({{ group.length }})</h4>
+                <div class="space-y-2">
+                  <div v-for="(result, index) in group" :key="`${severity}-${index}`" class="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border-l-4" :class="getResultBorderClass(result.severity || severity)">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <p class="text-sm font-medium" :class="getResultTextClass(result.severity || severity)">
+                          {{ result.message }}
+                        </p>
+                        <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                          <span v-if="result.line">Line {{ result.line }}</span>
+                          <span v-if="result.ruleType">Rule: {{ result.ruleType }}</span>
+                          <span v-if="result.pattern">Pattern: {{ result.pattern }}</span>
+                        </div>
+                      </div>
+                      <span :class="getResultBadgeClass(result.severity || severity)" class="px-2 py-1 rounded text-xs font-medium ml-2">
+                        {{ result.severity || severity }}
+                      </span>
+                    </div>
                   </div>
-                  <span :class="getResultBadgeClass(result.type)" class="px-2 py-1 rounded text-xs font-medium">
-                    {{ result.type }}
-                  </span>
                 </div>
               </div>
             </div>
@@ -107,21 +118,41 @@
                     <th class="p-4 text-left text-gray-700 dark:text-gray-300 font-semibold">Rule Type</th>
                     <th class="p-4 text-left text-gray-700 dark:text-gray-300 font-semibold">Pattern</th>
                     <th class="p-4 text-left text-gray-700 dark:text-gray-300 font-semibold">Severity</th>
+                    <th class="p-4 text-left text-gray-700 dark:text-gray-300 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="rule in filteredRules" :key="rule.id" class="border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800/40 transition-colors">
                     <td class="p-4 font-mono text-gray-500 dark:text-gray-400">{{ rule.id }}</td>
                     <td class="p-4 font-medium text-gray-900 dark:text-white">{{ rule.rule_type }}</td>
-                    <td class="p-4 font-mono text-blue-600 dark:text-blue-400 underline cursor-pointer">{{ rule.pattern }}</td>
+                    <td class="p-4 font-mono text-blue-600 dark:text-blue-400 underline cursor-pointer" @click="copyPattern(rule.pattern)" :title="'Click to copy: ' + rule.pattern">{{ rule.pattern }}</td>
                     <td class="p-4">
                       <span :class="rule.severity === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded text-xs font-semibold' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded text-xs font-semibold'">
                         {{ rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1) }}
                       </span>
                     </td>
+                    <td class="p-4">
+                      <div class="flex items-center gap-2">
+                        <button
+                          @click="editRule(rule)"
+                          class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                          title="Edit rule"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          @click="deleteRule(rule.id)"
+                          class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                          :disabled="deletingRuleId === rule.id"
+                          title="Delete rule"
+                        >
+                          {{ deletingRuleId === rule.id ? 'Deleting...' : 'Delete' }}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                   <!-- Spacer row for bottom padding -->
-                  <tr aria-hidden="true"><td colspan="4" style="height:2.5rem;"></td></tr>
+                  <tr aria-hidden="true"><td colspan="5" style="height:2.5rem;"></td></tr>
                 </tbody>
               </table>
             </div>
@@ -148,6 +179,45 @@
         </div>
       </main>
     </div>
+    
+    <!-- Edit Rule Modal -->
+    <Transition name="modal">
+      <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm" @click.self="showEditModal = false">
+        <div class="bg-white dark:bg-dark-900 rounded-xl shadow-lg p-8 w-full max-w-md">
+          <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit Rule</h3>
+          <form @submit.prevent="updateRule" class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Rule Type</label>
+              <select v-model="ruleForm.ruleType" class="input-field w-full rounded-full px-4 py-2" required>
+                <option value="">Select type</option>
+                <option value="ForbiddenKeyword">Forbidden Keyword</option>
+                <option value="RegexMatch">Regex Match</option>
+                <option value="Naming">Naming</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Pattern</label>
+              <input v-model="ruleForm.pattern" class="input-field w-full rounded-full px-4 py-2" placeholder="Pattern or keyword" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Severity</label>
+              <select v-model="ruleForm.severity" class="input-field w-full rounded-full px-4 py-2" required>
+                <option value="error">Error</option>
+                <option value="warning">Warning</option>
+              </select>
+            </div>
+            <div class="flex gap-3">
+              <button type="button" @click="showEditModal = false; editingRule = null; ruleForm = { ruleType: '', pattern: '', severity: 'error' }" class="btn-secondary flex-1">
+                Cancel
+              </button>
+              <button type="submit" class="btn-primary flex-1" :disabled="ruleLoading">
+                {{ ruleLoading ? 'Updating...' : 'Update Rule' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -158,13 +228,17 @@ import EnterpriseFilterBar from '@/components/Common/EnterpriseFilterBar.vue'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSpecificationsStore } from '@/stores/specifications'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 interface LintResult {
-  id: string
-  type: 'error' | 'warning' | 'info'
+  id?: string
+  ruleType?: string
+  pattern?: string
+  line?: number
   message: string
-  line: number
-  rule: string
+  severity: 'error' | 'warning' | 'info'
+  type?: 'error' | 'warning' | 'info' // Legacy support
+  rule?: string // Legacy support
 }
 
 interface LintRule {
@@ -201,6 +275,60 @@ const authStore = useAuthStore()
 const specificationsStore = useSpecificationsStore()
 const availableSpecs = computed(() => specificationsStore.specifications)
 
+// Fetch specs from both endpoints
+const allAvailableSpecs = ref<any[]>([])
+const loadingSpecs = ref(false)
+const deletingRuleId = ref<string | null>(null)
+const editingRule = ref<LintRule | null>(null)
+const showEditModal = ref(false)
+
+// Fetch all available specs
+const fetchAllSpecs = async () => {
+  loadingSpecs.value = true
+  try {
+    // Fetch from both endpoints
+    const [specsRes, specificationsRes] = await Promise.all([
+      authenticatedFetch('/api/v1/specifications/').catch(() => null),
+      authenticatedFetch('/api/v1/specs/').catch(() => null)
+    ])
+    
+    const specs: any[] = []
+    
+    // Add specifications (UUIDs)
+    if (specsRes && specsRes.ok) {
+      const specificationsData = await specsRes.json()
+      if (Array.isArray(specificationsData)) {
+        specs.push(...specificationsData.map((s: any) => ({ ...s, source: 'specifications' })))
+      }
+    }
+    
+    // Add specs (integer IDs) - if endpoint exists
+    if (specificationsRes && specificationsRes.ok) {
+      const specsData = await specificationsRes.json()
+      if (Array.isArray(specsData)) {
+        specs.push(...specsData.map((s: any) => ({ ...s, source: 'specs' })))
+      }
+    }
+    
+    allAvailableSpecs.value = specs
+    console.log('✅ Loaded', specs.length, 'specs for dropdown')
+  } catch (e: any) {
+    console.error('Failed to fetch specs:', e)
+    // Fallback to specifications store
+    allAvailableSpecs.value = specificationsStore.specifications.map((s: any) => ({ ...s, source: 'specifications' }))
+  } finally {
+    loadingSpecs.value = false
+  }
+}
+
+// Format spec display name
+const formatSpecDisplayName = (spec: any) => {
+  const name = spec.name || spec.file_name || 'Unnamed Spec'
+  const id = spec.id
+  const idDisplay = typeof id === 'string' && id.length > 8 ? `ID: ${id.slice(0, 8)}...` : `ID: ${id}`
+  return `${name} (${idDisplay})`
+}
+
 const fetchRules = async () => {
   ruleLoading.value = true
   ruleError.value = ''
@@ -218,8 +346,7 @@ const fetchRules = async () => {
     if (ruleFilters.value.severity) params.append('severity', ruleFilters.value.severity)
     if (ruleFilters.value.created_from) params.append('created_from', ruleFilters.value.created_from)
     if (ruleFilters.value.created_to) params.append('created_to', ruleFilters.value.created_to)
-    const headers = authStore.getAuthHeader() || {}
-    const res = await fetch(`/api/v1/lint-results/speclint/rules?${params.toString()}`, { headers })
+    const res = await authenticatedFetch(`/api/v1/lint-results/speclint/rules?${params.toString()}`)
     if (!res.ok) throw new Error('Failed to fetch rules')
     const data = await res.json()
     rules.value = data.results || []
@@ -270,8 +397,9 @@ watch([page], () => {
   fetchRules()
 })
 
-onMounted(() => {
+onMounted(async () => {
   fetchRules()
+  await fetchAllSpecs()
   if (specificationsStore.specifications.length === 0) {
     specificationsStore.loadSpecifications()
   }
@@ -283,10 +411,11 @@ const addRule = async () => {
   ruleError.value = ''
   ruleSuccess.value = ''
   try {
-    const headers = { 'Content-Type': 'application/json', ...(authStore.getAuthHeader() || {}) }
-    const res = await fetch('/api/v1/lint-results/speclint/rules', {
+    const res = await authenticatedFetch('/api/v1/lint-results/speclint/rules', {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         rule_type: ruleForm.value.ruleType, // snake_case for backend
         ruleType: ruleForm.value.ruleType,  // camelCase for backend workaround
@@ -312,10 +441,11 @@ const runLinter = async () => {
   lintError.value = ''
   lintSuccess.value = ''
   try {
-    const headers = { 'Content-Type': 'application/json', ...(authStore.getAuthHeader() || {}) }
-    const res = await fetch('/api/v1/lint-results/speclint/lint', {
+    const res = await authenticatedFetch('/api/v1/lint-results/speclint/lint', {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ specId: specId.value }) // use camelCase as per backend contract
     })
     if (!res.ok) {
@@ -327,18 +457,30 @@ const runLinter = async () => {
       throw new Error(errMsg)
     }
     const data = await res.json()
-    // Defensive: handle { issues: [] } or array
-    if (Array.isArray(data)) {
-      lintResults.value = data
-    } else if (data && Array.isArray(data.issues)) {
-      lintResults.value = data.issues
+    // Handle response structure: { specId: "123", issues: [...] }
+    if (data && Array.isArray(data.issues)) {
+      lintResults.value = data.issues.map((issue: any) => ({
+        ruleType: issue.ruleType,
+        pattern: issue.pattern,
+        line: issue.line,
+        message: issue.message,
+        severity: issue.severity || 'warning'
+      }))
+    } else if (Array.isArray(data)) {
+      lintResults.value = data.map((issue: any) => ({
+        ruleType: issue.ruleType || issue.rule_type,
+        pattern: issue.pattern,
+        line: issue.line,
+        message: issue.message,
+        severity: issue.severity || 'warning'
+      }))
     } else {
       lintResults.value = []
     }
     if (lintResults.value.length === 0) {
       lintSuccess.value = 'No issues found!'
     } else {
-      lintSuccess.value = 'Lint completed!'
+      lintSuccess.value = `Lint completed! Found ${lintResults.value.length} issue${lintResults.value.length !== 1 ? 's' : ''}.`
     }
   } catch (e: any) {
     lintError.value = e.message || 'Failed to run linter'
@@ -349,7 +491,7 @@ const runLinter = async () => {
 }
 
 const getResultBorderClass = (type: string) => {
-  switch (type) {
+  switch (type?.toLowerCase()) {
     case 'error': return 'border-red-500'
     case 'warning': return 'border-yellow-500'
     case 'info': return 'border-blue-500'
@@ -358,7 +500,7 @@ const getResultBorderClass = (type: string) => {
 }
 
 const getResultTextClass = (type: string) => {
-  switch (type) {
+  switch (type?.toLowerCase()) {
     case 'error': return 'text-red-400'
     case 'warning': return 'text-yellow-400'
     case 'info': return 'text-blue-400'
@@ -367,11 +509,113 @@ const getResultTextClass = (type: string) => {
 }
 
 const getResultBadgeClass = (type: string) => {
-  switch (type) {
+  switch (type?.toLowerCase()) {
     case 'error': return 'bg-red-500/20 text-red-400 border border-red-500/30'
     case 'warning': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
     case 'info': return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
     default: return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  }
+}
+
+// Group results by severity
+const groupedResults = computed(() => {
+  const groups: Record<string, LintResult[]> = {
+    error: [],
+    warning: [],
+    info: []
+  }
+  
+  lintResults.value.forEach(result => {
+    const severity = (result.severity || result.type || 'warning').toLowerCase()
+    if (groups[severity]) {
+      groups[severity].push(result)
+    } else {
+      groups.warning.push(result)
+    }
+  })
+  
+  // Remove empty groups
+  Object.keys(groups).forEach(key => {
+    if (groups[key].length === 0) {
+      delete groups[key]
+    }
+  })
+  
+  return groups
+})
+
+// Edit rule
+const editRule = (rule: LintRule) => {
+  editingRule.value = { ...rule }
+  ruleForm.value = {
+    ruleType: rule.rule_type || rule.ruleType || '',
+    pattern: rule.pattern,
+    severity: rule.severity
+  }
+  showEditModal.value = true
+}
+
+// Update rule
+const updateRule = async () => {
+  if (!editingRule.value?.id) return
+  
+  ruleLoading.value = true
+  ruleError.value = ''
+  ruleSuccess.value = ''
+  try {
+    const res = await authenticatedFetch(`/api/v1/lint-results/speclint/rules/${editingRule.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        rule_type: ruleForm.value.ruleType,
+        pattern: ruleForm.value.pattern,
+        severity: ruleForm.value.severity
+      })
+    })
+    if (!res.ok) throw new Error('Failed to update rule')
+    ruleSuccess.value = 'Rule updated!'
+    showEditModal.value = false
+    editingRule.value = null
+    ruleForm.value = { ruleType: '', pattern: '', severity: 'error' }
+    await fetchRules()
+  } catch (e: any) {
+    ruleError.value = e.message || 'Failed to update rule'
+  } finally {
+    ruleLoading.value = false
+    setTimeout(() => { ruleSuccess.value = '' }, 2000)
+  }
+}
+
+// Delete rule
+const deleteRule = async (ruleId: string) => {
+  if (!confirm('Are you sure you want to delete this rule?')) return
+  
+  deletingRuleId.value = ruleId
+  try {
+    const res = await authenticatedFetch(`/api/v1/lint-results/speclint/rules/${ruleId}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete rule')
+    await fetchRules()
+    ruleSuccess.value = 'Rule deleted!'
+    setTimeout(() => { ruleSuccess.value = '' }, 2000)
+  } catch (e: any) {
+    ruleError.value = e.message || 'Failed to delete rule'
+  } finally {
+    deletingRuleId.value = null
+  }
+}
+
+// Copy pattern to clipboard
+const copyPattern = async (pattern: string) => {
+  try {
+    await navigator.clipboard.writeText(pattern)
+    ruleSuccess.value = 'Pattern copied to clipboard!'
+    setTimeout(() => { ruleSuccess.value = '' }, 2000)
+  } catch (e) {
+    console.error('Failed to copy:', e)
   }
 }
 
@@ -401,5 +645,26 @@ const pageNumbers = computed(() => {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #6b7280 transparent;
+}
+
+/* Modal transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style> 

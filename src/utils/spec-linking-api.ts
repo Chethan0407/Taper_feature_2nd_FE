@@ -135,11 +135,14 @@ export async function getLinkedContent(projectId: string | number): Promise<Link
   console.log('🔍 DEBUG - Is array?', Array.isArray(linkedContentArray))
   console.log('🔍 DEBUG - Total items:', Array.isArray(linkedContentArray) ? linkedContentArray.length : 0)
   
-  // ✅ Filter by type === "specification" (as per API spec)
+  // ✅ Filter by type (handle both camelCase "specLint" and snake_case "spec_lint")
   if (Array.isArray(linkedContentArray)) {
     const specs = linkedContentArray.filter((item: any) => item.type === 'specification')
     const checklists = linkedContentArray.filter((item: any) => item.type === 'checklist')
-    const specLints = linkedContentArray.filter((item: any) => item.type === 'spec_lint')
+    // Handle both "specLint" (camelCase) and "spec_lint" (snake_case) formats
+    const specLints = linkedContentArray.filter((item: any) => 
+      item.type === 'specLint' || item.type === 'spec_lint'
+    )
     
     console.log('🔍 DEBUG - Filtered specs:', specs.length)
     console.log('🔍 DEBUG - Filtered checklists:', checklists.length)

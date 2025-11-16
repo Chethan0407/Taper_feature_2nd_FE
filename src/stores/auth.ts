@@ -13,7 +13,13 @@ const API_BASE = 'http://localhost:8000/api/v1/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('tapeout_token'))
+  // Load token from localStorage, but filter out invalid values
+  const storedToken = localStorage.getItem('tapeout_token')
+  const token = ref<string | null>(
+    storedToken && storedToken !== 'undefined' && storedToken !== 'null' && storedToken.trim() !== '' 
+      ? storedToken 
+      : null
+  )
   const isLoading = ref(false)
 
   const isAuthenticated = computed(() => {
@@ -43,21 +49,40 @@ export const useAuthStore = defineStore('auth', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
-      if (!response.ok) throw new Error('Invalid credentials')
-      const data = await response.json()
-      token.value = data.token || data.access_token
-      localStorage.setItem('tapeout_token', token.value || '')
-      const receivedToken = data.token || data.access_token
-      if (receivedToken && receivedToken !== 'undefined' && receivedToken !== 'null') {
-        const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
-        const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
-        if (!profileRes.ok) throw new Error('Failed to fetch profile')
-        user.value = await profileRes.json()
-        return { success: true }
-      } else {
-        throw new Error('No valid token received')
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Invalid credentials')
       }
+      const data = await response.json()
+      const receivedToken = data.token || data.access_token
+      
+      // Validate token before storing
+      if (!receivedToken || receivedToken === 'undefined' || receivedToken === 'null' || receivedToken.trim() === '') {
+        throw new Error('No valid token received from server')
+      }
+      
+      // Store token first
+      token.value = receivedToken
+      localStorage.setItem('tapeout_token', receivedToken)
+      console.log('✅ Token stored after login')
+      
+      // Then fetch user profile
+      const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
+      const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
+      if (!profileRes.ok) {
+        const errorText = await profileRes.text()
+        throw new Error(`Failed to fetch profile: ${errorText}`)
+      }
+      user.value = await profileRes.json()
+      console.log('✅ User profile loaded after login:', user.value?.email)
+      
+      return { success: true }
     } catch (error: any) {
+      console.error('❌ Login error:', error)
+      // Clear any partial state on error
+      token.value = null
+      user.value = null
+      localStorage.removeItem('tapeout_token')
       return { success: false, error: error.message || 'Invalid credentials' }
     } finally {
       isLoading.value = false
@@ -143,7 +168,14 @@ export const useAuthStore = defineStore('auth', () => {
       if (!response.ok) {
         const errorText = await response.text()
         console.log('❌ Auth check failed:', response.status, errorText)
-        throw new Error(`Not authenticated: ${response.status} ${errorText}`)
+        // Only logout if it's a clear 401/403 - don't logout on network errors
+        if (response.status === 401 || response.status === 403) {
+          console.log('🚪 Token is invalid, clearing auth state')
+          user.value = null
+          token.value = null
+          localStorage.removeItem('tapeout_token')
+        }
+        return false
       }
       
       const userData = await response.json()
@@ -152,22 +184,38 @@ export const useAuthStore = defineStore('auth', () => {
       return true
     } catch (error) {
       console.log('💥 Auth check error:', error)
-      console.log('🚪 Calling logout due to auth failure')
-      logout()
+      // Don't logout on network errors - just return false
+      // Only clear auth if it's a clear authentication error
+      console.log('⚠️ Network or other error during auth check - not clearing token')
       return false
     }
   }
 
   // Auto-load user data if token exists but user is missing
   const initializeAuth = async () => {
-    if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
-      console.log('🔄 Auto-loading user data for existing token')
-      await checkAuth()
+    try {
+      if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
+        console.log('🔄 Auto-loading user data for existing token')
+        const result = await checkAuth()
+        if (!result) {
+          console.log('⚠️ Auth initialization failed - token may be invalid')
+          // Don't clear token here - let the router guard handle it
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Error during auth initialization:', error)
+      // Don't throw - allow app to continue loading
+      // Don't clear token on initialization errors
     }
   }
   
-  // Initialize auth on store creation
-  initializeAuth()
+  // Initialize auth on store creation (don't block app loading)
+  // Only initialize if we have a token and no user - don't run if user is already set
+  if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
+    initializeAuth().catch(err => {
+      console.error('⚠️ Auth initialization failed:', err)
+    })
+  }
   
   return {
     user,

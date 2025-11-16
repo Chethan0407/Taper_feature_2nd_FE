@@ -50,7 +50,7 @@
             v-for="project in filteredProjects" 
             :key="project.id" 
             :project="project"
-              class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl"
+            class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl"
             @click="handleProjectClick"
             @edit="handleProjectEdit"
             @delete="handleProjectDelete"
@@ -129,7 +129,37 @@ const handleProjectCreated = async (project: Project) => {
 };
 
 const handleProjectClick = (project: Project) => {
-  router.push(`/projects/${project.id}`)
+  console.log('🔍 handleProjectClick called with project:', project)
+  console.log('🔍 Project type:', typeof project)
+  console.log('🔍 Project ID:', project?.id)
+  console.log('🔍 Project ID type:', typeof project?.id)
+  
+  if (!project) {
+    console.error('❌ No project provided')
+    return
+  }
+  
+  if (!project.id) {
+    console.error('❌ Project has no ID:', project)
+    return
+  }
+  
+  const projectId = String(project.id)
+  console.log('🚀 Navigating to project:', projectId)
+  console.log('🚀 Navigation path:', `/projects/${projectId}`)
+  
+  // Use router.push with explicit path
+  router.push({ 
+    path: `/projects/${projectId}`,
+    name: 'ProjectDetails',
+    params: { id: projectId }
+  }).then(() => {
+    console.log('✅ Navigation successful to project:', projectId)
+  }).catch((error) => {
+    console.error('❌ Navigation failed:', error)
+    // Fallback: try direct path navigation
+    window.location.href = `/projects/${projectId}`
+  })
 }
 
 const handleProjectEdit = (project: Project) => {

@@ -8,41 +8,52 @@
       <main class="p-8">
         <!-- Quality Score Breakdown at the very top -->
         <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quality Score Breakdown</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Quality Score Breakdown</h2>
+            <button 
+              @click="refreshQualityScore"
+              class="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              :disabled="qualityScoreLoading"
+              title="Refresh quality score"
+            >
+              <svg class="w-4 h-4" :class="{ 'animate-spin': qualityScoreLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <span>{{ qualityScoreLoading ? 'Refreshing...' : 'Refresh' }}</span>
+            </button>
+          </div>
+          <!-- Debug info (remove in production) -->
+          <div v-if="!qualityScoreLoading && qualityScoreFetchedOnce && dashboardData.qualityScore === null" class="text-sm text-yellow-500 mb-2">
+            ⚠️ Quality score not loaded yet or API returned error
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="text-center">
-              <div class="text-3xl font-bold text-green-500 mb-2">{{ dashboardData.qualityScore?.approval_rate || 0 }}%</div>
+              <div class="text-3xl font-bold text-green-500 mb-2">
+                {{ dashboardData.qualityScore ? dashboardData.qualityScore.spec_approval_rate.toFixed(1) : '0.0' }}%
+              </div>
               <div class="text-gray-400">Approval Rate</div>
             </div>
             <div class="text-center">
-              <div class="text-3xl font-bold text-blue-500 mb-2">{{ dashboardData.qualityScore?.completion_rate || 0 }}%</div>
+              <div class="text-3xl font-bold text-blue-500 mb-2">
+                {{ dashboardData.qualityScore ? dashboardData.qualityScore.checklist_completion_rate.toFixed(1) : '0.0' }}%
+              </div>
               <div class="text-gray-400">Completion Rate</div>
             </div>
             <div class="text-center">
-              <div class="text-3xl font-bold text-purple-500 mb-2">{{ dashboardData.qualityScore?.pass_rate || 0 }}%</div>
+              <div class="text-3xl font-bold text-purple-500 mb-2">
+                {{ dashboardData.qualityScore ? dashboardData.qualityScore.lint_pass_rate.toFixed(1) : '0.0' }}%
+              </div>
               <div class="text-gray-400">Pass Rate</div>
             </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-amber-500 mb-2">
+                {{ dashboardData.qualityScore ? dashboardData.qualityScore.overall_score.toFixed(1) : '0.0' }}%
           </div>
+              <div class="text-gray-400">Overall Score</div>
         </div>
-        <!-- Tab Switcher -->
-        <div class="flex space-x-4 mb-8 border-b border-gray-200 dark:border-dark-700">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            @click="activeTab = tab.key"
-            :class="[
-              'px-6 py-3 font-semibold text-lg focus:outline-none transition-colors',
-              activeTab === tab.key
-                ? 'border-b-4 border-neon-blue text-neon-blue dark:text-neon-blue'
-                : 'text-gray-500 dark:text-gray-400 hover:text-neon-blue/80'
-            ]"
-          >
-            {{ tab.label }}
-          </button>
         </div>
-
-        <!-- Manage Project Tab -->
-        <template v-if="activeTab === 'manage'">
+        </div>
+        <!-- Manage Project Content -->
           <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Manage Project Content</h2>
           <!-- Project Specifications (add/list) -->
           <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
@@ -106,9 +117,10 @@
                     </div>
                     <p v-if="spec.comments" class="mt-2 text-gray-600 dark:text-gray-300">{{ spec.comments }}</p>
                   </div>
+                  <div class="flex items-center ml-4">
                   <button
                     @click="removeSpecFromProject(spec.id)"
-                    class="ml-4 px-3 py-1 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center space-x-1"
+                      class="px-3 py-1 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center space-x-1"
                     :disabled="removingSpecId === spec.id"
                     title="Remove from project"
                   >
@@ -121,6 +133,7 @@
                     </svg>
                     <span>{{ removingSpecId === spec.id ? 'Removing...' : 'Remove' }}</span>
                   </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -128,12 +141,12 @@
 
           <!-- Linked Checklists Section -->
           <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-6">
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">✅ Linked Checklists</h2>
               <button 
                 @click="openLinkModal('checklist')" 
                 class="btn-primary px-4 py-2 text-sm flex items-center space-x-2"
-                :disabled="!project"
+                :disabled="!project && !route.params.id"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -141,224 +154,133 @@
                 <span>Add Checklist</span>
               </button>
             </div>
-            <input v-model="checklistSearchTerm" class="input-field w-full mb-2" placeholder="Search linked checklists..." />
-            <div v-if="selectedChecklistIds.length" class="mb-2 flex gap-2 items-center">
-              <button class="btn-danger px-3 py-1 text-xs" @click="batchUnlinkChecklists">Unlink Selected ({{ selectedChecklistIds.length }})</button>
-              <!-- Add batch like button here if needed -->
-            </div>
-            <RecycleScroller
-              :items="filteredLinkedChecklists"
-              :item-size="56"
-              class="max-h-96 overflow-auto rounded"
-              v-slot="{ item: checklist }"
-            >
-              <li class="flex items-center gap-3 border-b border-dark-800 py-3 px-2 last:border-b-0">
-                <input type="checkbox" :checked="selectedChecklistIds.includes(typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" @change="toggleChecklistSelection(typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" />
-                <span class="text-neon-blue font-medium cursor-pointer hover:underline">
-                  {{ typeof checklist === 'object' && checklist !== null ? (checklist.name || `Checklist ${checklist.id}`) : `Checklist ${checklist}` }}
-                </span>
-                <span class="ml-2 text-yellow-400" v-if="typeof checklist === 'object' && checklist !== null && checklist.liked_by_me">⭐️ You liked this</span>
-                <span class="ml-2 text-yellow-400" v-else-if="typeof checklist === 'object' && checklist !== null && (checklist.like_count ?? 0) > 0">⭐️ Liked by {{ checklist.like_count ?? 0 }} people</span>
-                <span class="ml-2 text-gray-400" v-else>(No likes)</span>
-                <button class="ml-4 btn-secondary px-2 py-1 text-xs" @click="onLikeChecklist(checklist)">
-                  {{ typeof checklist === 'object' && checklist !== null && checklist.liked_by_me ? 'Unlike' : 'Like' }}
-                </button>
-                <button class="ml-2 btn-secondary px-2 py-1 text-xs" @click="onUnlinkChecklist(checklist)">
-                  Unlink
-                </button>
-              </li>
-            </RecycleScroller>
-            <div v-if="filteredLinkedChecklists.length === 0" class="text-gray-400 text-center py-4">No linked checklists.</div>
-          </div>
-
-          <!-- Linked Spec Lints Section -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">🔍 Linked Spec Lints</h2>
-              <button 
-                @click="openSpecLintModal" 
-                class="btn-primary px-4 py-2 text-sm flex items-center space-x-2"
-                :disabled="!project"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                <span>Add Spec Lint</span>
-              </button>
-            </div>
-            <input v-model="specLintSearchTerm" class="input-field w-full mb-2" placeholder="Search linked spec lints..." />
-            <div v-if="selectedSpecLintIds.length" class="mb-2 flex gap-2 items-center">
-              <button class="btn-danger px-3 py-1 text-xs" @click="batchUnlinkSpecLints">Unlink Selected ({{ selectedSpecLintIds.length }})</button>
-            </div>
-            <RecycleScroller
-              :items="filteredLinkedSpecLints"
-              :item-size="56"
-              class="max-h-96 overflow-auto rounded"
-              v-slot="{ item: lint }"
-            >
-              <li class="flex items-center gap-4 border-b border-dark-800 py-3 px-2 last:border-b-0">
-                <input 
-                  type="checkbox" 
-                  :checked="selectedSpecLintIds.includes(typeof lint === 'object' && lint !== null ? lint.id : lint)" 
-                  @change="toggleSpecLintSelection(typeof lint === 'object' && lint !== null ? lint.id : lint)"
-                  class="flex-shrink-0 w-4 h-4"
-                />
-                <span class="text-neon-blue font-medium cursor-pointer hover:underline">
-                  {{ typeof lint === 'object' && lint !== null ? (lint.name || lint.file_name || `Spec Lint ${lint.id}`) : `Spec Lint ${lint}` }}
-                </span>
-                <span class="text-yellow-400 text-sm" v-if="typeof lint === 'object' && lint !== null && lint.liked_by_me">⭐️ You liked this</span>
-                <span class="text-yellow-400 text-sm" v-else-if="typeof lint === 'object' && lint !== null && (lint.like_count ?? 0) > 0">⭐️ Liked by {{ lint.like_count ?? 0 }} people</span>
-                <span class="text-gray-400 text-sm" v-else>(No likes)</span>
-                <div class="flex items-center gap-2 ml-auto">
-                  <button class="btn-secondary px-3 py-1.5 text-xs" @click="onLikeSpecLint(lint)">
-                    {{ typeof lint === 'object' && lint !== null && lint.liked_by_me ? 'Unlike' : 'Like' }}
-                  </button>
-                  <button class="btn-secondary px-3 py-1.5 text-xs" @click="onUnlinkSpecLint(lint)">
-                    Unlink
-                  </button>
-                </div>
-              </li>
-            </RecycleScroller>
-            <div v-if="filteredLinkedSpecLints.length === 0" class="text-gray-400 text-center py-4">No linked spec lints.</div>
-          </div>
-        </template>
-
-        <!-- Review Status Tab -->
-        <template v-if="activeTab === 'review'">
-          <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Review & Quality Status</h2>
-          <!-- Specs with Status -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Specifications with Status</h2>
-              <button @click="navigateToSpecsWithContext" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Add Spec
-              </button>
-            </div>
+            <input v-model="checklistSearchTerm" class="input-field w-full mb-4" placeholder="Search linked checklists..." />
             
+            <!-- Loading State -->
             <div v-if="linkedContentLoading" class="text-center py-8">
               <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p class="text-gray-500">Loading specifications...</p>
-            </div>
-            <div v-else-if="dashboardData.specs.length === 0" class="text-center py-8">
-              <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-              <h3 class="text-xl font-semibold text-gray-400 mb-2">No Specifications Yet</h3>
-              <p class="text-gray-500 mb-6">Add specifications to this project to get started</p>
-              <button @click="navigateToSpecsWithContext" class="btn-primary">
-                Add First Spec
-              </button>
-            </div>
-            <div v-else class="space-y-4">
-              <div v-for="spec in dashboardData.specs" :key="spec.id" class="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ spec.name || spec.file_name || `Spec ${spec.id}` }}</h3>
-                    <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span class="flex items-center">
-                        <span class="w-2 h-2 rounded-full mr-2" :class="getStatusColor(spec.status)"></span>
-                        {{ spec.status }}
-                      </span>
-                      <span v-if="spec.reviewer">Reviewed by: {{ spec.reviewer }}</span>
-                      <span v-if="spec.timestamp">{{ formatDate(spec.timestamp) }}</span>
-                    </div>
-                    <p v-if="spec.comments" class="mt-2 text-gray-600 dark:text-gray-300">{{ spec.comments }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <p class="text-gray-500">Loading checklists...</p>
           </div>
 
-          <!-- Checklists with Status -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Checklists with Status</h2>
-              <button v-if="project" @click="router.push(`/checklists?project=${project.id}`)" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Add Checklist
-              </button>
-            </div>
-            
-            <div v-if="dashboardData.checklists.length === 0" class="text-center py-8">
+            <!-- Empty State -->
+            <div v-else-if="filteredLinkedChecklists.length === 0" class="text-center py-8">
               <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
               </svg>
-              <h3 class="text-xl font-semibold text-gray-400 mb-2">No Checklists Yet</h3>
+              <h3 class="text-xl font-semibold text-gray-400 mb-2">No Linked Checklists</h3>
               <p class="text-gray-500 mb-6">Add checklists to this project to get started</p>
-              <button v-if="project" @click="router.push(`/checklists?project=${project.id}`)" class="btn-primary">
+              <button 
+                @click="openLinkModal('checklist')" 
+                class="btn-primary"
+                :disabled="!project && !route.params.id"
+              >
                 Add First Checklist
               </button>
             </div>
+            
+            <!-- Checklist Cards -->
             <div v-else class="space-y-4">
-              <div v-for="checklist in dashboardData.checklists" :key="checklist.id" class="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
+              <div 
+                v-for="checklist in filteredLinkedChecklists" 
+                :key="checklist.id" 
+                class="border border-gray-200 dark:border-dark-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors"
+              >
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ checklist.name || `Checklist ${checklist.id}` }}</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                      {{ typeof checklist === 'object' && checklist !== null ? (checklist.name || `Checklist ${checklist.id}`) : `Checklist ${checklist}` }}
+                    </h3>
                     <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span class="flex items-center">
+                      <span v-if="typeof checklist === 'object' && checklist !== null && checklist.status" class="flex items-center">
                         <span class="w-2 h-2 rounded-full mr-2" :class="getStatusColor(checklist.status)"></span>
                         {{ checklist.status }}
                       </span>
-                      <span v-if="checklist.reviewer">Reviewed by: {{ checklist.reviewer }}</span>
-                      <span v-if="checklist.timestamp">{{ formatDate(checklist.timestamp) }}</span>
                     </div>
-                    <p v-if="checklist.comments" class="mt-2 text-gray-600 dark:text-gray-300">{{ checklist.comments }}</p>
+                  </div>
+                  <div class="flex items-center ml-4">
+                    <button
+                      @click="onUnlinkChecklist(checklist)"
+                      class="px-3 py-1 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center space-x-1"
+                      :disabled="removingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      title="Remove from project"
+                    >
+                      <svg v-if="removingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>{{ removingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Removing...' : 'Unlink' }}</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Spec Lints with Status -->
+          <!-- Linked Spec Lints Section -->
           <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
             <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Spec Lints with Status</h2>
-              <button v-if="project" @click="router.push(`/speclint?project=${project.id}`)" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Run Lint
-              </button>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Linked Spec Lints</h2>
             </div>
             
-            <div v-if="dashboardData.specLints.length === 0" class="text-center py-8">
+            <!-- Loading State -->
+            <div v-if="linkedContentLoading" class="text-center py-8">
+              <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              <p class="text-gray-500">Loading lint results...</p>
+            </div>
+            
+            <!-- Empty State -->
+            <div v-else-if="linkedSpecLints.length === 0" class="text-center py-8">
               <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <h3 class="text-xl font-semibold text-gray-400 mb-2">No Spec Lints Yet</h3>
-              <p class="text-gray-500 mb-6">Run spec lints to check for issues</p>
-              <button v-if="project" @click="router.push(`/speclint?project=${project.id}`)" class="btn-primary">
-                Run First Lint
-              </button>
+              <h3 class="text-xl font-semibold text-gray-400 mb-2">No lint results yet</h3>
+              <p class="text-gray-500 mb-6">Lint results will appear here when you run linting on specs in this project</p>
             </div>
+            
+            <!-- Lint Results List -->
             <div v-else class="space-y-4">
-              <div v-for="lint in dashboardData.specLints" :key="lint.id" class="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ lint.name || `Lint ${lint.id}` }}</h3>
-                    <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span class="flex items-center">
-                        <span class="w-2 h-2 rounded-full mr-2" :class="getStatusColor(lint.status)"></span>
-                        {{ lint.status }}
+              <div 
+                v-for="lint in linkedSpecLints" 
+                :key="lint.id" 
+                class="border border-gray-200 dark:border-dark-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors cursor-pointer"
+                @click="openLintDetail(lint)"
+              >
+                <div class="flex items-start gap-3 mb-2">
+                  <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex-1">
+                    {{ lint.spec_name || lint.name || `Spec Lint ${lint.id}` }}
+                  </h3>
+                  <span 
+                    :class="['px-3 py-1 rounded text-xs font-medium capitalize', getLintStatusBadge(lint.status)]"
+                  >
+                    {{ lint.status || 'Pending' }}
                       </span>
-                      <span v-if="lint.reviewer">Reviewed by: {{ lint.reviewer }}</span>
-                      <span v-if="lint.timestamp">{{ formatDate(lint.timestamp) }}</span>
                     </div>
-                    <p v-if="lint.comments" class="mt-2 text-gray-600 dark:text-gray-300">{{ lint.comments }}</p>
+                
+                <div class="ml-8 space-y-1">
+                  <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="font-medium">{{ lint.issues_count || 0 }} issues</span>
+                    <span v-if="lint.summary" class="text-gray-500 dark:text-gray-500">•</span>
+                    <span v-if="lint.summary" class="text-gray-500 dark:text-gray-400">{{ lint.summary }}</span>
                   </div>
+                  <div v-if="lint.created_at" class="text-xs text-gray-500 dark:text-gray-500">
+                    Created: {{ formatDateShort(lint.created_at) }}
                 </div>
               </div>
             </div>
           </div>
-        </template>
+          </div>
       </main>
     </div>
   </div>
@@ -379,6 +301,209 @@
     :on-link="linkModalType === 'spec' ? linkSelectedSpec : linkSelectedChecklist"
     :on-close="closeLinkModal"
   />
+
+  <!-- Lint Detail Modal -->
+  <Transition name="modal">
+    <div 
+      v-if="showLintDetailModal && selectedLintResult" 
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm" 
+      @click.self="closeLintDetailModal"
+    >
+      <div class="bg-white dark:bg-dark-900 rounded-xl shadow-lg p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                {{ selectedLintResult.spec_name || selectedLintResult.name || `Spec Lint ${selectedLintResult.id}` }}
+              </h3>
+              <span 
+                :class="['px-3 py-1 rounded text-sm font-medium', getLintStatusBadge(selectedLintResult.status)]"
+              >
+                {{ selectedLintResult.status || 'Pending' }}
+              </span>
+            </div>
+            <p v-if="selectedLintResult.created_at" class="text-sm text-gray-500 dark:text-gray-400">
+              Created: {{ formatDate(selectedLintResult.created_at) }}
+            </p>
+          </div>
+          <button @click="closeLintDetailModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="lintDetailLoading" class="text-center py-8">
+          <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="text-gray-500">Loading lint details...</p>
+        </div>
+
+        <!-- Detail Content -->
+        <div v-else-if="lintDetailData">
+          <!-- Summary Section -->
+          <div class="mb-6 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Summary</h4>
+            <div class="flex items-center gap-4 text-sm">
+              <span class="text-red-500 font-medium">
+                {{ lintDetailData.summary?.error || 0 }} errors
+              </span>
+              <span class="text-yellow-500 font-medium">
+                {{ lintDetailData.summary?.warning || 0 }} warnings
+              </span>
+              <span class="text-blue-500 font-medium">
+                {{ lintDetailData.summary?.info || 0 }} info
+              </span>
+            </div>
+          </div>
+
+          <!-- Issues List -->
+          <div class="mb-6">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Issues</h4>
+            
+            <!-- Errors -->
+            <div v-if="lintDetailData.issues?.filter((i: any) => i.severity === 'error').length" class="mb-4">
+              <h5 class="text-red-400 font-medium mb-2">Errors</h5>
+              <div class="space-y-2">
+                <div 
+                  v-for="(issue, idx) in lintDetailData.issues.filter((i: any) => i.severity === 'error')" 
+                  :key="idx"
+                  class="p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-red-400">{{ issue.type }}</p>
+                      <p class="text-sm text-gray-300 mt-1">{{ issue.message }}</p>
+                      <p v-if="issue.location" class="text-xs text-gray-400 mt-1">
+                        Line {{ issue.location.line }}{{ issue.location.column ? `, Column ${issue.location.column}` : '' }}
+                      </p>
+                      <p v-if="issue.recommendation" class="text-xs text-blue-400 mt-1">
+                        💡 {{ issue.recommendation }}
+                      </p>
+                    </div>
+                    <span :class="['px-2 py-1 rounded text-xs font-medium', getSeverityBadge(issue.severity)]">
+                      {{ issue.severity }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warnings -->
+            <div v-if="lintDetailData.issues?.filter((i: any) => i.severity === 'warning').length" class="mb-4">
+              <h5 class="text-yellow-400 font-medium mb-2">Warnings</h5>
+              <div class="space-y-2">
+                <div 
+                  v-for="(issue, idx) in lintDetailData.issues.filter((i: any) => i.severity === 'warning')" 
+                  :key="idx"
+                  class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-yellow-400">{{ issue.type }}</p>
+                      <p class="text-sm text-gray-300 mt-1">{{ issue.message }}</p>
+                      <p v-if="issue.location" class="text-xs text-gray-400 mt-1">
+                        Line {{ issue.location.line }}{{ issue.location.column ? `, Column ${issue.location.column}` : '' }}
+                      </p>
+                      <p v-if="issue.recommendation" class="text-xs text-blue-400 mt-1">
+                        💡 {{ issue.recommendation }}
+                      </p>
+                    </div>
+                    <span :class="['px-2 py-1 rounded text-xs font-medium', getSeverityBadge(issue.severity)]">
+                      {{ issue.severity }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Info -->
+            <div v-if="lintDetailData.issues?.filter((i: any) => i.severity === 'info').length" class="mb-4">
+              <h5 class="text-blue-400 font-medium mb-2">Info</h5>
+              <div class="space-y-2">
+                <div 
+                  v-for="(issue, idx) in lintDetailData.issues.filter((i: any) => i.severity === 'info')" 
+                  :key="idx"
+                  class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-blue-400">{{ issue.type }}</p>
+                      <p class="text-sm text-gray-300 mt-1">{{ issue.message }}</p>
+                      <p v-if="issue.location" class="text-xs text-gray-400 mt-1">
+                        Line {{ issue.location.line }}{{ issue.location.column ? `, Column ${issue.location.column}` : '' }}
+                      </p>
+                      <p v-if="issue.recommendation" class="text-xs text-blue-400 mt-1">
+                        💡 {{ issue.recommendation }}
+                      </p>
+                    </div>
+                    <span :class="['px-2 py-1 rounded text-xs font-medium', getSeverityBadge(issue.severity)]">
+                      {{ issue.severity }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="!lintDetailData.issues || lintDetailData.issues.length === 0" class="text-center py-8 text-gray-400">
+              No issues found
+            </div>
+          </div>
+
+          <!-- Review Section -->
+          <div v-if="selectedLintResult.reviewer_info || selectedLintResult.review_comment" class="mb-6 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Review</h4>
+            <div v-if="selectedLintResult.reviewer_info" class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Reviewer: {{ selectedLintResult.reviewer_info.name }} ({{ selectedLintResult.reviewer_info.email }})
+            </div>
+            <div v-if="selectedLintResult.review_comment" class="text-sm text-gray-700 dark:text-gray-300">
+              {{ selectedLintResult.review_comment }}
+            </div>
+            <div v-if="selectedLintResult.review_timestamp" class="text-xs text-gray-400 mt-2">
+              {{ formatDate(selectedLintResult.review_timestamp) }}
+            </div>
+          </div>
+
+          <!-- Add Comment Section -->
+          <div class="mb-6">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Add Comment</h4>
+            <textarea 
+              v-model="newComment"
+              class="input-field w-full min-h-[100px] mb-3"
+              placeholder="Enter your review comment..."
+            ></textarea>
+            <button 
+              @click="submitComment"
+              :disabled="!newComment.trim() || commentSubmitting"
+              class="btn-primary px-4 py-2 text-sm"
+            >
+              {{ commentSubmitting ? 'Submitting...' : 'Submit Comment' }}
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-dark-700">
+            <button 
+              @click="navigateToSpec(selectedLintResult.spec_id)"
+              class="btn-secondary px-4 py-2 text-sm"
+            >
+              View Spec
+            </button>
+            <button 
+              @click="reRunLint(selectedLintResult.spec_id)"
+              class="btn-primary px-4 py-2 text-sm"
+            >
+              Re-run Lint
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
 
   <!-- Spec Lint Modal -->
   <Transition name="modal">
@@ -506,7 +631,7 @@ import { useMetadataStore } from '@/stores/metadata'
 import { useAuthStore } from '@/stores/auth'
 import LinkModal from '@/components/LinkModal.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
-import { fetchProjectDashboard } from '@/utils/auth-requests'
+import { fetchProjectDashboard, authenticatedFetch } from '@/utils/auth-requests'
 import { getLinkedContent, type LinkedSpecification } from '@/utils/spec-linking-api'
 
 const route = useRoute()
@@ -552,9 +677,9 @@ interface DashboardItem {
 
 interface QualityScore {
   overall_score: number
-  approval_rate: number
-  completion_rate: number
-  pass_rate: number
+  spec_approval_rate: number
+  checklist_completion_rate: number
+  lint_pass_rate: number
 }
 
 // Dashboard data
@@ -571,6 +696,10 @@ const dashboardData = ref<{
 })
 const dashboardLoading = ref(false)
 const dashboardError = ref<string | null>(null)
+// Dedicated loading flag for quality score to avoid warning flicker while fetching
+const qualityScoreLoading = ref(false)
+// Track that we attempted at least one fetch; prevents warning on first render
+const qualityScoreFetchedOnce = ref(false)
 
 // Auto-refresh timer
 const autoRefreshTimer = ref<number | null>(null)
@@ -579,8 +708,17 @@ const linkedChecklists = ref<any[]>([])
 const linkedSpecLints = ref<any[]>([])
 const linkedContentLoading = ref(false)
 const removingSpecId = ref<string | number | null>(null)
+const removingChecklistId = ref<string | number | null>(null)
 
 const showEditModal = ref(false)
+
+// Lint detail modal state
+const showLintDetailModal = ref(false)
+const selectedLintResult = ref<any>(null)
+const lintDetailLoading = ref(false)
+const lintDetailData = ref<any>(null)
+const newComment = ref('')
+const commentSubmitting = ref(false)
 
 // Confirmation modal state
 const showConfirmModal = ref(false)
@@ -678,12 +816,45 @@ const loadProject = async () => {
   loading.value = true
   error.value = null
   try {
-    // STEP 1: Load project details
-    const projectRes = await fetch(`/api/v1/projects/${projectId}/`, {
-      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    // STEP 1: Load project details (use authenticatedFetch for proper auth)
+    console.log('🔍 Loading project:', projectId)
+    console.log('🔍 Auth store state:', {
+      hasToken: !!authStore.token,
+      hasUser: !!authStore.user,
+      isAuthenticated: authStore.isAuthenticated
     })
-    if (!projectRes.ok) throw new Error(await projectRes.text() || 'Failed to load project')
+    
+    const projectRes = await authenticatedFetch(`/api/v1/projects/${projectId}/`)
+    if (!projectRes.ok) {
+      const errorText = await projectRes.text()
+      console.error('❌ Failed to load project:', projectRes.status, errorText)
+      if (projectRes.status === 401) {
+        console.error('❌ 401 Unauthorized - Token may be invalid or expired')
+        // Check if user is actually authenticated - if not, redirect to login
+        // If they are authenticated but getting 401, it might be a token issue
+        if (!authStore.isAuthenticated) {
+          console.error('❌ User not authenticated, redirecting to login')
+          error.value = 'Authentication failed. Please log in again.'
+          router.push('/login')
+          return
+        } else {
+          // User is authenticated but getting 401 - might be token expired
+          // Try to refresh or show error
+          console.error('❌ User is authenticated but API returned 401 - token may be expired')
+          error.value = 'Authentication token may be expired. Please try refreshing the page or log in again.'
+          // Don't redirect - let user see the error
+          return
+        }
+      }
+      if (projectRes.status === 404) {
+        error.value = 'Project not found'
+        return
+      }
+      error.value = errorText || 'Failed to load project'
+      throw new Error(errorText || 'Failed to load project')
+    }
     const projectData = await projectRes.json()
+    console.log('✅ Project loaded:', projectData)
     project.value = projectData
     
     if (!metadataStore.platforms.length) await metadataStore.fetchMetadata()
@@ -693,6 +864,9 @@ const loadProject = async () => {
     
     // STEP 3: Load dashboard data (but preserve specs from linked-content)
     await loadDashboardData(projectId)
+    
+    // STEP 4: Explicitly load quality score to ensure it's fetched
+    await loadQualityScore(projectId)
     
     // STEP 4: Start auto-refresh (every 30 seconds)
     if (!autoRefreshTimer.value) {
@@ -719,40 +893,38 @@ const loadProject = async () => {
   }
 }
 
-// Load spec lints for project using the correct endpoint
-const loadSpecLints = async (projectId: string | number) => {
+// Load spec lints for project from linked-content endpoint (filter by type "specLint")
+// NOTE: The /spec-lints/with-status endpoint was removed, now using /linked-content
+// This function now accepts the linkedContent to avoid duplicate API calls
+const loadSpecLints = async (linkedContent: { specLints?: any[] }): Promise<any[]> => {
   try {
-    console.log('🔍 Loading spec lints for project:', projectId)
-    const response = await fetch(`/api/v1/projects/${projectId}/spec-lints/with-status`, {
-      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-    })
+    console.log('🔍 Processing spec lints from linked-content')
     
-    if (!response.ok) {
-      console.warn('⚠️ Failed to load spec lints:', response.statusText)
-      return []
-    }
+    // Get spec lints from linked content (already filtered by getLinkedContent)
+    const specLintsArray = linkedContent.specLints || []
     
-    const specLintsData = await response.json()
-    console.log('🔍 Loaded spec lints:', specLintsData)
+    console.log('🔍 Loaded spec lints from linked-content:', specLintsArray.length)
     
     // Transform the response to match our format
-    // The API returns lint results with status, issue count, summary
-    const specLintsArray = Array.isArray(specLintsData) ? specLintsData : (specLintsData.results || specLintsData.data || [])
-    
     return specLintsArray.map((lint: any) => ({
-      id: lint.id || lint.spec_id,
+      id: lint.id,
+      spec_id: lint.spec_id || lint.id,
+      spec_name: lint.spec_name || lint.name,
       name: lint.spec_name || lint.name || `Spec Lint ${lint.id}`,
       file_name: lint.file_name,
-      status: lint.status || 'pending',
-      issue_count: lint.issue_count || lint.issues_count || 0,
+      status: lint.status || 'pending', // "approved", "pending", or "declined"
+      reviewer_info: lint.reviewer_info || null,
+      review_timestamp: lint.review_timestamp,
+      review_comment: lint.review_comment,
+      issues_count: lint.issues_count || 0,
       summary: lint.summary || '',
-      spec_id: lint.spec_id,
+      created_at: lint.created_at,
       liked_by_me: lint.liked_by_me || false,
       like_count: lint.like_count || 0,
       type: 'spec_lint'
     }))
   } catch (err: any) {
-    console.error('Error loading spec lints:', err)
+    console.error('Error processing spec lints:', err)
     return []
   }
 }
@@ -775,8 +947,8 @@ const loadLinkedContent = async () => {
     const specsArray = linkedContent.specs || []
     const checklistsArray = linkedContent.checklists || []
     
-    // Load spec lints from the correct endpoint
-    const specLintsArray = await loadSpecLints(projectId)
+    // Process spec lints from linked-content (no separate API call needed)
+    const specLintsArray = await loadSpecLints(linkedContent)
     
     console.log('🔍 Specs found:', specsArray.length)
     console.log('🔍 Checklists found:', checklistsArray.length)
@@ -819,6 +991,93 @@ const loadLinkedContent = async () => {
   }
 }
 
+// Refresh quality score manually
+const refreshQualityScore = async () => {
+  const projectId = project.value?.id || route.params.id as string
+  if (projectId) {
+    await loadQualityScore(projectId)
+  }
+}
+
+// Load quality score separately (for refresh after linking/unlinking)
+const loadQualityScore = async (projectId: string) => {
+  qualityScoreLoading.value = true
+  try {
+    console.log('📊 Loading quality score for project:', projectId)
+    const url = `/api/v1/projects/${projectId}/quality-score`
+    console.log('📊 Quality score URL:', url)
+    
+    const response = await authenticatedFetch(url)
+    console.log('📊 Quality score response status:', response.status, response.ok)
+    
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      console.warn('⚠️ Quality score API returned error:', response.status, errorText)
+      console.warn('⚠️ Full error response:', errorText)
+      // Set to null if API fails - will show 0.0% in UI
+      dashboardData.value.qualityScore = null
+      showToast('Failed to load quality score. Please check console for details.', true)
+      return
+    }
+    
+    const qualityScore = await response.json()
+    console.log('✅ Quality score raw response:', JSON.stringify(qualityScore, null, 2))
+    console.log('✅ Quality score type:', typeof qualityScore)
+    console.log('✅ Quality score keys:', Object.keys(qualityScore))
+    
+    // Check if all values are 0 or null
+    const allZero = (
+      (qualityScore.spec_approval_rate === 0 || qualityScore.spec_approval_rate === null || qualityScore.spec_approval_rate === undefined) &&
+      (qualityScore.checklist_completion_rate === 0 || qualityScore.checklist_completion_rate === null || qualityScore.checklist_completion_rate === undefined) &&
+      (qualityScore.lint_pass_rate === 0 || qualityScore.lint_pass_rate === null || qualityScore.lint_pass_rate === undefined)
+    )
+    
+    if (allZero) {
+      console.warn('⚠️ Quality score API returned all zeros')
+      console.warn('⚠️ This might indicate:')
+      console.warn('   - No specs/checklists/lints in the project yet')
+      console.warn('   - Backend calculation issue')
+      console.warn('   - All specs are pending (not approved)')
+    } else {
+      console.log('✅ Quality score has non-zero values!')
+    }
+    
+    // Map quality score fields to match the API response
+    // Ensure we're using the correct field names from the API
+    const mappedScore = {
+      spec_approval_rate: qualityScore.spec_approval_rate ?? qualityScore.specApprovalRate ?? 0,
+      checklist_completion_rate: qualityScore.checklist_completion_rate ?? qualityScore.checklistCompletionRate ?? 0,
+      lint_pass_rate: qualityScore.lint_pass_rate ?? qualityScore.lintPassRate ?? 0,
+      overall_score: qualityScore.overall_score ?? qualityScore.overallScore ?? 0
+    }
+    
+    console.log('📊 Mapped quality score:', mappedScore)
+    console.log('📊 Approval rate (raw):', qualityScore.spec_approval_rate, '→ mapped:', mappedScore.spec_approval_rate)
+    console.log('📊 Completion rate (raw):', qualityScore.checklist_completion_rate, '→ mapped:', mappedScore.checklist_completion_rate)
+    console.log('📊 Pass rate (raw):', qualityScore.lint_pass_rate, '→ mapped:', mappedScore.lint_pass_rate)
+    
+    // Update the reactive data
+    dashboardData.value.qualityScore = mappedScore
+    
+    console.log('📊 Quality score in dashboardData after update:', dashboardData.value.qualityScore)
+    console.log('📊 dashboardData.value.qualityScore type:', typeof dashboardData.value.qualityScore)
+    
+    // Show success message if values are non-zero
+    if (!allZero) {
+      console.log('✅ Quality score loaded successfully with non-zero values!')
+    }
+  } catch (err: any) {
+    console.error('❌ Error loading quality score:', err)
+    console.error('❌ Error details:', err.message, err.stack)
+    // Set to null on error - will show 0.0% in UI
+    dashboardData.value.qualityScore = null
+    showToast('Error loading quality score. Please check console for details.', true)
+  } finally {
+    qualityScoreLoading.value = false
+    qualityScoreFetchedOnce.value = true
+  }
+}
+
 // Load dashboard data from all required endpoints
 // IMPORTANT: This function should NOT overwrite specs - they come from linked-content only
 const loadDashboardData = async (projectId: string) => {
@@ -831,12 +1090,21 @@ const loadDashboardData = async (projectId: string) => {
     // Preserve specs from linked-content - never overwrite them
     const preservedSpecs = dashboardData.value.specs.length > 0 ? [...dashboardData.value.specs] : []
     
+    // Preserve quality score if it was already loaded
+    const preservedQualityScore = dashboardData.value.qualityScore
+    
     dashboardData.value = {
       ...data,
-      specs: preservedSpecs // Always keep specs from linked-content
+      specs: preservedSpecs, // Always keep specs from linked-content
+      // Preserve quality score if it exists, otherwise use the one from fetchProjectDashboard
+      qualityScore: preservedQualityScore || data.qualityScore
     }
     
     console.log('✅ Dashboard data loaded, preserved', preservedSpecs.length, 'specs')
+    console.log('📊 Quality score in dashboardData:', dashboardData.value.qualityScore)
+    console.log('📊 Approval rate:', dashboardData.value.qualityScore?.spec_approval_rate)
+    console.log('📊 Completion rate:', dashboardData.value.qualityScore?.checklist_completion_rate)
+    console.log('📊 Pass rate:', dashboardData.value.qualityScore?.lint_pass_rate)
   } catch (err: any) {
     dashboardError.value = err.message || 'Failed to load dashboard data'
     console.error('Dashboard data loading error:', err)
@@ -883,6 +1151,35 @@ const getStatusColor = (status: string) => {
   }
 }
 
+// Get status badge class for lint results
+// Approved: Green, Pending: Yellow/Orange, Declined: Red
+const getLintStatusBadge = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'approved':
+      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
+    case 'declined':
+      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
+    case 'pending':
+      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
+    default:
+      return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border border-gray-300 dark:border-gray-700'
+  }
+}
+
+// Get severity badge class
+const getSeverityBadge = (severity: string) => {
+  switch (severity?.toLowerCase()) {
+    case 'error':
+      return 'bg-red-500/20 text-red-400 border border-red-500/30'
+    case 'warning':
+      return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+    case 'info':
+      return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+    default:
+      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  }
+}
+
 // Helper function to format dates
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
@@ -894,6 +1191,21 @@ const formatDate = (dateString: string) => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+    })
+  } catch {
+    return dateString
+  }
+}
+
+// Helper function to format dates in short format (for lint results)
+const formatDateShort = (dateString: string) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     })
   } catch {
     return dateString
@@ -1011,6 +1323,8 @@ onMounted(async () => {
     // Wait a bit to ensure project is fully loaded
     await nextTick()
     await loadLinkedContent()
+    // Also ensure quality score is loaded
+    await loadQualityScore(projectId)
   }
   // Mock: populate likes for demo
   specLikes.value = { '1': { likedByUser: true, likeCount: 1 }, '2': { likedByUser: false, likeCount: 3 } }
@@ -1061,23 +1375,35 @@ const handleProjectContentUpdate = async (event: CustomEvent) => {
 
 // Remove spec from project (wrapper function for the remove button)
 const removeSpecFromProject = async (specId: string | number) => {
-  removingSpecId.value = specId
-  try {
+  console.log('🗑️ Remove spec button clicked:', specId)
     const spec = dashboardData.value.specs.find(s => s.id === specId)
     if (spec) {
+    console.log('✅ Found spec:', spec)
       await onUnlinkSpec(spec)
-    }
-  } finally {
-    removingSpecId.value = null
+  } else {
+    console.error('❌ Spec not found in dashboardData.specs:', specId)
+    console.log('Available specs:', dashboardData.value.specs.map(s => s.id))
+    showToast('Spec not found', true)
   }
 }
 
 // Add empty handlers for like/unlike and unlink actions (to be wired to real API later)
 async function onUnlinkSpec(spec: any) {
-  if (!project.value) return
-  const projectId = project.value.id
+  console.log('🔗 onUnlinkSpec called with spec:', spec)
+  
+  // Get project ID from route if project.value is not available
+  const projectId = project.value?.id || route.params.id as string
+  if (!projectId) {
+    console.error('❌ No project ID found')
+    showToast('Project not found. Please refresh the page.', true)
+    return
+  }
+  
+  console.log('✅ Project ID:', projectId)
   const specId = typeof spec === 'object' && spec !== null ? spec.id : spec
   const specName = typeof spec === 'object' && spec !== null ? (spec.name || spec.file_name || 'spec') : 'spec'
+  
+  console.log('🔗 Showing confirmation modal for spec:', specId, specName)
   
   showConfirm({
     title: 'Remove Specification',
@@ -1085,24 +1411,64 @@ async function onUnlinkSpec(spec: any) {
     confirmText: 'Remove',
     cancelText: 'Cancel',
     onConfirm: async () => {
+      console.log('✅ Confirmation confirmed, unlinking spec:', specId)
       try {
-        await fetch(`/api/v1/projects/${projectId}/specs/${specId}`, {
-          method: 'DELETE',
-          headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+        const url = `/api/v1/projects/${projectId}/specifications/${specId}/link`
+        console.log('🔗 Making DELETE request to:', url)
+        const response = await authenticatedFetch(url, {
+          method: 'DELETE'
         })
-        await loadLinkedContent() // Refresh specs immediately
+        
+        console.log('📡 Response status:', response.status, response.ok)
+        
+        if (!response.ok) {
+          // Handle 401 errors
+          if (response.status === 401) {
+            const errorText = await response.text()
+            console.error('❌ 401 Unauthorized:', errorText)
+            if (errorText.includes('Token has expired') || errorText.includes('Invalid token') || errorText.includes('User not found')) {
+              showToast('Authentication failed. Redirecting to login...', true)
+              setTimeout(() => {
+                router.push('/login')
+              }, 2000)
+              return
+            }
+          }
+          const errorText = await response.text()
+          console.error('❌ Failed to unlink spec:', response.status, errorText)
+          throw new Error(errorText || 'Failed to remove spec')
+        }
+        
+        console.log('✅ Spec unlinked successfully, refreshing data...')
+        // Refresh both linked content and dashboard data to update the UI
+        await loadLinkedContent()
+        await loadDashboardData(projectId)
+        await loadQualityScore(projectId) // Refresh quality score after unlinking
+        console.log('✅ Data refreshed successfully')
         showToast(`"${specName}" has been removed from the project successfully.`, false)
       } catch (e: any) {
+        console.error('❌ Error unlinking spec:', e)
         showToast(`Failed to remove spec: ${e.message || e}`, true)
       }
     }
   })
 }
 async function onUnlinkChecklist(checklist: any) {
-  if (!project.value) return
-  const projectId = project.value.id
+  console.log('🔗 onUnlinkChecklist called with checklist:', checklist)
+  
+  // Get project ID from route if project.value is not available
+  const projectId = project.value?.id || route.params.id as string
+  if (!projectId) {
+    console.error('❌ No project ID found')
+    showToast('Project not found. Please refresh the page.', true)
+    return
+  }
+  
+  console.log('✅ Project ID:', projectId)
   const checklistId = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
   const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
+  
+  console.log('🔗 Showing confirmation modal for checklist:', checklistId, checklistName)
   
   showConfirm({
     title: 'Remove Checklist',
@@ -1110,16 +1476,48 @@ async function onUnlinkChecklist(checklist: any) {
     confirmText: 'Remove',
     cancelText: 'Cancel',
     onConfirm: async () => {
+      console.log('✅ Confirmation confirmed, unlinking checklist:', checklistId)
+      removingChecklistId.value = checklistId
       try {
         // Use correct endpoint: DELETE /api/v1/projects/{project_id}/checklists/{checklist_id}/link
-        await fetch(`/api/v1/projects/${projectId}/checklists/${checklistId}/link`, {
-          method: 'DELETE',
-          headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+        const url = `/api/v1/projects/${projectId}/checklists/${checklistId}/link`
+        console.log('🔗 Making DELETE request to:', url)
+        const response = await authenticatedFetch(url, {
+          method: 'DELETE'
         })
-        await loadLinkedContent() // Refresh linked content instead of full project reload
+        
+        console.log('📡 Response status:', response.status, response.ok)
+        
+        if (!response.ok) {
+          // Handle 401 errors
+          if (response.status === 401) {
+            const errorText = await response.text()
+            console.error('❌ 401 Unauthorized:', errorText)
+            if (errorText.includes('Token has expired') || errorText.includes('Invalid token') || errorText.includes('User not found')) {
+              showToast('Authentication failed. Redirecting to login...', true)
+              setTimeout(() => {
+                router.push('/login')
+              }, 2000)
+              return
+            }
+          }
+          const errorText = await response.text()
+          console.error('❌ Failed to unlink checklist:', response.status, errorText)
+          throw new Error(errorText || 'Failed to remove checklist')
+        }
+        
+        console.log('✅ Checklist unlinked successfully, refreshing data...')
+        // Refresh both linked content and dashboard data to update the UI
+        await loadLinkedContent()
+        await loadDashboardData(projectId)
+        await loadQualityScore(projectId) // Refresh quality score after unlinking
+        console.log('✅ Data refreshed successfully')
         showToast(`"${checklistName}" has been removed from the project successfully.`, false)
       } catch (e: any) {
+        console.error('❌ Error unlinking checklist:', e)
         showToast(`Failed to remove checklist: ${e.message || e}`, true)
+      } finally {
+        removingChecklistId.value = null
       }
     }
   })
@@ -1214,9 +1612,31 @@ async function onLikeSpecLint(lint: any) {
 
 const showLinkModal = ref(false)
 const linkModalType = ref<'spec' | 'checklist'>('spec')
-function openLinkModal(type: 'spec' | 'checklist') {
+async function openLinkModal(type: 'spec' | 'checklist') {
+  console.log('🔗 openLinkModal called with type:', type)
   linkModalType.value = type
   showLinkModal.value = true
+  console.log('✅ Link modal opened, showLinkModal:', showLinkModal.value)
+  
+  // If opening checklist modal, refresh checklists with project_id filter
+  if (type === 'checklist') {
+    const projectId = project.value?.id || route.params.id as string
+    if (projectId) {
+      try {
+        const checklistsUrl = `/api/v1/checklists/?project_id=${projectId}`
+        console.log('📋 Refreshing checklists with project_id filter:', checklistsUrl)
+        const checklistsRes = await authenticatedFetch(checklistsUrl)
+        if (checklistsRes.ok) {
+          allChecklists.value = await checklistsRes.json()
+          console.log('✅ Refreshed checklists:', allChecklists.value.length, 'available to link')
+        }
+      } catch (err: any) {
+        console.error('❌ Error refreshing checklists:', err)
+      }
+    }
+  }
+  
+  console.log('✅ Available items:', type === 'spec' ? filteredUnlinkedSpecs.value.length : filteredUnlinkedChecklists.value.length)
 }
 function closeLinkModal() {
   showLinkModal.value = false
@@ -1283,6 +1703,121 @@ async function triggerSpecLint(specId: string | number) {
   }
 }
 
+// Load detailed lint result
+const loadLintDetail = async (lintResultId: string | number) => {
+  lintDetailLoading.value = true
+  lintDetailData.value = null
+  
+  try {
+    const response = await authenticatedFetch(`/api/v1/lint-results/${lintResultId}`)
+    
+    if (!response.ok) {
+      throw new Error('Failed to load lint details')
+    }
+    
+    lintDetailData.value = await response.json()
+  } catch (err: any) {
+    console.error('Error loading lint detail:', err)
+    showToast(`Failed to load lint details: ${err.message}`, true)
+  } finally {
+    lintDetailLoading.value = false
+  }
+}
+
+// Open lint detail modal
+const openLintDetail = async (lint: any) => {
+  selectedLintResult.value = lint
+  showLintDetailModal.value = true
+  await loadLintDetail(lint.id)
+}
+
+// Close lint detail modal
+const closeLintDetailModal = () => {
+  showLintDetailModal.value = false
+  selectedLintResult.value = null
+  lintDetailData.value = null
+  newComment.value = ''
+}
+
+// Navigate to spec detail page
+const navigateToSpec = (specId: string | number) => {
+  router.push(`/specs/${specId}`)
+}
+
+// Re-run lint on a spec (from lint detail modal)
+const reRunLint = async (specId: string | number) => {
+  try {
+    const response = await authenticatedFetch(`/api/v1/specs/${specId}/lint`, {
+      method: 'POST'
+    })
+    
+    if (!response.ok) {
+      // Handle 401 errors
+      if (response.status === 401) {
+        const errorText = await response.text()
+        if (errorText.includes('Token has expired') || errorText.includes('Invalid token') || errorText.includes('User not found')) {
+          showToast('Authentication failed. Redirecting to login...', true)
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+          return
+        }
+      }
+      throw new Error('Failed to trigger lint')
+    }
+    
+    showToast('Linting triggered successfully. Results will appear shortly.', false)
+    closeLintDetailModal()
+    
+    // Refresh spec lints after a delay
+    setTimeout(async () => {
+      await loadLinkedContent()
+      await loadDashboardData(project.value?.id || route.params.id as string)
+    }, 2000)
+  } catch (err: any) {
+    showToast(`Failed to trigger lint: ${err.message}`, true)
+  }
+}
+
+// Submit comment/review
+const submitComment = async () => {
+  if (!selectedLintResult.value || !newComment.value.trim() || !project.value) return
+  
+  commentSubmitting.value = true
+  
+  try {
+    const response = await authenticatedFetch('/api/v1/comments/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        content: newComment.value.trim(),
+        entity_type: 'LINT_RESULT',
+        entity_id: selectedLintResult.value.id,
+        project_id: project.value.id
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to submit comment')
+    }
+    
+    showToast('Comment added successfully', false)
+    newComment.value = ''
+    
+    // Reload lint detail to get updated comments
+    await loadLintDetail(selectedLintResult.value.id)
+    
+    // Refresh the list
+    await loadLinkedContent()
+  } catch (err: any) {
+    showToast(`Failed to submit comment: ${err.message}`, true)
+  } finally {
+    commentSubmitting.value = false
+  }
+}
+
 const specSearch = ref('')
 const checklistSearch = ref('')
 const selectedSpecToLink = ref<string | number | null>(null)
@@ -1294,57 +1829,184 @@ const allChecklists = ref<LinkedChecklist[]>([])
 onMounted(async () => {
   loadProject()
   try {
-    const specsRes = await fetch('/api/v1/specifications/', { headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined })
+    // Fetch all specifications (no project_id filter needed for specs)
+    const specsRes = await authenticatedFetch('/api/v1/specifications/')
     if (specsRes.ok) allSpecs.value = await specsRes.json()
-    const checklistsRes = await fetch('/api/v1/checklists/', { headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined })
-    if (checklistsRes.ok) allChecklists.value = await checklistsRes.json()
-  } catch {}
+    
+    // Fetch checklists with project_id filter to exclude already-linked ones
+    const projectId = project.value?.id || route.params.id as string
+    const checklistsUrl = projectId 
+      ? `/api/v1/checklists/?project_id=${projectId}`
+      : '/api/v1/checklists/'
+    
+    console.log('📋 Fetching checklists with URL:', checklistsUrl)
+    const checklistsRes = await authenticatedFetch(checklistsUrl)
+    if (checklistsRes.ok) {
+      allChecklists.value = await checklistsRes.json()
+      console.log('✅ Loaded checklists:', allChecklists.value.length, 'available to link')
+    }
+  } catch (err: any) {
+    console.error('❌ Error fetching specs/checklists for linking:', err)
+  }
 })
 
 const filteredUnlinkedSpecs = computed(() => {
-  const linkedIds = new Set((project.value?.specs ?? project.value?.spec_ids ?? []).map((s: any) => typeof s === 'object' && s !== null ? s.id : s))
-  return allSpecs.value.filter(spec => !linkedIds.has(spec.id) && (spec.name?.toLowerCase().includes(specSearch.value.toLowerCase()) || spec.file_name?.toLowerCase().includes(specSearch.value.toLowerCase()) || String(spec.id).includes(specSearch.value)))
+  // Get all linked spec IDs from multiple sources
+  const linkedIds = new Set<string | number>()
+  
+  // From project.value.specs or spec_ids
+  if (project.value?.specs) {
+    project.value.specs.forEach((s: any) => {
+      const id = typeof s === 'object' && s !== null ? s.id : s
+      linkedIds.add(id)
+    })
+  }
+  if (project.value?.spec_ids) {
+    project.value.spec_ids.forEach((id: any) => linkedIds.add(id))
+  }
+  
+  // From linkedSpecifications (from linked-content API)
+  linkedSpecifications.value.forEach((spec: any) => {
+    const id = typeof spec === 'object' && spec !== null ? spec.id : spec
+    linkedIds.add(id)
+  })
+  
+  // From dashboardData.specs (currently displayed specs)
+  dashboardData.value.specs.forEach((spec: any) => {
+    linkedIds.add(spec.id)
+  })
+  
+  // Filter out linked specs and apply search
+  return allSpecs.value.filter(spec => {
+    const isNotLinked = !linkedIds.has(spec.id)
+    const matchesSearch = !specSearch.value || 
+      spec.name?.toLowerCase().includes(specSearch.value.toLowerCase()) || 
+      spec.file_name?.toLowerCase().includes(specSearch.value.toLowerCase()) || 
+      String(spec.id).includes(specSearch.value)
+    return isNotLinked && matchesSearch
+  })
 })
 const filteredUnlinkedChecklists = computed(() => {
-  const linkedIds = new Set((project.value?.checklists ?? project.value?.checklist_ids ?? []).map((c: any) => typeof c === 'object' && c !== null ? c.id : c))
-  return allChecklists.value.filter(checklist => !linkedIds.has(checklist.id) && (checklist.name?.toLowerCase().includes(checklistSearch.value.toLowerCase()) || String(checklist.id).includes(checklistSearch.value)))
+  // Get all linked checklist IDs from multiple sources
+  const linkedIds = new Set<string | number>()
+  
+  // From project.value.checklists or checklist_ids
+  if (project.value?.checklists) {
+    project.value.checklists.forEach((c: any) => {
+      const id = typeof c === 'object' && c !== null ? c.id : c
+      linkedIds.add(id)
+    })
+  }
+  if (project.value?.checklist_ids) {
+    project.value.checklist_ids.forEach((id: any) => linkedIds.add(id))
+  }
+  
+  // From linkedChecklists (from linked-content API)
+  linkedChecklists.value.forEach((checklist: any) => {
+    const id = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
+    linkedIds.add(id)
+  })
+  
+  // Filter out linked checklists and apply search
+  return allChecklists.value.filter(checklist => {
+    const isNotLinked = !linkedIds.has(checklist.id)
+    const matchesSearch = !checklistSearch.value || 
+      checklist.name?.toLowerCase().includes(checklistSearch.value.toLowerCase()) || 
+      String(checklist.id).includes(checklistSearch.value)
+    return isNotLinked && matchesSearch
+  })
 })
 
 async function linkSelectedSpec(item: LinkedSpec) {
   if (!project.value) return
   const projectId = project.value.id
   try {
-    await fetch(`/api/v1/projects/${projectId}/specs`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      },
-      body: JSON.stringify({ specification_id: item.id })
+    const response = await authenticatedFetch(`/api/v1/projects/${projectId}/specifications/${item.id}/link`, {
+      method: 'POST'
     })
+    
+    if (!response.ok) {
+      // Handle 401 errors
+      if (response.status === 401) {
+        const errorText = await response.text()
+        if (errorText.includes('Token has expired') || errorText.includes('Invalid token') || errorText.includes('User not found')) {
+          showToast('Authentication failed. Redirecting to login...', true)
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+          return
+        }
+      }
+      throw new Error(await response.text() || 'Failed to link spec')
+    }
+    
     closeLinkModal()
-    await loadProject()
+    // Refresh both linked content and dashboard data to update the UI
+    await loadLinkedContent()
+    await loadDashboardData(projectId)
+    await loadQualityScore(projectId) // Refresh quality score after linking
+    showToast(`Spec "${item.name || `Spec ${item.id}`}" has been linked successfully.`, false)
   } catch (e: any) {
-    alert('Failed to link spec: ' + (e.message || e))
+    showToast(`Failed to link spec: ${e.message || e}`, true)
   }
 }
 async function linkSelectedChecklist(item: LinkedChecklist) {
-  if (!project.value) return
-  const projectId = project.value.id
+  console.log('🔗 linkSelectedChecklist called with item:', item)
+  
+  // Get project ID from route if project.value is not available
+  const projectId = project.value?.id || route.params.id as string
+  if (!projectId) {
+    console.error('❌ No project ID found')
+    showToast('Project not found. Please refresh the page.', true)
+    return
+  }
+  
+  console.log('✅ Project ID:', projectId)
   const checklistId = item.id
+  const checklistName = item.name || `Checklist ${checklistId}`
+  
   try {
     // Use correct endpoint: POST /api/v1/projects/{project_id}/checklists/{checklist_id}/link
-    await fetch(`/api/v1/projects/${projectId}/checklists/${checklistId}/link`, {
+    const url = `/api/v1/projects/${projectId}/checklists/${checklistId}/link`
+    console.log('🔗 Making POST request to:', url)
+    
+    const response = await authenticatedFetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
+        'Content-Type': 'application/json'
       }
     })
+    
+    console.log('📡 Response status:', response.status, response.ok)
+    
+    if (!response.ok) {
+      // Handle 401 errors
+      if (response.status === 401) {
+        const errorText = await response.text()
+        console.error('❌ 401 Unauthorized:', errorText)
+        if (errorText.includes('Token has expired') || errorText.includes('Invalid token') || errorText.includes('User not found')) {
+          showToast('Authentication failed. Redirecting to login...', true)
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+          return
+        }
+      }
+      const errorText = await response.text()
+      console.error('❌ Failed to link checklist:', response.status, errorText)
+      throw new Error(errorText || 'Failed to link checklist')
+    }
+    
+    console.log('✅ Checklist linked successfully, refreshing data...')
     closeLinkModal()
-    await loadLinkedContent() // Refresh linked content
-    showToast(`Checklist "${item.name || `Checklist ${checklistId}`}" has been linked successfully.`, false)
+    // Refresh both linked content and dashboard data to update the UI
+    await loadLinkedContent()
+    await loadDashboardData(projectId)
+    await loadQualityScore(projectId) // Refresh quality score after linking
+    console.log('✅ Data refreshed successfully')
+    showToast(`Checklist "${checklistName}" has been linked successfully.`, false)
   } catch (e: any) {
+    console.error('❌ Error linking checklist:', e)
     showToast(`Failed to link checklist: ${e.message || e}`, true)
   }
 }
@@ -1447,12 +2109,7 @@ async function batchUnlinkSpecLints() {
   selectedSpecLintIds.value = []
 }
 
-// Tab state for enterprise UX
-const tabs = [
-  { key: 'manage', label: 'Manage Project' },
-  { key: 'review', label: 'Review Status' }
-]
-const activeTab = ref<string>('manage')
+// Tab state removed - only one view now
 </script>
 
 <style scoped>

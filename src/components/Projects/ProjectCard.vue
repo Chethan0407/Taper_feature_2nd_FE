@@ -1,7 +1,7 @@
 <template>
   <div 
-    class="card bg-dark-900/30 backdrop-blur-sm border border-dark-600/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:border-neon-blue/30 transition-all duration-300 cursor-pointer group"
-    @click="$emit('click', project)"
+    class="card bg-dark-900/30 backdrop-blur-sm border border-dark-600/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:border-neon-blue/30 transition-all duration-300 cursor-pointer group relative"
+    @click="handleCardClick"
   >
     <!-- Header with Icon and Status -->
     <div class="flex items-start justify-between mb-4">
@@ -51,8 +51,10 @@
     </div>
     
     <!-- Hover Actions -->
-    <div class="absolute inset-0 bg-gradient-to-t from-dark-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl flex items-end justify-end p-4">
-      <div class="flex space-x-2">
+    <div 
+      class="absolute inset-0 bg-gradient-to-t from-dark-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl flex items-end justify-end p-4 pointer-events-none"
+    >
+      <div class="flex space-x-2 pointer-events-auto">
         <button 
           @click.stop="$emit('edit', project)"
           class="btn-secondary px-3 py-2 text-sm rounded-lg"
@@ -87,11 +89,27 @@ const props = defineProps<Props>()
 
 console.log('ProjectCard.vue project:', props.project);
 
-defineEmits<{
+const emit = defineEmits<{
   click: [project: Project]
   edit: [project: Project]
   delete: [project: Project]
 }>()
+
+const handleCardClick = (event: MouseEvent) => {
+  // Only emit if the click wasn't on a button
+  const target = event.target as HTMLElement
+  if (target.closest('button')) {
+    console.log('🛑 Click was on a button, ignoring')
+    return // Let the button handle its own click
+  }
+  console.log('🖱️ Card clicked, emitting project:', props.project)
+  console.log('🖱️ Project ID:', props.project?.id)
+  if (props.project && props.project.id) {
+    emit('click', props.project)
+  } else {
+    console.error('❌ Cannot emit click - project or project.id is missing:', props.project)
+  }
+}
 
 const getStatusClass = (status: string) => {
   switch (status) {

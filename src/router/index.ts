@@ -97,26 +97,62 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore()
-  
-  // If we have a token but no user data, try to load it
-  if (authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null' && !authStore.user) {
-    console.log('🔄 Router: Token exists but no user data, attempting to load user')
-    const authResult = await authStore.checkAuth()
-    if (!authResult) {
-      console.log('❌ Router: Failed to load user data, redirecting to login')
-      next('/login')
+  try {
+    const authStore = useAuthStore()
+    
+    // If coming from login page, skip auth check (user just logged in)
+    const comingFromLogin = from.path === '/login'
+    
+    // If we have a token but no user data, try to load it (but don't block navigation)
+    // Skip this check if we're coming from login (user just logged in)
+    if (!comingFromLogin && authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null' && !authStore.user) {
+      console.log('🔄 Router: Token exists but no user data, attempting to load user')
+      try {
+        const authResult = await authStore.checkAuth()
+        if (!authResult) {
+          console.log('⚠️ Router: Failed to load user data, but allowing navigation')
+          // Don't redirect immediately - let the route check below handle it
+        }
+      } catch (error) {
+        console.error('⚠️ Router: Error during auth check:', error)
+        // Don't redirect on error - let the route check below handle it
+      }
+    }
+    
+    // Check authentication for protected routes
+    if (to.meta.requiresAuth) {
+      // Check if we have a valid token (even if user data isn't loaded yet)
+      const hasValidToken = authStore.token && 
+                           authStore.token !== 'undefined' && 
+                           authStore.token !== 'null' &&
+                           authStore.token.trim() !== ''
+      
+      if (!hasValidToken) {
+        console.log('🚫 Router: No valid token, redirecting to login')
+        next('/login')
+        return
+      }
+      
+      // If we have a token but no user, allow navigation (user will be loaded by the component)
+      // This prevents logout immediately after login
+      if (!authStore.user) {
+        console.log('⚠️ Router: Token exists but user not loaded yet - allowing navigation')
+        next()
+        return
+      }
+    }
+    
+    // Redirect authenticated users away from login page
+    if (to.path === '/login' && authStore.isAuthenticated) {
+      console.log('✅ Router: User is authenticated, redirecting to dashboard')
+      next('/dashboard')
       return
     }
-  }
-  
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log('🚫 Router: Route requires auth but user not authenticated, redirecting to login')
-    next('/login')
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
-    console.log('✅ Router: User is authenticated, redirecting to dashboard')
-    next('/dashboard')
-  } else {
+    
+    next()
+  } catch (error) {
+    console.error('🚨 Router: Critical error in navigation guard:', error)
+    // Always allow navigation to proceed, even on error
     next()
   }
 })
