@@ -12,66 +12,167 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- User Settings -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+          <!-- 1. User Profile (Top-Left) -->
+          <div 
+            ref="profileSectionRef"
+            id="profile"
+            class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6 scroll-mt-8"
+          >
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">User Profile</h2>
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
-                <input class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.name" />
+                <input 
+                  v-model="profile.name" 
+                  type="text"
+                  class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" 
+                  placeholder="Enter your name"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
-                <select class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" v-model="profile.role">
-                  <option>Lead Engineer</option>
-                  <option>Manager</option>
-                  <option>Admin</option>
+                <select 
+                  v-model="profile.role"
+                  class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="engineer">Engineer</option>
+                  <option value="pm">PM</option>
                 </select>
               </div>
-              <button class="btn-primary" @click="updateProfile">Update Profile</button>
+              <div v-if="profile.email" class="text-sm text-gray-500 dark:text-gray-400">
+                Email: {{ profile.email }}
+              </div>
+              <button 
+                @click="updateProfile" 
+                :disabled="profileLoading"
+                class="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="profileLoading">Updating...</span>
+                <span v-else>Update Profile</span>
+              </button>
+              <div v-if="profileSuccess" class="text-green-500 text-sm text-center">Profile updated successfully!</div>
+              <div v-if="profileError" class="text-red-500 text-sm text-center">{{ profileError }}</div>
             </div>
           </div>
 
-          <!-- API Keys -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+          <!-- 2. API Keys (Top-Right) -->
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">API Keys</h2>
             <div class="space-y-4">
-              <div class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600" v-for="key in apiKeys" :key="key.id">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="font-medium text-gray-900 dark:text-white">Production API Key</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400"> 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2</p>
+              <div v-if="apiKeysLoading" class="text-center text-gray-400 py-4">Loading...</div>
+              <div v-else-if="apiKeysError" class="text-red-500 text-sm text-center py-4">{{ apiKeysError }}</div>
+              <div v-else-if="apiKeys.length === 0" class="text-center py-8">
+                <p class="text-gray-500 dark:text-gray-400 mb-4">No API keys found</p>
+                <button 
+                  @click="showGenerateModal = true"
+                  class="btn-secondary"
+                >
+                  Generate New Key
+                </button>
+              </div>
+              <div v-else class="space-y-3">
+                <div 
+                  v-for="key in apiKeys" 
+                  :key="key.id"
+                  class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex-1">
+                      <p class="font-medium text-gray-900 dark:text-white">{{ key.name || 'Unnamed Key' }}</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 font-mono mt-1">
+                        {{ key.key_masked || '••••••••••••••••••••' }}
+                      </p>
+                      <div class="text-xs text-gray-400 dark:text-gray-500 mt-2 space-x-3">
+                        <span v-if="key.created_at">Created: {{ formatDate(key.created_at) }}</span>
+                        <span v-if="key.last_used_at">Last used: {{ formatDate(key.last_used_at) }}</span>
+                        <span v-else>Never used</span>
+                        <span v-if="key.expires_at" class="text-yellow-400">Expires: {{ formatDate(key.expires_at) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                      <button 
+                        @click="regenerateApiKey(key.id)"
+                        :disabled="regeneratingKey === key.id"
+                        class="text-sm text-blue-600 dark:text-neon-blue hover:text-blue-700 dark:hover:text-neon-blue/80 disabled:opacity-50"
+                      >
+                        {{ regeneratingKey === key.id ? 'Regenerating...' : 'Regenerate' }}
+                      </button>
+                      <button 
+                        @click="deleteApiKey(key.id)"
+                        :disabled="deletingKey === key.id"
+                        class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 disabled:opacity-50"
+                      >
+                        {{ deletingKey === key.id ? 'Deleting...' : 'Delete' }}
+                      </button>
+                    </div>
                   </div>
-                  <button class="text-blue-600 dark:text-neon-blue hover:text-blue-700 dark:hover:text-neon-blue/80 text-sm" @click="regenerateApiKey(key.id)">Regenerate</button>
                 </div>
               </div>
-              <button class="btn-secondary w-full" @click="generateApiKey">Generate New Key</button>
+              <button 
+                @click="showGenerateModal = true"
+                :disabled="apiKeysLoading || rateLimitError"
+                class="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Generate New Key
+              </button>
+              <div v-if="rateLimitError" class="text-red-500 text-sm text-center">
+                {{ rateLimitError }}
+              </div>
             </div>
           </div>
 
-          <!-- Notifications -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+          <!-- 3. Notifications (Bottom-Left) -->
+          <div 
+            ref="notificationsSectionRef"
+            id="notifications"
+            class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6 scroll-mt-8"
+          >
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Notifications</h2>
             <div v-if="notificationsLoading" class="text-center text-gray-400 py-4">Loading...</div>
-            <div v-else-if="notificationsError" class="text-center text-red-400 py-4">{{ notificationsError }}</div>
+            <div v-else-if="notificationsError" class="text-red-500 text-sm text-center py-4">{{ notificationsError }}</div>
             <div v-else class="space-y-4">
-              <div v-for="(value, key) in notifications" :key="key" class="flex items-center justify-between">
+              <div 
+                v-for="pref in notificationPreferences" 
+                :key="pref.notification_type"
+                class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-dark-600 last:border-0"
+              >
                 <div>
-                  <p class="font-medium text-gray-900 dark:text-white">{{ String(key).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) }}</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ notificationDescription(String(key)) }}</p>
+                  <p class="font-medium text-gray-900 dark:text-white capitalize">
+                    {{ pref.notification_type }} notifications
+                  </p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {{ getNotificationDescription(pref.notification_type) }}
+                  </p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" class="sr-only peer" v-model="notifications[key]">
+                  <input 
+                    type="checkbox" 
+                    class="sr-only peer" 
+                    :checked="pref.is_enabled"
+                    @change="toggleNotification(pref.notification_type, $event)"
+                  >
                   <div class="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-blue"></div>
                 </label>
               </div>
-              <button class="btn-primary w-full mt-4" :disabled="notificationsLoading" @click="updateNotifications()">Save Preferences</button>
-              <div v-if="notificationsSuccess" class="text-green-400 text-center mt-2">Preferences saved!</div>
+              <button 
+                @click="saveNotificationPreferences"
+                :disabled="notificationsLoading || savingNotifications"
+                class="btn-primary w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="savingNotifications">Saving...</span>
+                <span v-else>Save Preferences</span>
+              </button>
+              <div v-if="notificationsSuccess" class="text-green-500 text-sm text-center">Preferences saved!</div>
             </div>
           </div>
 
-          <!-- Branding -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+          <!-- 4. Branding & Organization (Bottom-Right) -->
+          <div 
+            ref="brandingSectionRef"
+            id="branding"
+            class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6 scroll-mt-8"
+          >
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Branding & Organization</h2>
               <router-link 
@@ -81,34 +182,173 @@
                 Manage Branding →
               </router-link>
             </div>
-            <div class="space-y-8">
-              <div class="flex items-center space-x-3">
-                <img 
-                  v-if="branding.logo_url" 
+            <div class="space-y-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
+                <input 
+                  v-model="branding.company_name" 
+                  type="text"
+                  class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100"
+                  placeholder="Enter company name"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Logo</label>
+                <div v-if="branding.logo_url" class="mb-3">
+                  <img 
                   :src="branding.logo_url" 
                   alt="Company Logo" 
-                  class="w-12 h-12 object-contain rounded-lg border border-gray-200 dark:border-dark-600"
-                />
-                <div class="flex-1">
-                  <p class="font-medium text-gray-900 dark:text-white mb-2">{{ branding.company_name || 'No company name set' }}</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Company branding settings</p>
+                    class="w-24 h-24 object-contain rounded-lg border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-800"
+                  />
+                </div>
+                <div class="flex items-center gap-3">
+                  <label class="btn-secondary cursor-pointer">
+                    <input 
+                      type="file" 
+                      accept=".png,.jpg,.jpeg,.gif,.svg,.webp"
+                      @change="handleLogoChange"
+                      class="hidden"
+                    />
+                    Upload Logo
+                  </label>
+                  <span v-if="logoUploading" class="text-sm text-gray-500">Uploading...</span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP (Max 5MB)
+                </p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primary Color</label>
+                  <div class="flex items-center gap-2">
+                    <input 
+                      v-model="branding.primary_color" 
+                      type="color"
+                      class="w-12 h-10 rounded border border-gray-200 dark:border-dark-600 cursor-pointer"
+                    />
+                    <input 
+                      v-model="branding.primary_color" 
+                      type="text"
+                      class="input-field flex-1 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100"
+                      placeholder="#3B82F6"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Secondary Color</label>
+                  <div class="flex items-center gap-2">
+                    <input 
+                      v-model="branding.secondary_color" 
+                      type="color"
+                      class="w-12 h-10 rounded border border-gray-200 dark:border-dark-600 cursor-pointer"
+                    />
+                    <input 
+                      v-model="branding.secondary_color" 
+                      type="text"
+                      class="input-field flex-1 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100"
+                      placeholder="#10B981"
+                    />
+                  </div>
                 </div>
               </div>
-              <div class="pt-2">
-                <router-link 
-                  to="/settings/branding" 
-                  class="btn-primary w-full text-center"
-                >
-                  Customize Branding
-                </router-link>
-              </div>
+
+              <button 
+                @click="saveBranding"
+                :disabled="brandingLoading || logoUploading"
+                class="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="brandingLoading">Saving...</span>
+                <span v-else>Save Branding</span>
+              </button>
+              <div v-if="brandingSuccess" class="text-green-500 text-sm text-center">Branding saved successfully!</div>
+              <div v-if="brandingError" class="text-red-500 text-sm text-center">{{ brandingError }}</div>
             </div>
           </div>
         </div>
-        <div v-if="brandingError" class="text-red-400 text-center mt-2">{{ brandingError }}</div>
-        <div v-if="brandingSuccess" class="text-green-400 text-center mt-2">Branding saved successfully!</div>
-        <div v-if="profileSuccess" class="text-green-400 text-center mt-2">Profile updated successfully!</div>
       </main>
+    </div>
+
+    <!-- Generate API Key Modal -->
+    <div 
+      v-if="showGenerateModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="showGenerateModal = false"
+    >
+      <div class="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Generate New API Key</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name (Optional)</label>
+            <input 
+              v-model="newKeyName"
+              type="text"
+              class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100"
+              placeholder="My API Key"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expiration Date (Optional)</label>
+            <input 
+              v-model="newKeyExpiration"
+              type="datetime-local"
+              class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+          <div class="flex gap-3">
+            <button @click="showGenerateModal = false" class="btn-secondary flex-1">Cancel</button>
+            <button 
+              @click="generateApiKey"
+              :disabled="generatingKey"
+              class="btn-primary flex-1 disabled:opacity-50"
+            >
+              {{ generatingKey ? 'Generating...' : 'Generate' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Show Generated Key Modal (only shown once) -->
+    <div 
+      v-if="showGeneratedKeyModal && generatedKey"
+      class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+      @click.self="showGeneratedKeyModal = false"
+    >
+      <div class="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-2xl w-full border-2 border-neon-blue dark:border-neon-blue shadow-2xl">
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Your New API Key</h3>
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-400 dark:border-yellow-600 rounded-lg p-4 mb-6">
+          <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            This key will only be shown once. Copy it now and store it securely!
+          </p>
+        </div>
+        <div class="bg-gray-50 dark:bg-dark-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-dark-600">
+          <div class="flex items-start gap-3">
+            <code class="flex-1 text-sm text-gray-900 dark:text-gray-100 break-all font-mono select-all">{{ generatedKey }}</code>
+            <button 
+              @click="copyGeneratedKey($event)"
+              class="btn-primary whitespace-nowrap flex-shrink-0"
+            >
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </button>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button 
+            @click="closeGeneratedKeyModal"
+            class="btn-primary flex-1"
+          >
+            I've Copied It
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -116,73 +356,467 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
+import { authenticatedFetch } from '@/utils/auth-requests'
 import { useAuthStore } from '@/stores/auth'
-const authStore = useAuthStore()
+import { useRouter, useRoute } from 'vue-router'
 
-const profile = ref({ name: '', email: '', role: '' })
-const apiKeys = ref<{ id: string; [key: string]: any }[]>([])
-const branding = ref({
-  company_name: '',
-  logo_url: '',
-  brand_color: '#1e293b',
-})
-const brandingLogoFile = ref<File | null>(null)
-const brandingLogoPreview = ref('')
-const brandingError = ref('')
-const brandingLoading = ref(false)
-const brandingSuccess = ref(false)
-const notifications = ref<any>({})
+const authStore = useAuthStore()
+const router = useRouter()
+const route = useRoute()
+
+// Refs for section scrolling
+const profileSectionRef = ref<HTMLElement | null>(null)
+const notificationsSectionRef = ref<HTMLElement | null>(null)
+const brandingSectionRef = ref<HTMLElement | null>(null)
+
+// User Profile
+const profile = ref({ name: '', email: '', role: 'engineer' })
+const profileLoading = ref(false)
+const profileSuccess = ref(false)
+const profileError = ref('')
+
+// API Keys
+const apiKeys = ref<any[]>([])
+const apiKeysLoading = ref(false)
+const apiKeysError = ref('')
+const showGenerateModal = ref(false)
+const newKeyName = ref('')
+const newKeyExpiration = ref('')
+const generatingKey = ref(false)
+const regeneratingKey = ref<string | null>(null)
+const deletingKey = ref<string | null>(null)
+const showGeneratedKeyModal = ref(false)
+const generatedKey = ref('')
+const rateLimitError = ref('')
+
+// Notifications
+const notificationPreferences = ref<Array<{ notification_type: string; is_enabled: boolean }>>([])
 const notificationsLoading = ref(false)
 const notificationsError = ref('')
 const notificationsSuccess = ref(false)
-const deletingKey = ref<string | null>(null)
-const patchingProfile = ref(false)
-const updatingBranding = ref(false)
-const updatingNotifications = ref(false)
-const profileSuccess = ref(false)
+const savingNotifications = ref(false)
 
-function notificationDescription(key: string) {
-  switch (key) {
-    case 'email_notifications':
-      return 'Receive updates via email';
-    case 'spec_review_alerts':
-      return 'Get notified when specs need review';
-    default:
-      return '';
+// Branding
+const branding = ref({
+  company_name: '',
+  logo_url: '',
+  primary_color: '#3B82F6',
+  secondary_color: '#10B981'
+})
+const brandingLoading = ref(false)
+const brandingError = ref('')
+const brandingSuccess = ref(false)
+const logoFile = ref<File | null>(null)
+const logoUploading = ref(false)
+
+// Scroll to section based on query parameter
+const scrollToSection = async (section: string) => {
+  await nextTick()
+  const sectionMap: Record<string, HTMLElement | null> = {
+    profile: profileSectionRef.value,
+    notifications: notificationsSectionRef.value,
+    branding: brandingSectionRef.value
+  }
+  
+  const element = sectionMap[section]
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Highlight the section briefly
+    element.classList.add('ring-2', 'ring-neon-blue', 'ring-opacity-50')
+    setTimeout(() => {
+      element.classList.remove('ring-2', 'ring-neon-blue', 'ring-opacity-50')
+    }, 2000)
   }
 }
 
+// Watch for section query parameter
+watch(() => route.query.section, (section) => {
+  if (section && typeof section === 'string') {
+    scrollToSection(section)
+  }
+}, { immediate: true })
+
+// Load all data on mount
 onMounted(async () => {
-  const headers = authStore.getAuthHeader() || {}
-  const profileRes = await fetch('/api/v1/settings/profile/', { headers })
-  if (profileRes.ok) {
-    profile.value = await profileRes.json()
+  await Promise.all([
+    loadProfile(),
+    loadAPIKeys(),
+    loadNotifications(),
+    loadBranding()
+  ])
+  
+  // Check for section query parameter on mount
+  const section = route.query.section
+  if (section && typeof section === 'string') {
+    scrollToSection(section)
   }
-  const keysRes = await fetch('/api/v1/settings/api-keys/', { headers })
-  if (keysRes.ok) {
-    apiKeys.value = await keysRes.json()
-  }
-  await fetchBranding()
-  await fetchNotifications()
 })
 
-const fetchBranding = async () => {
-  brandingLoading.value = true
-  brandingError.value = ''
+// ========== User Profile ==========
+const loadProfile = async () => {
   try {
-    const headers = authStore.getAuthHeader() || {}
-    const res = await fetch('/api/v1/settings/branding/', { headers })
-    if (!res.ok) throw new Error('Failed to fetch branding')
+    profileLoading.value = true
+    profileError.value = ''
+    const res = await authenticatedFetch('/api/v1/users/user/profile')
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to load profile')
+    }
+    const user = await res.json()
+    profile.value = {
+      name: user.full_name || '',
+      email: user.email || '',
+      role: user.role || 'engineer'
+    }
+  } catch (e: any) {
+    profileError.value = e.message || 'Failed to load profile'
+  } finally {
+    profileLoading.value = false
+  }
+}
+
+const updateProfile = async () => {
+  try {
+    profileLoading.value = true
+    profileError.value = ''
+    profileSuccess.value = false
+
+    // Validate role
+    const allowedRoles = ['admin', 'engineer', 'pm']
+    if (!allowedRoles.includes(profile.value.role)) {
+      throw new Error('Invalid role. Must be admin, engineer, or pm')
+    }
+
+    const body: any = {}
+    if (profile.value.name) body.name = profile.value.name
+    if (profile.value.role) body.role = profile.value.role
+
+    const res = await authenticatedFetch('/api/v1/users/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to update profile')
+    }
+
+    await loadProfile()
+    await authStore.checkAuth() // Refresh global user
+    profileSuccess.value = true
+    setTimeout(() => { profileSuccess.value = false }, 3000)
+  } catch (e: any) {
+    profileError.value = e.message || 'Failed to update profile'
+  } finally {
+    profileLoading.value = false
+  }
+}
+
+// ========== API Keys ==========
+const loadAPIKeys = async () => {
+  try {
+    apiKeysLoading.value = true
+    apiKeysError.value = ''
+    rateLimitError.value = ''
+    const res = await authenticatedFetch('/api/v1/settings/api-keys/')
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to load API keys')
+    }
+    apiKeys.value = await res.json()
+  } catch (e: any) {
+    apiKeysError.value = e.message || 'Failed to load API keys'
+  } finally {
+    apiKeysLoading.value = false
+  }
+}
+
+const generateApiKey = async () => {
+  try {
+    generatingKey.value = true
+    rateLimitError.value = ''
+    apiKeysError.value = ''
+    
+    const body: any = {}
+    if (newKeyName.value?.trim()) body.name = newKeyName.value.trim()
+    if (newKeyExpiration.value) {
+      body.expires_at = new Date(newKeyExpiration.value).toISOString()
+    }
+
+    const res = await authenticatedFetch('/api/v1/settings/api-keys/', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      if (res.status === 429) {
+        rateLimitError.value = 'Rate limit exceeded. Please wait 1 minute before generating another key.'
+      } else {
+        try {
+          const errorData = JSON.parse(errorText)
+          rateLimitError.value = errorData.detail || errorData.message || 'Failed to generate API key'
+        } catch {
+          rateLimitError.value = errorText || 'Failed to generate API key'
+        }
+      }
+      return
+    }
+
+    const newKey = await res.json()
+    // Store the full key - this is the only time it's shown
+    generatedKey.value = newKey.key
+    showGeneratedKeyModal.value = true
+    showGenerateModal.value = false
+    newKeyName.value = ''
+    newKeyExpiration.value = ''
+    await loadAPIKeys()
+  } catch (e: any) {
+    rateLimitError.value = e.message || 'Failed to generate API key'
+    console.error('Failed to generate API key:', e)
+  } finally {
+    generatingKey.value = false
+  }
+}
+
+const regenerateApiKey = async (keyId: string) => {
+  if (!confirm('Are you sure? This will invalidate the old key and create a new one. The old key will stop working immediately.')) {
+    return
+  }
+
+  try {
+    regeneratingKey.value = keyId
+    rateLimitError.value = ''
+    apiKeysError.value = ''
+    
+    const res = await authenticatedFetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, {
+      method: 'PUT'
+    })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      if (res.status === 429) {
+        rateLimitError.value = 'Rate limit exceeded. Please wait 1 minute before regenerating.'
+      } else {
+        try {
+          const errorData = JSON.parse(errorText)
+          apiKeysError.value = errorData.detail || errorData.message || 'Failed to regenerate API key'
+        } catch {
+          apiKeysError.value = errorText || 'Failed to regenerate API key'
+        }
+      }
+      return
+    }
+
+    const newKey = await res.json()
+    // Store the full key - this is the only time it's shown
+    generatedKey.value = newKey.key
+    showGeneratedKeyModal.value = true
+    await loadAPIKeys()
+  } catch (e: any) {
+    apiKeysError.value = e.message || 'Failed to regenerate API key'
+    console.error('Failed to regenerate API key:', e)
+  } finally {
+    regeneratingKey.value = null
+  }
+}
+
+const deleteApiKey = async (keyId: string) => {
+  if (!confirm('Are you sure you want to delete this API key? It will no longer work and cannot be recovered.')) {
+    return
+  }
+
+  try {
+    deletingKey.value = keyId
+    apiKeysError.value = ''
+    
+    const res = await authenticatedFetch(`/api/v1/settings/api-keys/${keyId}`, {
+      method: 'DELETE'
+    })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      try {
+        const errorData = JSON.parse(errorText)
+        apiKeysError.value = errorData.detail || errorData.message || 'Failed to delete API key'
+      } catch {
+        apiKeysError.value = errorText || 'Failed to delete API key'
+      }
+      return
+    }
+
+    await loadAPIKeys()
+  } catch (e: any) {
+    apiKeysError.value = e.message || 'Failed to delete API key'
+    console.error('Failed to delete API key:', e)
+  } finally {
+    deletingKey.value = null
+  }
+}
+
+const copyGeneratedKey = async (event?: Event) => {
+  try {
+    await navigator.clipboard.writeText(generatedKey.value)
+    // Show temporary success message
+    if (event) {
+      const button = event.target as HTMLElement
+      if (button) {
+        const originalText = button.textContent
+        button.textContent = 'Copied!'
+        button.classList.add('bg-green-600', 'dark:bg-green-600')
+        setTimeout(() => {
+          if (button.textContent === 'Copied!') {
+            button.textContent = originalText
+            button.classList.remove('bg-green-600', 'dark:bg-green-600')
+          }
+        }, 2000)
+      }
+    }
+  } catch (e) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = generatedKey.value
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      alert('API key copied to clipboard!')
+    } catch (err) {
+      alert('Failed to copy. Please copy manually.')
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
+const closeGeneratedKeyModal = () => {
+  showGeneratedKeyModal.value = false
+  generatedKey.value = ''
+}
+
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return 'Never'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (e) {
+    return dateString
+  }
+}
+
+// ========== Notifications ==========
+const loadNotifications = async () => {
+  try {
+    notificationsLoading.value = true
+    notificationsError.value = ''
+    const res = await authenticatedFetch('/api/v1/settings/notifications/')
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to load notifications')
+    }
+    const data = await res.json()
+    notificationPreferences.value = data.preferences || []
+  } catch (e: any) {
+    notificationsError.value = e.message || 'Failed to load notifications'
+  } finally {
+    notificationsLoading.value = false
+  }
+}
+
+const toggleNotification = async (type: string, event: Event) => {
+  const target = event.target as HTMLInputElement
+  const enabled = target.checked
+
+  // Optimistic update
+  const pref = notificationPreferences.value.find(p => p.notification_type === type)
+  if (pref) {
+    pref.is_enabled = enabled
+  }
+
+  try {
+    // PATCH to update single preference
+    const res = await authenticatedFetch('/api/v1/settings/notifications/', {
+      method: 'PATCH',
+      body: JSON.stringify([{
+        notification_type: type,
+        is_enabled: enabled
+      }])
+    })
+
+    if (!res.ok) {
+      // Revert on error
+      if (pref) pref.is_enabled = !enabled
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to update notification')
+    }
+  } catch (e: any) {
+    // Revert on error
+    if (pref) pref.is_enabled = !enabled
+    alert(`Failed to update notification: ${e.message}`)
+  }
+}
+
+const saveNotificationPreferences = async () => {
+  try {
+    savingNotifications.value = true
+    notificationsError.value = ''
+    notificationsSuccess.value = false
+
+    const res = await authenticatedFetch('/api/v1/settings/notifications/', {
+      method: 'PUT',
+      body: JSON.stringify(notificationPreferences.value)
+    })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to save preferences')
+    }
+
+    notificationsSuccess.value = true
+    setTimeout(() => { notificationsSuccess.value = false }, 3000)
+  } catch (e: any) {
+    notificationsError.value = e.message || 'Failed to save preferences'
+  } finally {
+    savingNotifications.value = false
+  }
+}
+
+const getNotificationDescription = (type: string) => {
+  const descriptions: Record<string, string> = {
+    comment: 'Get notified when someone comments on your items',
+    update: 'Get notified when items you follow are updated',
+    mention: 'Get notified when you are mentioned'
+  }
+  return descriptions[type] || ''
+}
+
+// ========== Branding ==========
+const loadBranding = async () => {
+  try {
+    brandingLoading.value = true
+    brandingError.value = ''
+    const res = await authenticatedFetch('/api/v1/settings/branding/')
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to load branding')
+    }
     const data = await res.json()
     branding.value = {
       company_name: data.company_name || '',
       logo_url: data.logo_url || '',
-      brand_color: data.brand_color || '#1e293b',
+      primary_color: data.primary_color || '#3B82F6',
+      secondary_color: data.secondary_color || '#10B981'
     }
-    brandingLogoPreview.value = data.logo_url || ''
   } catch (e: any) {
-    brandingError.value = e.message || 'Failed to fetch branding'
+    brandingError.value = e.message || 'Failed to load branding'
   } finally {
     brandingLoading.value = false
   }
@@ -191,146 +825,90 @@ const fetchBranding = async () => {
 const handleLogoChange = async (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    brandingLogoFile.value = target.files[0]
-    // Preview
-    brandingLogoPreview.value = URL.createObjectURL(brandingLogoFile.value)
+    const file = target.files[0]
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB')
+      return
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP')
+      return
+    }
+
+    logoFile.value = file
+    await uploadLogo()
   }
 }
 
 const uploadLogo = async () => {
-  if (!brandingLogoFile.value) return
-  brandingLoading.value = true
-  brandingError.value = ''
+  if (!logoFile.value) return
+
   try {
+    logoUploading.value = true
+    brandingError.value = ''
+
     const formData = new FormData()
-    formData.append('file', brandingLogoFile.value)
-    const headers = authStore.getAuthHeader() || {}
-    const res = await fetch('/api/v1/settings/branding/logo', {
+    formData.append('file', logoFile.value)
+
+    const res = await authenticatedFetch('/api/v1/settings/branding/logo', {
       method: 'POST',
-      headers,
       body: formData
     })
-    if (!res.ok) throw new Error('Failed to upload logo')
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to upload logo')
+    }
+
     const data = await res.json()
     branding.value.logo_url = data.logo_url
-    brandingLogoPreview.value = data.logo_url
-    brandingLogoFile.value = null
+    logoFile.value = null
   } catch (e: any) {
     brandingError.value = e.message || 'Failed to upload logo'
   } finally {
-    brandingLoading.value = false
+    logoUploading.value = false
   }
 }
 
 const saveBranding = async () => {
+  try {
   brandingLoading.value = true
   brandingError.value = ''
   brandingSuccess.value = false
-  try {
-    // If a new logo is selected but not uploaded, upload it first
-    if (brandingLogoFile.value) {
+
+    // If logo file is selected but not uploaded, upload it first
+    if (logoFile.value) {
       await uploadLogo()
     }
-    // Save branding info
-    const headers = {
-      ...authStore.getAuthHeader(),
-      'Content-Type': 'application/json'
-    }
-    const res = await fetch('/api/v1/settings/branding/', {
+
+    const body: any = {}
+    if (branding.value.company_name) body.company_name = branding.value.company_name
+    if (branding.value.logo_url) body.logo_url = branding.value.logo_url
+    if (branding.value.primary_color) body.primary_color = branding.value.primary_color
+    if (branding.value.secondary_color) body.secondary_color = branding.value.secondary_color
+
+    const res = await authenticatedFetch('/api/v1/settings/branding/', {
       method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        company_name: branding.value.company_name,
-        logo_url: branding.value.logo_url,
-        brand_color: branding.value.brand_color,
-      })
+      body: JSON.stringify(body)
     })
-    if (!res.ok) throw new Error('Failed to save branding')
-    await fetchBranding()
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(errorText || 'Failed to save branding')
+    }
+
+    await loadBranding()
     brandingSuccess.value = true
-    setTimeout(() => { brandingSuccess.value = false }, 2000)
+    setTimeout(() => { brandingSuccess.value = false }, 3000)
   } catch (e: any) {
     brandingError.value = e.message || 'Failed to save branding'
   } finally {
     brandingLoading.value = false
-  }
-}
-
-const updateProfile = async () => {
-  const headers = {
-    ...authStore.getAuthHeader(),
-    'Content-Type': 'application/json'
-  }
-  const res = await fetch('/api/v1/settings/profile/', {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(profile.value)
-  })
-  if (res.ok) {
-    // Re-fetch the updated profile
-    const profileRes = await fetch('/api/v1/settings/profile/', { headers })
-    if (profileRes.ok) {
-      profile.value = await profileRes.json()
-    }
-    await authStore.checkAuth() // Refresh global user for sidebar
-    profileSuccess.value = true
-    setTimeout(() => { profileSuccess.value = false }, 2000)
-  }
-}
-
-const generateApiKey = async () => {
-  const headers = authStore.getAuthHeader() || {}
-  await fetch('/api/v1/settings/api-keys/', { 
-    method: 'POST',
-    headers
-  })
-}
-
-const regenerateApiKey = async (keyId: string) => {
-  const headers = authStore.getAuthHeader() || {}
-  await fetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, { 
-    method: 'POST',
-    headers
-  })
-}
-
-const fetchNotifications = async () => {
-  notificationsLoading.value = true
-  notificationsError.value = ''
-  try {
-    const headers = authStore.getAuthHeader() || {}
-    const res = await fetch('/api/v1/settings/notifications/', { headers })
-    if (!res.ok) throw new Error('Failed to fetch notifications')
-    notifications.value = await res.json()
-  } catch (e: any) {
-    notificationsError.value = e.message || 'Failed to fetch notifications'
-  } finally {
-    notificationsLoading.value = false
-  }
-}
-
-const updateNotifications = async (changedOnly = false) => {
-  notificationsLoading.value = true
-  notificationsError.value = ''
-  notificationsSuccess.value = false
-  try {
-    const method = changedOnly ? 'PATCH' : 'PUT'
-    const headers = {
-      ...authStore.getAuthHeader(),
-      'Content-Type': 'application/json'
-    }
-    const res = await fetch('/api/v1/settings/notifications/', {
-      method,
-      headers,
-      body: JSON.stringify(notifications.value)
-    })
-    if (!res.ok) throw new Error('Failed to update notifications')
-    notificationsSuccess.value = true
-    setTimeout(() => { notificationsSuccess.value = false }, 2000)
-  } catch (e: any) {
-    notificationsError.value = e.message || 'Failed to update notifications'
-  } finally {
-    notificationsLoading.value = false
   }
 }
 </script> 

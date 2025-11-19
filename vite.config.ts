@@ -12,22 +12,20 @@ export default defineConfig({
   server: {
     port: 5177,
     host: true,
-    // Increase timeout for file operations
+    // Optimize file system access
     fs: {
-      // Allow serving files from one level up to the project root
-      allow: ['..'],
-      // Strict mode - only allow files within the project
+      // Allow current directory and parent (needed for some imports)
       strict: false,
+      allow: ['.', '..'],
     },
     // HMR (Hot Module Replacement) configuration
     hmr: {
-      overlay: true, // Set to false to disable error overlay
-      // Increase timeout for HMR connections
+      overlay: false, // Disable error overlay to prevent "server restarted" errors
       clientPort: 5177,
     },
-    // Watch options to reduce file system load
+    // Optimize file watching for better performance
     watch: {
-      // Ignore certain patterns to reduce file watching overhead
+      // Ignore patterns to reduce file watching overhead
       ignored: [
         '**/node_modules/**',
         '**/.git/**',
@@ -36,22 +34,28 @@ export default defineConfig({
         '**/.idea/**',
         '**/.DS_Store',
         '**/*.md',
-        '**/.cursor/**'
+        '**/.cursor/**',
+        '**/build/**',
+        '**/.next/**',
+        '**/coverage/**',
+        '**/.turbo/**'
       ],
-      // Use polling if file system events are unreliable
-      usePolling: false,
-      // Interval for polling (only if usePolling is true)
-      interval: 100,
+      usePolling: false, // Use native file system events (faster)
     },
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/api/, '/api'),
-        // Increase proxy timeout
-        timeout: 60000, // 60 seconds
+        // Reduce timeout to fail faster
+        timeout: 10000, // 10 seconds (was 60)
       },
     },
+  },
+  // Optimize build performance
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia'],
+    exclude: [],
   },
   build: {
     target: 'esnext',

@@ -9,7 +9,8 @@ interface User {
   avatar?: string
 }
 
-const API_BASE = 'http://localhost:8000/api/v1/auth'
+// Use relative path to go through Vite proxy
+const API_BASE = '/api/v1/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -161,7 +162,16 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('🔗 Making auth check request to:', `${API_BASE}/me`)
       console.log('📋 Headers:', authHeaders)
       
-      const response = await fetch(`${API_BASE}/me`, authHeaders ? { headers: authHeaders } : undefined)
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+      
+      const response = await fetch(`${API_BASE}/me`, {
+        ...(authHeaders ? { headers: authHeaders } : {}),
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
       console.log('📡 Response status:', response.status)
       console.log('📡 Response ok:', response.ok)
       
@@ -182,10 +192,12 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('✅ Auth check successful, user data:', userData)
       user.value = userData
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.log('💥 Auth check error:', error)
-      // Don't logout on network errors - just return false
-      // Only clear auth if it's a clear authentication error
+      // Don't logout on network errors or timeouts - just return false
+      if (error.name === 'AbortError') {
+        console.log('⏱️ Auth check timed out after 5 seconds')
+      }
       console.log('⚠️ Network or other error during auth check - not clearing token')
       return false
     }
@@ -211,10 +223,13 @@ export const useAuthStore = defineStore('auth', () => {
   
   // Initialize auth on store creation (don't block app loading)
   // Only initialize if we have a token and no user - don't run if user is already set
+  // Use setTimeout to ensure it doesn't block app initialization
   if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
-    initializeAuth().catch(err => {
-      console.error('⚠️ Auth initialization failed:', err)
-    })
+    setTimeout(() => {
+      initializeAuth().catch(err => {
+        console.error('⚠️ Auth initialization failed:', err)
+      })
+    }, 100) // Delay to ensure app loads first
   }
   
   return {

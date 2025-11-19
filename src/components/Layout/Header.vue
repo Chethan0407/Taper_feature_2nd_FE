@@ -52,15 +52,7 @@
       <!-- Right side - Actions -->
       <div class="flex items-center space-x-4 ml-6">
         <!-- Notifications -->
-        <button class="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" @click="openNotifications">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-          </svg>
-          <span v-if="notificationCount > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-            {{ notificationCount }}
-          </span>
-        </button>
+        <NotificationBell />
 
         <!-- AI Assistant -->
         <button class="p-2 text-gray-500 dark:text-gray-400 hover:text-neon-blue transition-colors" title="AI Assistant">
@@ -70,28 +62,68 @@
         </button>
 
         <!-- Profile Section with Dropdown -->
-        <div class="relative flex items-center space-x-3" tabindex="0"
-          @click="showProfileDropdown = !showProfileDropdown"
-          @blur="showProfileDropdown = false"
+        <div 
+          class="relative flex items-center space-x-3 cursor-pointer"
+          ref="profileDropdownRef"
+          @click.stop="toggleProfileDropdown"
         >
-          <img v-if="branding.logo_url" :src="branding.logo_url" alt="Brand Logo" class="h-8 w-8 rounded-full" />
-          <span class="text-white font-semibold text-base cursor-pointer">{{ authStore.user?.name || 'User' }}</span>
-          <svg class="w-4 h-4 text-white ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <img 
+            v-if="branding.logo_url" 
+            :src="branding.logo_url" 
+            alt="Brand Logo" 
+            class="h-8 w-8 rounded-full border border-dark-600" 
+          />
+          <span class="text-white font-semibold text-base">
+            {{ userProfile?.full_name || authStore.user?.name || 'User' }}
+          </span>
+          <svg 
+            class="w-4 h-4 text-white ml-1 transition-transform"
+            :class="{ 'rotate-180': showProfileDropdown }"
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
-          <div v-if="showProfileDropdown" class="absolute right-0 top-full mt-2 w-56 bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl z-50 py-2 px-2">
+          <div 
+            v-if="showProfileDropdown" 
+            class="absolute right-0 top-full mt-2 w-56 bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl z-50 py-2 overflow-hidden"
+          >
             <ul>
               <li>
-                <router-link to="/profile" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Profile</router-link>
+                <router-link 
+                  to="/settings?section=profile" 
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
+                  @click="closeProfileDropdown"
+                >
+                  Profile
+                </router-link>
               </li>
               <li>
-                <router-link to="/settings" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Settings</router-link>
+                <router-link 
+                  to="/settings?section=notifications" 
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
+                  @click="closeProfileDropdown"
+                >
+                  Settings
+                </router-link>
               </li>
               <li>
-                <router-link to="/settings/branding" class="block px-4 py-3 text-white hover:bg-dark-800 rounded-lg" @click.native="showProfileDropdown = false">Branding</router-link>
+                <router-link 
+                  to="/settings?section=branding" 
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
+                  @click="closeProfileDropdown"
+                >
+                  Branding
+                </router-link>
               </li>
-              <li>
-                <button @click.stop="handleLogout" class="block w-full text-left px-4 py-3 text-red-400 hover:bg-dark-800 rounded-lg">Logout</button>
+              <li class="border-t border-dark-700 mt-1">
+                <button 
+                  @click.stop="handleLogout" 
+                  class="block w-full text-left px-4 py-3 text-red-400 hover:bg-dark-800 transition-colors"
+                >
+                  Logout
+                </button>
               </li>
             </ul>
           </div>
@@ -100,40 +132,23 @@
     </div>
   </header>
 
-  <!-- Notification Panel -->
-  <div v-if="showNotificationPanel" class="absolute right-8 top-16 z-50 w-80 bg-dark-900 border border-dark-700 rounded-xl shadow-2xl p-4">
-    <div v-if="notificationLoading" class="text-center py-8 text-gray-400">Loading...</div>
-    <div v-else-if="notificationError" class="text-center py-8 text-red-400">{{ notificationError }}</div>
-    <div v-else>
-      <h3 class="text-lg font-bold text-white mb-4">Notification Preferences</h3>
-      <pre class="text-xs text-gray-400 bg-dark-800 rounded p-2 overflow-x-auto">{{ notificationSettings }}</pre>
-      <div class="mt-4 text-right">
-        <button class="btn-secondary" @click="showNotificationPanel = false">Close</button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchNotificationSettings } from '@/utils/users.api'
 import { useBrandingStore } from '@/stores/branding'
 import { useAuthStore } from '@/stores/auth'
 import { useCompaniesStore } from '@/stores/companies'
+import NotificationBell from './NotificationBell.vue'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const companiesStore = useCompaniesStore()
 
 const searchQuery = ref('')
-const notificationCount = ref(3)
-
-// Notification panel state
-const showNotificationPanel = ref(false)
-const notificationSettings = ref(null)
-const notificationLoading = ref(false)
-const notificationError = ref('')
+const profileDropdownRef = ref<HTMLElement | null>(null)
 
 const branding = useBrandingStore()
 
@@ -143,6 +158,10 @@ const searchError = ref('')
 const showDropdown = ref(false)
 const highlightedIndex = ref(-1)
 let searchTimeout: any = null
+
+// User profile state
+const userProfile = ref<{ full_name?: string; email?: string; role?: string } | null>(null)
+const showProfileDropdown = ref(false)
 
 // Optionally, you can add a status filter for global search
 // const statusFilter = ref('')
@@ -213,20 +232,75 @@ function getStatusClass(status: string) {
   }
 }
 
-const showProfileDropdown = ref(false)
-
-function openNotifications() {
-  // TODO: Implement notifications panel
-  console.log('Open notifications')
+// Load user profile
+const loadUserProfile = async () => {
+  try {
+    const res = await authenticatedFetch('/api/v1/users/user/profile')
+    if (res.ok) {
+      userProfile.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Failed to load user profile:', e)
+  }
 }
 
-function handleLogout() {
+// Toggle profile dropdown
+const toggleProfileDropdown = () => {
+  showProfileDropdown.value = !showProfileDropdown.value
+  if (showProfileDropdown.value && !userProfile.value) {
+    loadUserProfile()
+  }
+}
+
+// Close profile dropdown
+const closeProfileDropdown = () => {
   showProfileDropdown.value = false
-  authStore.logout()
-  router.push('/login')
+}
+
+// Handle click outside dropdown
+const handleClickOutside = (event: MouseEvent) => {
+  if (profileDropdownRef.value && !profileDropdownRef.value.contains(event.target as Node)) {
+    showProfileDropdown.value = false
+  }
+}
+
+// Handle logout
+const handleLogout = async () => {
+  try {
+    // Call logout API
+    if (authStore.token) {
+      try {
+        await authenticatedFetch('/api/v1/auth/logout', {
+          method: 'POST'
+        })
+      } catch (e) {
+        console.error('Logout API call failed:', e)
+        // Continue with logout even if API fails
+      }
+    }
+    
+    // Clear local state
+    closeProfileDropdown()
+    await authStore.logout()
+    
+    // Redirect to login
+    router.push('/login')
+  } catch (e) {
+    console.error('Logout failed:', e)
+    // Still clear state and redirect
+    closeProfileDropdown()
+    await authStore.logout()
+    router.push('/login')
+  }
 }
 
 onMounted(() => {
   if (!branding.company_name) branding.fetchBranding()
+  loadUserProfile()
+  document.addEventListener('mousedown', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
 })
 </script> 
