@@ -77,31 +77,31 @@
                   :key="key.id"
                   class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600"
                 >
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex-1">
-                      <p class="font-medium text-gray-900 dark:text-white">{{ key.name || 'Unnamed Key' }}</p>
-                      <p class="text-sm text-gray-500 dark:text-gray-400 font-mono mt-1">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                      <p class="font-medium text-gray-900 dark:text-white mb-1">{{ key.name || 'Unnamed Key' }}</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 font-mono mb-2 break-all">
                         {{ key.key_masked || '••••••••••••••••••••' }}
                       </p>
-                      <div class="text-xs text-gray-400 dark:text-gray-500 mt-2 space-x-3">
+                      <div class="text-xs text-gray-400 dark:text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
                         <span v-if="key.created_at">Created: {{ formatDate(key.created_at) }}</span>
                         <span v-if="key.last_used_at">Last used: {{ formatDate(key.last_used_at) }}</span>
                         <span v-else>Never used</span>
-                        <span v-if="key.expires_at" class="text-yellow-400">Expires: {{ formatDate(key.expires_at) }}</span>
+                        <span v-if="key.expires_at" class="text-yellow-400 dark:text-yellow-500">Expires: {{ formatDate(key.expires_at) }}</span>
                       </div>
                     </div>
-                    <div class="flex gap-2 ml-4">
+                    <div class="flex flex-col gap-2 flex-shrink-0">
                       <button 
                         @click="regenerateApiKey(key.id)"
                         :disabled="regeneratingKey === key.id"
-                        class="text-sm text-blue-600 dark:text-neon-blue hover:text-blue-700 dark:hover:text-neon-blue/80 disabled:opacity-50"
+                        class="text-sm text-blue-600 dark:text-neon-blue hover:text-blue-700 dark:hover:text-neon-blue/80 disabled:opacity-50 whitespace-nowrap"
                       >
                         {{ regeneratingKey === key.id ? 'Regenerating...' : 'Regenerate' }}
                       </button>
                       <button 
                         @click="deleteApiKey(key.id)"
                         :disabled="deletingKey === key.id"
-                        class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 disabled:opacity-50"
+                        class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 disabled:opacity-50 whitespace-nowrap"
                       >
                         {{ deletingKey === key.id ? 'Deleting...' : 'Delete' }}
                       </button>
@@ -357,7 +357,7 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref, watch, nextTick } from 'vue'
-import { authenticatedFetch } from '@/utils/auth-requests'
+import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -458,10 +458,15 @@ const loadProfile = async () => {
   try {
     profileLoading.value = true
     profileError.value = ''
-    const res = await authenticatedFetch('/api/v1/users/user/profile')
+    const res = await apiClient('/users/user/profile')
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to load profile')
+      // Handle 401 - don't redirect immediately, just show error
+      if (res.status === 401 && (res as any).isAuthError) {
+        profileError.value = 'Authentication failed. Please refresh the page or log in again.'
+        return
+      }
+      const errorMessage = await parseApiError(res, 'Failed to load profile')
+      throw new Error(errorMessage)
     }
     const user = await res.json()
     profile.value = {
@@ -492,14 +497,14 @@ const updateProfile = async () => {
     if (profile.value.name) body.name = profile.value.name
     if (profile.value.role) body.role = profile.value.role
 
-    const res = await authenticatedFetch('/api/v1/users/user/profile', {
+    const res = await apiClient('/users/user/profile', {
       method: 'PUT',
       body: JSON.stringify(body)
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to update profile')
+      const errorMessage = await parseApiError(res, 'Failed to update profile')
+      throw new Error(errorMessage)
     }
 
     await loadProfile()
@@ -519,10 +524,15 @@ const loadAPIKeys = async () => {
     apiKeysLoading.value = true
     apiKeysError.value = ''
     rateLimitError.value = ''
-    const res = await authenticatedFetch('/api/v1/settings/api-keys/')
+    const res = await apiClient('/settings/api-keys/')
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to load API keys')
+      // Handle 401 - don't redirect immediately, just show error
+      if (res.status === 401 && (res as any).isAuthError) {
+        apiKeysError.value = 'Authentication failed. Please refresh the page or log in again.'
+        return
+      }
+      const errorMessage = await parseApiError(res, 'Failed to load API keys')
+      throw new Error(errorMessage)
     }
     apiKeys.value = await res.json()
   } catch (e: any) {
@@ -544,22 +554,17 @@ const generateApiKey = async () => {
       body.expires_at = new Date(newKeyExpiration.value).toISOString()
     }
 
-    const res = await authenticatedFetch('/api/v1/settings/api-keys/', {
+    const res = await apiClient('/settings/api-keys/', {
       method: 'POST',
       body: JSON.stringify(body)
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
       if (res.status === 429) {
         rateLimitError.value = 'Rate limit exceeded. Please wait 1 minute before generating another key.'
       } else {
-        try {
-          const errorData = JSON.parse(errorText)
-          rateLimitError.value = errorData.detail || errorData.message || 'Failed to generate API key'
-        } catch {
-          rateLimitError.value = errorText || 'Failed to generate API key'
-        }
+        const errorMessage = await parseApiError(res, 'Failed to generate API key')
+        rateLimitError.value = errorMessage
       }
       return
     }
@@ -590,21 +595,16 @@ const regenerateApiKey = async (keyId: string) => {
     rateLimitError.value = ''
     apiKeysError.value = ''
     
-    const res = await authenticatedFetch(`/api/v1/settings/api-keys/${keyId}/regenerate`, {
+    const res = await apiClient(`/settings/api-keys/${keyId}/regenerate`, {
       method: 'PUT'
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
       if (res.status === 429) {
         rateLimitError.value = 'Rate limit exceeded. Please wait 1 minute before regenerating.'
       } else {
-        try {
-          const errorData = JSON.parse(errorText)
-          apiKeysError.value = errorData.detail || errorData.message || 'Failed to regenerate API key'
-        } catch {
-          apiKeysError.value = errorText || 'Failed to regenerate API key'
-        }
+        const errorMessage = await parseApiError(res, 'Failed to regenerate API key')
+        apiKeysError.value = errorMessage
       }
       return
     }
@@ -631,18 +631,13 @@ const deleteApiKey = async (keyId: string) => {
     deletingKey.value = keyId
     apiKeysError.value = ''
     
-    const res = await authenticatedFetch(`/api/v1/settings/api-keys/${keyId}`, {
+    const res = await apiClient(`/settings/api-keys/${keyId}`, {
       method: 'DELETE'
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
-      try {
-        const errorData = JSON.parse(errorText)
-        apiKeysError.value = errorData.detail || errorData.message || 'Failed to delete API key'
-      } catch {
-        apiKeysError.value = errorText || 'Failed to delete API key'
-      }
+      const errorMessage = await parseApiError(res, 'Failed to delete API key')
+      apiKeysError.value = errorMessage
       return
     }
 
@@ -717,10 +712,15 @@ const loadNotifications = async () => {
   try {
     notificationsLoading.value = true
     notificationsError.value = ''
-    const res = await authenticatedFetch('/api/v1/settings/notifications/')
+    const res = await apiClient('/settings/notifications/')
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to load notifications')
+      // Handle 401 - don't redirect immediately, just show error
+      if (res.status === 401 && (res as any).isAuthError) {
+        notificationsError.value = 'Authentication failed. Please refresh the page or log in again.'
+        return
+      }
+      const errorMessage = await parseApiError(res, 'Failed to load notifications')
+      throw new Error(errorMessage)
     }
     const data = await res.json()
     notificationPreferences.value = data.preferences || []
@@ -743,7 +743,7 @@ const toggleNotification = async (type: string, event: Event) => {
 
   try {
     // PATCH to update single preference
-    const res = await authenticatedFetch('/api/v1/settings/notifications/', {
+    const res = await apiClient('/settings/notifications/', {
       method: 'PATCH',
       body: JSON.stringify([{
         notification_type: type,
@@ -754,8 +754,8 @@ const toggleNotification = async (type: string, event: Event) => {
     if (!res.ok) {
       // Revert on error
       if (pref) pref.is_enabled = !enabled
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to update notification')
+      const errorMessage = await parseApiError(res, 'Failed to update notification')
+      throw new Error(errorMessage)
     }
   } catch (e: any) {
     // Revert on error
@@ -770,14 +770,14 @@ const saveNotificationPreferences = async () => {
     notificationsError.value = ''
     notificationsSuccess.value = false
 
-    const res = await authenticatedFetch('/api/v1/settings/notifications/', {
+    const res = await apiClient('/settings/notifications/', {
       method: 'PUT',
       body: JSON.stringify(notificationPreferences.value)
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to save preferences')
+      const errorMessage = await parseApiError(res, 'Failed to save preferences')
+      throw new Error(errorMessage)
     }
 
     notificationsSuccess.value = true
@@ -803,10 +803,15 @@ const loadBranding = async () => {
   try {
     brandingLoading.value = true
     brandingError.value = ''
-    const res = await authenticatedFetch('/api/v1/settings/branding/')
+    const res = await apiClient('/settings/branding/')
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to load branding')
+      // Handle 401 - don't redirect immediately, just show error
+      if (res.status === 401 && (res as any).isAuthError) {
+        brandingError.value = 'Authentication failed. Please refresh the page or log in again.'
+        return
+      }
+      const errorMessage = await parseApiError(res, 'Failed to load branding')
+      throw new Error(errorMessage)
     }
     const data = await res.json()
     branding.value = {
@@ -855,14 +860,14 @@ const uploadLogo = async () => {
     const formData = new FormData()
     formData.append('file', logoFile.value)
 
-    const res = await authenticatedFetch('/api/v1/settings/branding/logo', {
+    const res = await apiClient('/settings/branding/logo', {
       method: 'POST',
       body: formData
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to upload logo')
+      const errorMessage = await parseApiError(res, 'Failed to upload logo')
+      throw new Error(errorMessage)
     }
 
     const data = await res.json()
@@ -892,14 +897,14 @@ const saveBranding = async () => {
     if (branding.value.primary_color) body.primary_color = branding.value.primary_color
     if (branding.value.secondary_color) body.secondary_color = branding.value.secondary_color
 
-    const res = await authenticatedFetch('/api/v1/settings/branding/', {
+    const res = await apiClient('/settings/branding/', {
       method: 'PUT',
       body: JSON.stringify(body)
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to save branding')
+      const errorMessage = await parseApiError(res, 'Failed to save branding')
+      throw new Error(errorMessage)
     }
 
     await loadBranding()

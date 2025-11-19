@@ -37,7 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function getAuthHeader(): HeadersInit | undefined {
     if (token.value && token.value !== 'undefined' && token.value !== 'null') {
-      return { 'Authorization': `Bearer ${token.value}` }
+      // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
+      const cleanToken = token.value.startsWith('Bearer ') ? token.value.substring(7) : token.value
+      return { 'Authorization': `Bearer ${cleanToken}` }
     }
     return undefined
   }
@@ -55,17 +57,23 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(errorText || 'Invalid credentials')
       }
       const data = await response.json()
-      const receivedToken = data.token || data.access_token
+      let receivedToken = data.token || data.access_token
       
       // Validate token before storing
       if (!receivedToken || receivedToken === 'undefined' || receivedToken === 'null' || receivedToken.trim() === '') {
         throw new Error('No valid token received from server')
       }
       
-      // Store token first
+      // Remove "Bearer " prefix if present (we'll add it when using the token)
+      if (receivedToken.startsWith('Bearer ')) {
+        receivedToken = receivedToken.substring(7)
+        console.log('⚠️ Token had "Bearer " prefix, removed before storing')
+      }
+      
+      // Store token first (without Bearer prefix)
       token.value = receivedToken
       localStorage.setItem('tapeout_token', receivedToken)
-      console.log('✅ Token stored after login')
+      console.log('✅ Token stored after login (without Bearer prefix)')
       
       // Then fetch user profile
       const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
