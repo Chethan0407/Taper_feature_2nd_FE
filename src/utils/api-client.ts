@@ -42,12 +42,24 @@ export async function apiClient(
     return errorResponse
   }
   
-  // Add trailing slash to avoid 307 redirects (which can lose headers)
-  // But preserve query parameters and existing trailing slashes
+  // Smart URL normalization:
+  // - Profile endpoint should NOT have trailing slash (causes network error)
+  // - Settings endpoints NEED trailing slash (to avoid 307 redirects)
+  // - Preserve query parameters
   let finalUrl = url
-  if (!finalUrl.includes('?') && !finalUrl.endsWith('/') && finalUrl.length > 1) {
-    finalUrl = finalUrl + '/'
+  
+  // Remove trailing slash if it's a profile endpoint
+  if (finalUrl.includes('/user/profile') && finalUrl.endsWith('/')) {
+    finalUrl = finalUrl.slice(0, -1)
+    console.log('🔧 apiClient - Removed trailing slash from profile endpoint')
   }
+  // Add trailing slash for settings endpoints (except if query params exist)
+  else if (finalUrl.startsWith('/settings/') && !finalUrl.includes('?') && !finalUrl.endsWith('/')) {
+    finalUrl = finalUrl + '/'
+    console.log('🔧 apiClient - Added trailing slash to settings endpoint')
+  }
+  // For other endpoints, preserve as-is (don't auto-add trailing slash)
+  
   const fullUrl = `/api/v1${finalUrl}`
   
   // Ensure token doesn't have "Bearer " prefix (we'll add it)
@@ -73,7 +85,9 @@ export async function apiClient(
   }
   
   console.log('📤 apiClient - Request:', {
-    url: fullUrl,
+    originalUrl: url,
+    finalUrl: finalUrl,
+    fullUrl: fullUrl,
     method: options.method || 'GET',
     hasAuthHeader: !!headers['Authorization'],
     authHeaderValue: headers['Authorization'] ? `${headers['Authorization'].substring(0, 20)}...` : 'MISSING',

@@ -458,23 +458,67 @@ const loadProfile = async () => {
   try {
     profileLoading.value = true
     profileError.value = ''
-    const res = await apiClient('/users/user/profile')
+    
+    console.log('📋 Loading user profile...')
+    
+    let res: Response
+    try {
+      res = await apiClient('/users/user/profile')
+    } catch (networkError: any) {
+      console.error('❌ Network error loading profile:', networkError)
+      profileError.value = 'Network error. Please check your connection and try again.'
+      return
+    }
+    
+    console.log('📋 Profile response:', {
+      status: res.status,
+      ok: res.ok,
+      statusText: res.statusText,
+      isNetworkError: (res as any).isNetworkError
+    })
+    
+    // Check for network errors
+    if ((res as any).isNetworkError) {
+      profileError.value = 'Network error. Please check your connection and try again.'
+      return
+    }
+    
     if (!res.ok) {
       // Handle 401 - don't redirect immediately, just show error
       if (res.status === 401 && (res as any).isAuthError) {
         profileError.value = 'Authentication failed. Please refresh the page or log in again.'
+        console.error('❌ Profile load failed: 401 Unauthorized')
         return
       }
+      
+      // Try to get error message
       const errorMessage = await parseApiError(res, 'Failed to load profile')
-      throw new Error(errorMessage)
+      console.error('❌ Profile load failed:', errorMessage, 'Status:', res.status)
+      profileError.value = errorMessage
+      return
     }
-    const user = await res.json()
-    profile.value = {
-      name: user.full_name || '',
-      email: user.email || '',
-      role: user.role || 'engineer'
+    
+    // Parse response
+    try {
+      const user = await res.json()
+      console.log('✅ Profile loaded:', user)
+      
+      if (!user || typeof user !== 'object') {
+        throw new Error('Invalid profile data received')
+      }
+      
+      profile.value = {
+        name: user.full_name || user.name || '',
+        email: user.email || '',
+        role: user.role || 'engineer'
+      }
+      profileError.value = '' // Clear any previous errors
+    } catch (parseError: any) {
+      console.error('❌ Failed to parse profile response:', parseError)
+      profileError.value = parseError.message || 'Failed to parse profile data. Please try again.'
     }
   } catch (e: any) {
+    console.error('❌ Profile load error:', e)
     profileError.value = e.message || 'Failed to load profile'
   } finally {
     profileLoading.value = false
