@@ -163,12 +163,12 @@ onMounted(async () => {
   loadingChecklists.value = true
   try {
     // Fetch specs
-    const specsRes = await fetch('http://localhost:8000/api/v1/specs/')
+    const specsRes = await fetch('/api/v1/specs/')
     if (specsRes.ok) {
       allSpecs.value = await specsRes.json()
     }
     // Fetch checklists
-    const checklistsRes = await fetch('http://localhost:8000/api/v1/checklists/')
+    const checklistsRes = await fetch('/api/v1/checklists/')
     if (checklistsRes.ok) {
       allChecklists.value = await checklistsRes.json()
     }

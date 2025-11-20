@@ -7,13 +7,25 @@ const TOKEN_KEY = 'tapeout_token'
 
 /**
  * Get the authentication token from localStorage
+ * Checks multiple possible token keys as fallback
  */
 function getToken(): string | null {
-  const token = localStorage.getItem(TOKEN_KEY)
-  if (!token || token === 'undefined' || token === 'null' || token.trim() === '') {
-    return null
+  // Try multiple token keys in order of preference
+  const tokenKeys = [
+    'tapeout_token',  // Primary key used by this app
+    'token',          // Common alternative
+    'authToken',      // Common alternative
+    'access_token'    // Common alternative
+  ]
+  
+  for (const key of tokenKeys) {
+    const token = localStorage.getItem(key)
+    if (token && token !== 'undefined' && token !== 'null' && token.trim() !== '') {
+      return token
+    }
   }
-  return token
+  
+  return null
 }
 
 /**
@@ -128,8 +140,7 @@ export async function apiClient(
       ok: response.ok
     })
     
-    // Handle 401 errors - but don't automatically redirect
-    // Let the calling component decide what to do
+    // Handle 401 errors - clear token and redirect to login
     if (response.status === 401) {
       console.error('❌ apiClient - 401 Unauthorized:', {
         url: fullUrl,
@@ -140,14 +151,6 @@ export async function apiClient(
         authHeaderPrefix: headers['Authorization']?.substring(0, 15) || 'MISSING',
         requestHeaders: Object.keys(headers),
         method: options.method || 'GET'
-      })
-      
-      // Log the actual request that was sent for debugging
-      console.error('🔍 Request details:', {
-        url: fullUrl,
-        method: options.method || 'GET',
-        headers: headers,
-        body: options.body instanceof FormData ? '[FormData]' : options.body
       })
       
       // Try to get error message from response
@@ -165,13 +168,31 @@ export async function apiClient(
       }
       
       // Add error information to response
-      // Components can check response.isAuthError to decide if they should redirect
       ;(response as any).errorDetail = errorDetail
       ;(response as any).isAuthError = true
       
-      // Don't clear token or redirect here - let the calling component decide
-      // The component can check the error message and decide if it's a real auth failure
-      // or just a permission issue
+      // Only redirect to login for authentication endpoints or if error indicates token is invalid
+      // Don't redirect for permission errors (401 can mean "not authenticated" OR "not authorized")
+      const isAuthEndpoint = fullUrl.includes('/auth/') || fullUrl.includes('/me') || fullUrl.includes('/user/profile')
+      const isTokenInvalid = errorDetail.toLowerCase().includes('token') || 
+                             errorDetail.toLowerCase().includes('expired') ||
+                             errorDetail.toLowerCase().includes('invalid') ||
+                             errorDetail.toLowerCase().includes('not authenticated')
+      
+      if (isAuthEndpoint || isTokenInvalid) {
+        // Clear all possible token keys from localStorage
+        const tokenKeys = ['tapeout_token', 'token', 'authToken', 'access_token']
+        tokenKeys.forEach(key => localStorage.removeItem(key))
+        
+        // Redirect to login if we're not already there
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          console.log('🔄 Redirecting to login due to authentication failure')
+          window.location.href = '/login'
+        }
+      } else {
+        // For other 401 errors (likely permission issues), just log but don't redirect
+        console.warn('⚠️ 401 error on non-auth endpoint - likely a permission issue, not redirecting:', fullUrl)
+      }
     }
     
     return response

@@ -1,5 +1,9 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+    <!-- Debug: Component loaded indicator -->
+    <div v-if="false" style="position: fixed; top: 0; right: 0; background: red; color: white; padding: 10px; z-index: 9999;">
+      SpecLintPage Component Loaded
+    </div>
     <Sidebar />
     <div class="ml-64">
       <Header />
@@ -41,7 +45,7 @@
                 <div v-if="ruleError || ruleSuccess" class="min-h-[40px]">
                   <div v-if="ruleError" class="text-red-500 mt-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-sm font-medium">{{ ruleError }}</div>
                   <div v-if="ruleSuccess" class="text-green-600 mt-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">{{ ruleSuccess }}</div>
-            </div>
+                </div>
               </transition>
             </form>
           </div>
@@ -62,39 +66,493 @@
               <span>🧪</span> <span>{{ runningLint ? 'Running...' : 'Run Linter' }}</span>
             </button>
             <transition name="fade">
-              <div v-if="lintError || lintSuccess" class="min-h-[40px]">
+              <div v-if="lintError || lintSuccess || linkingToProject || linkingError" class="min-h-[40px]">
                 <div v-if="lintError" class="text-red-500 mb-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-sm font-medium">{{ lintError }}</div>
-                <div v-if="lintSuccess" class="text-green-600 mb-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">{{ lintSuccess }}</div>
+                
+                <!-- Linking Status -->
+                <div v-if="linkingToProject" class="text-blue-600 mb-2 p-2 rounded bg-blue-100 dark:bg-blue-900/30 text-sm font-medium flex items-center gap-2">
+                  <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Linking lint result to {{ projectName }}...
+                </div>
+                
+                <!-- Linking Error -->
+                <div v-if="linkingError" class="text-orange-600 mb-2 p-2 rounded bg-orange-100 dark:bg-orange-900/30 text-sm font-medium">
+                  <p class="mb-2">{{ linkingError }}</p>
+                  <button 
+                    v-if="createdLintResultId"
+                    @click="retryLinking" 
+                    class="text-sm underline hover:no-underline"
+                  >
+                    Try linking again
+                  </button>
+                </div>
+                
+                <!-- Success Message -->
+                <div v-if="lintSuccess && !linkingToProject" class="text-green-600 mb-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">
+                  <p>{{ lintSuccess }}</p>
+                  
+                  <!-- Lint Result Summary Preview -->
+                  <div v-if="lintResults.length > 0 && projectId && createdLintResultId" class="mt-3 p-3 bg-white dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-700">
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2 text-sm">Lint Result Summary</h4>
+                    <div class="space-y-1 text-xs">
+                      <div class="flex items-center justify-between">
+                        <span class="text-gray-600 dark:text-gray-400">Total Issues:</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ lintResults.length }}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-gray-600 dark:text-gray-400">Errors:</span>
+                        <span class="font-medium text-red-600">{{ lintResults.filter(r => r.severity === 'error').length }}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-gray-600 dark:text-gray-400">Warnings:</span>
+                        <span class="font-medium text-yellow-600">{{ lintResults.filter(r => r.severity === 'warning').length }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Back to Project button if we came from a project -->
+                  <div v-if="projectId && createdLintResultId" class="mt-3 space-y-2">
+                    <button 
+                      @click="goBackToProject" 
+                      class="w-full px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                      </svg>
+                      Back to {{ projectName }}
+                    </button>
+                    
+                    <!-- Auto-navigate countdown -->
+                    <div v-if="autoNavigateCountdown !== null && autoNavigateCountdown > 0" class="text-center text-xs text-gray-500 dark:text-gray-400">
+                      Auto-navigating in {{ autoNavigateCountdown }}s... 
+                      <button @click="cancelAutoNavigate" class="text-blue-600 hover:underline">Cancel</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </transition>
             <div v-if="lintResults.length > 0" class="space-y-3 mt-4">
-              <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Lint Results ({{ lintResults.length }} issue{{ lintResults.length !== 1 ? 's' : '' }})</h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-gray-900 dark:text-white">Lint Results ({{ lintResults.length }} issue{{ lintResults.length !== 1 ? 's' : '' }})</h3>
+              </div>
+
+              <!-- Action Buttons Section -->
+              <div class="mb-6 space-y-4">
+                <!-- Search Bar -->
+                <div class="relative">
+                  <input
+                    v-model="searchTerm"
+                    type="text"
+                    class="input-field w-full pr-10"
+                    placeholder="Search issues by message, pattern, or rule type..."
+                  />
+                  <button
+                    v-if="searchTerm"
+                    @click="searchTerm = ''"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Statistics Summary -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ filteredAndSortedResults.length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Total Issues</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-red-600">{{ filteredAndSortedResults.filter(r => r.severity === 'error').length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Errors</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-600">{{ filteredAndSortedResults.filter(r => r.severity === 'warning').length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Warnings</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ new Set(filteredAndSortedResults.map(r => r.ruleType)).size }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Rule Types</div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div class="flex flex-wrap items-center gap-3">
+                  <!-- Save Results Button (if not auto-saved) -->
+                <button
+                  v-if="!createdLintResultId"
+                  @click="saveLintResults"
+                  :disabled="savingResults"
+                  class="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {{ savingResults ? 'Saving...' : '💾 Save Results' }}
+                </button>
+
+                <!-- Manual Link to Project Button -->
+                <button
+                  v-if="createdLintResultId && !projectId"
+                  @click="showLinkModal = true"
+                  class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                  </svg>
+                  🔗 Link to Project
+                </button>
+
+                  <!-- Export Results Dropdown -->
+                  <div class="relative">
+                    <button
+                      @click="exportResults"
+                      :disabled="exportingResults"
+                      class="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                      </svg>
+                      {{ exportingResults ? 'Exporting...' : '📥 Export' }}
+                    </button>
+                    <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-lg shadow-lg z-10 min-w-[150px] hidden group-hover:block">
+                      <button @click="exportResults" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-800 text-sm">Export JSON</button>
+                      <button @click="exportToCSV" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-800 text-sm">Export CSV</button>
+                    </div>
+                  </div>
+
+                  <!-- Share/Copy Link -->
+                  <button
+                    v-if="createdLintResultId"
+                    @click="shareLintResult"
+                    class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                    </svg>
+                    🔗 Share
+                  </button>
+
+                <!-- View History -->
+                <button
+                  @click="toggleHistory"
+                  class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  📜 View History
+                </button>
+
+                <!-- Filter by Severity -->
+                <select
+                  v-model="filterSeverity"
+                  class="px-3 py-2 text-sm border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                >
+                  <option :value="null">All Severities</option>
+                  <option value="error">Errors Only</option>
+                  <option value="warning">Warnings Only</option>
+                </select>
+
+                <!-- Sort Options -->
+                <select
+                  v-model="sortBy"
+                  class="px-3 py-2 text-sm border border-gray-300 dark:border-dark-700 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-white"
+                >
+                  <option value="line">Sort by Line</option>
+                  <option value="severity">Sort by Severity</option>
+                  <option value="ruleType">Sort by Rule Type</option>
+                </select>
+              </div>
+              </div>
+              </div>
+
+              <!-- Lint History Section -->
+              <div v-if="showHistory" class="mb-6 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-semibold text-gray-900 dark:text-white">Previous Lint Runs</h4>
+                  <button
+                    v-if="selectedHistoryItem"
+                    @click="selectedHistoryItem = null; showCompareModal = false"
+                    class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    Close Comparison
+                  </button>
+                </div>
+                <div v-if="lintHistory.length === 0" class="text-gray-500 text-sm">
+                  No previous lint runs found
+                </div>
+                <div v-else class="space-y-2">
+                  <div
+                    v-for="historyItem in lintHistory"
+                    :key="historyItem.id"
+                    class="p-3 bg-white dark:bg-dark-900 rounded border border-gray-200 dark:border-dark-700"
+                    :class="{ 'ring-2 ring-blue-500': selectedHistoryItem?.id === historyItem.id }"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <span class="text-sm font-medium">Run #{{ historyItem.id }}</span>
+                        <span class="text-xs text-gray-500 ml-2">{{ formatDateShort(historyItem.created_at) }}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">{{ historyItem.issues_count || 0 }} issues</span>
+                        <button
+                          @click="selectHistoryForCompare(historyItem)"
+                          class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded"
+                        >
+                          {{ selectedHistoryItem?.id === historyItem.id ? 'Selected' : 'Compare' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Pagination -->
+                  <div v-if="Math.ceil(historyTotal / historyPageSize) > 1" class="flex items-center justify-between mt-4">
+                    <div class="text-sm text-gray-500">
+                      Page {{ historyPage }} of {{ Math.ceil(historyTotal / historyPageSize) }}
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        @click="historyPage = Math.max(1, historyPage - 1); fetchLintHistory()"
+                        :disabled="historyPage === 1"
+                        class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded disabled:opacity-50"
+                      >
+                        Prev
+                      </button>
+                      <button
+                        @click="historyPage++; fetchLintHistory()"
+                        :disabled="historyPage >= Math.ceil(historyTotal / historyPageSize)"
+                        class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Group by severity -->
-              <div v-for="(group, severity) in groupedResults" :key="severity" class="mb-4">
+              <div v-for="(group, severity) in groupedFilteredResults" :key="severity" class="mb-4">
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 capitalize">{{ severity }}s ({{ group.length }})</h4>
                 <div class="space-y-2">
                   <div v-for="(result, index) in group" :key="`${severity}-${index}`" class="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border-l-4" :class="getResultBorderClass(result.severity || severity)">
-                    <div class="flex items-start justify-between">
+                <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <p class="text-sm font-medium" :class="getResultTextClass(result.severity || severity)">
-                          {{ result.message }}
-                        </p>
+                      {{ result.message }}
+                    </p>
                         <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                          <span v-if="result.line">Line {{ result.line }}</span>
+                          <span v-if="result.line">
+                            <button 
+                              @click="navigateToLine(result.line)"
+                              class="hover:text-blue-500 hover:underline cursor-pointer mr-2"
+                            >
+                              📍 Line {{ result.line }}
+                            </button>
+                            <button
+                              v-if="specId && result.line"
+                              @click="viewSpecContext(specId, result.line)"
+                              class="hover:text-blue-500 hover:underline cursor-pointer text-xs"
+                              :disabled="result.line ? loadingContext[result.line] : false"
+                            >
+                              {{ loadingContext[result.line] ? 'Loading...' : 'View Context' }}
+                            </button>
+                          </span>
                           <span v-if="result.ruleType">Rule: {{ result.ruleType }}</span>
                           <span v-if="result.pattern">Pattern: {{ result.pattern }}</span>
+                  </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span :class="getResultBadgeClass(result.severity || severity)" class="px-2 py-1 rounded text-xs font-medium">
+                          {{ result.severity || severity }}
+                  </span>
+                        <!-- Action buttons for each issue -->
+                        <div class="flex items-center gap-1">
+                          <button
+                            @click="copyIssueDetails(result)"
+                            class="p-1 text-gray-400 hover:text-purple-500 transition-colors"
+                            title="Copy issue details"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                          </button>
+                          <button
+                            v-if="result.ruleType"
+                            @click="viewRuleDetails(result.ruleType || '', result.pattern || '')"
+                            class="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                            title="View rule details"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                          </button>
+                          <button
+                            v-if="createdLintResultId"
+                            @click="toggleComments(index)"
+                            class="p-1 text-gray-400 hover:text-green-500 transition-colors"
+                            title="View/add comments"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            <span v-if="comments[index]?.length" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">{{ comments[index].length }}</span>
+                          </button>
+                </div>
+              </div>
+            </div>
+                    <!-- Comments Section -->
+                    <div v-if="showComments[index]" class="mt-3 pt-3 border-t border-gray-200 dark:border-dark-700">
+                      <div v-if="!comments[index] || comments[index].length === 0" class="text-sm text-gray-500 mb-2">
+                        No comments yet. Be the first to comment!
+                      </div>
+                      <div v-else class="space-y-2 mb-3">
+                        <div
+                          v-for="comment in comments[index]"
+                          :key="comment.id"
+                          class="p-2 bg-gray-100 dark:bg-dark-700 rounded text-sm"
+                        >
+                          <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                              <div class="font-medium text-gray-900 dark:text-white">{{ comment.user_name || 'Anonymous' }}</div>
+                              <div v-if="editingCommentId !== comment.id" class="text-gray-700 dark:text-gray-300 mt-1">{{ comment.content }}</div>
+                              <input
+                                v-else
+                                v-model="editingCommentText"
+                                class="w-full mt-1 px-2 py-1 border border-gray-300 dark:border-dark-600 rounded bg-white dark:bg-dark-800"
+                                @keyup.enter="saveEditedComment(comment.id)"
+                                @keyup.esc="editingCommentId = null"
+                              />
+                              <div class="text-xs text-gray-500 mt-1">{{ formatDateShort(comment.created_at) }}</div>
+                            </div>
+                            <div v-if="editingCommentId !== comment.id" class="flex gap-1">
+                              <button
+                                @click="startEditComment(comment)"
+                                class="p-1 text-gray-400 hover:text-blue-500"
+                                title="Edit comment"
+                              >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                              </button>
+                              <button
+                                @click="deleteComment(comment.id)"
+                                :disabled="deletingCommentId === comment.id"
+                                class="p-1 text-gray-400 hover:text-red-500"
+                                title="Delete comment"
+                              >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                              </button>
+                            </div>
+                            <div v-else class="flex gap-1">
+                              <button
+                                @click="saveEditedComment(comment.id)"
+                                class="p-1 text-green-500 hover:text-green-600"
+                                title="Save"
+                              >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                              </button>
+                              <button
+                                @click="editingCommentId = null"
+                                class="p-1 text-gray-500 hover:text-gray-600"
+                                title="Cancel"
+                              >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <span :class="getResultBadgeClass(result.severity || severity)" class="px-2 py-1 rounded text-xs font-medium ml-2">
-                        {{ result.severity || severity }}
-                      </span>
+                      <button
+                        @click="commentOnIssue(index)"
+                        class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        + Add Comment
+                      </button>
+                    </div>
+                    <!-- Spec Context -->
+                    <div v-if="result.line && specContext[result.line]" class="mt-3 pt-3 border-t border-gray-200 dark:border-dark-700">
+                      <div class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">File Context (Line {{ result.line }}):</div>
+                      <pre class="text-xs bg-gray-100 dark:bg-dark-700 p-2 rounded overflow-x-auto">{{ specContext[result.line] }}</pre>
                     </div>
                   </div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <!-- Comparison Modal -->
+        <div
+          v-if="showCompareModal && compareLintRuns"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+          @click.self="showCompareModal = false"
+        >
+          <div class="bg-white dark:bg-dark-900 rounded-xl shadow-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white">Compare Lint Runs</h3>
+              <button @click="showCompareModal = false" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 mb-6">
+              <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div class="text-2xl font-bold text-green-600">{{ compareLintRuns.fixed.length }}</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Fixed Issues</div>
+              </div>
+              <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <div class="text-2xl font-bold text-red-600">{{ compareLintRuns.new.length }}</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">New Issues</div>
+              </div>
+              <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ compareLintRuns.unchanged.length }}</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Unchanged</div>
+              </div>
+            </div>
+
+            <!-- New Issues -->
+            <div v-if="compareLintRuns.new.length > 0" class="mb-4">
+              <h4 class="font-semibold text-red-600 mb-2">New Issues ({{ compareLintRuns.new.length }})</h4>
+              <div class="space-y-2 max-h-48 overflow-y-auto">
+                <div
+                  v-for="(issue, idx) in compareLintRuns.new"
+                  :key="idx"
+                  class="p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm"
+                >
+                  <div class="font-medium">Line {{ issue.line }}: {{ issue.message }}</div>
+                  <div class="text-xs text-gray-500">{{ issue.ruleType }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fixed Issues -->
+            <div v-if="compareLintRuns.fixed.length > 0" class="mb-4">
+              <h4 class="font-semibold text-green-600 mb-2">Fixed Issues ({{ compareLintRuns.fixed.length }})</h4>
+              <div class="space-y-2 max-h-48 overflow-y-auto">
+                <div
+                  v-for="(issue, idx) in compareLintRuns.fixed"
+                  :key="idx"
+                  class="p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm"
+                >
+                  <div class="font-medium">Line {{ issue.line }}: {{ issue.message }}</div>
+                  <div class="text-xs text-gray-500">{{ issue.ruleType }}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
         <!-- All Rules Section -->
         <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 w-full">
           <EnterpriseFilterBar
@@ -141,6 +599,7 @@
                           Edit
                         </button>
                         <button
+                          v-if="rule.id"
                           @click="deleteRule(rule.id)"
                           class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
                           :disabled="deletingRuleId === rule.id"
@@ -225,10 +684,12 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import EnterpriseFilterBar from '@/components/Common/EnterpriseFilterBar.vue'
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSpecificationsStore } from '@/stores/specifications'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import { apiClient, parseApiError } from '@/utils/api-client'
 
 interface LintResult {
   id?: string
@@ -249,6 +710,10 @@ interface LintRule {
   severity: string
 }
 
+// Initialize route and router
+const route = useRoute()
+const router = useRouter()
+
 const lintResults = ref<LintResult[]>([])
 const rules = ref<LintRule[]>([])
 const ruleForm = ref<LintRule>({ ruleType: '', pattern: '', severity: 'error' })
@@ -260,6 +725,9 @@ const ruleSuccess = ref('')
 const runningLint = ref(false)
 const lintError = ref('')
 const lintSuccess = ref('')
+const linkingToProject = ref(false)
+const linkingError = ref('')
+const autoNavigateCountdown = ref<number | null>(null)
 const specId = ref('')
 const ruleSearch = ref('')
 const typeFilter = ref('')
@@ -268,6 +736,33 @@ const page = ref(1)
 const pageSize = ref(20)
 const totalResults = ref(0)
 const totalPages = computed(() => Math.ceil(totalResults.value / pageSize.value) || 1)
+
+// Project context from route query
+const projectId = computed(() => route.query.projectId || route.query.project)
+const projectName = computed(() => route.query.projectName as string || 'Project')
+const createdLintResultId = ref<number | string | null>(null)
+
+// Additional state for lint result actions
+const savingResults = ref(false)
+const showLinkModal = ref(false)
+const filterSeverity = ref<string | null>(null)
+const sortBy = ref<'line' | 'severity' | 'ruleType'>('line')
+const lintHistory = ref<any[]>([])
+const showHistory = ref(false)
+const exportingResults = ref(false)
+const searchTerm = ref('')
+const comments = ref<Record<number, any[]>>({})
+const showComments = ref<Record<number, boolean>>({})
+const editingCommentId = ref<number | null>(null)
+const editingCommentText = ref('')
+const deletingCommentId = ref<number | null>(null)
+const historyPage = ref(1)
+const historyPageSize = ref(10)
+const historyTotal = ref(0)
+const selectedHistoryItem = ref<any>(null)
+const showCompareModal = ref(false)
+const specContext = ref<Record<number, string>>({})
+const loadingContext = ref<Record<number, boolean>>({})
 
 const filteredRules = computed(() => rules.value) // Now always server-side
 
@@ -284,36 +779,38 @@ const showEditModal = ref(false)
 
 // Fetch all available specs
 const fetchAllSpecs = async () => {
+  console.log('🔵 fetchAllSpecs: Starting to fetch specs...')
   loadingSpecs.value = true
   try {
-    // Fetch from both endpoints
-    const [specsRes, specificationsRes] = await Promise.all([
-      authenticatedFetch('/api/v1/specifications/').catch(() => null),
-      authenticatedFetch('/api/v1/specs/').catch(() => null)
-    ])
+    // Only fetch from /api/v1/specifications/ (UUID-based specs)
+    // Note: GET /api/v1/specs/ does not exist - removed that call
+    const url = '/api/v1/specifications/'
+    console.log('🔵 fetchAllSpecs: Calling API:', url)
+    const specificationsRes = await authenticatedFetch(url).catch((err) => {
+      console.error('❌ fetchAllSpecs: API call failed:', err)
+      return null
+    })
+    
+    console.log('🔵 fetchAllSpecs: Response received:', specificationsRes ? `status: ${specificationsRes.status}, ok: ${specificationsRes.ok}` : 'null')
     
     const specs: any[] = []
     
     // Add specifications (UUIDs)
-    if (specsRes && specsRes.ok) {
-      const specificationsData = await specsRes.json()
+    if (specificationsRes && specificationsRes.ok) {
+      const specificationsData = await specificationsRes.json()
+      console.log('🔵 fetchAllSpecs: Parsed data:', Array.isArray(specificationsData) ? `${specificationsData.length} items` : 'not an array')
       if (Array.isArray(specificationsData)) {
         specs.push(...specificationsData.map((s: any) => ({ ...s, source: 'specifications' })))
       }
-    }
-    
-    // Add specs (integer IDs) - if endpoint exists
-    if (specificationsRes && specificationsRes.ok) {
-      const specsData = await specificationsRes.json()
-      if (Array.isArray(specsData)) {
-        specs.push(...specsData.map((s: any) => ({ ...s, source: 'specs' })))
-      }
+    } else if (specificationsRes) {
+      const errorText = await specificationsRes.text().catch(() => 'Unknown error')
+      console.error('❌ fetchAllSpecs: API error:', specificationsRes.status, errorText)
     }
     
     allAvailableSpecs.value = specs
-    console.log('✅ Loaded', specs.length, 'specs for dropdown')
+    console.log('✅ fetchAllSpecs: Loaded', specs.length, 'specs for dropdown')
   } catch (e: any) {
-    console.error('Failed to fetch specs:', e)
+    console.error('❌ fetchAllSpecs: Error:', e)
     // Fallback to specifications store
     allAvailableSpecs.value = specificationsStore.specifications.map((s: any) => ({ ...s, source: 'specifications' }))
   } finally {
@@ -330,6 +827,7 @@ const formatSpecDisplayName = (spec: any) => {
 }
 
 const fetchRules = async () => {
+  console.log('🔵 fetchRules: Starting to fetch rules...')
   ruleLoading.value = true
   ruleError.value = ''
   if (loaderTimeout) clearTimeout(loaderTimeout)
@@ -346,12 +844,21 @@ const fetchRules = async () => {
     if (ruleFilters.value.severity) params.append('severity', ruleFilters.value.severity)
     if (ruleFilters.value.created_from) params.append('created_from', ruleFilters.value.created_from)
     if (ruleFilters.value.created_to) params.append('created_to', ruleFilters.value.created_to)
-    const res = await authenticatedFetch(`/api/v1/lint-results/speclint/rules?${params.toString()}`)
-    if (!res.ok) throw new Error('Failed to fetch rules')
+    const url = `/api/v1/lint-results/speclint/rules?${params.toString()}`
+    console.log('🔵 fetchRules: Calling API:', url)
+    const res = await authenticatedFetch(url)
+    console.log('🔵 fetchRules: Response status:', res.status, 'ok:', res.ok)
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Unknown error')
+      console.error('❌ fetchRules: API error:', res.status, errorText)
+      throw new Error(`Failed to fetch rules: ${res.status}`)
+    }
     const data = await res.json()
+    console.log('✅ fetchRules: Success! Loaded', (data.results || []).length, 'rules')
     rules.value = data.results || []
     totalResults.value = data.pagination?.total_results || 0
   } catch (e: any) {
+    console.error('❌ fetchRules: Error:', e)
     ruleError.value = e.message || 'Failed to fetch rules'
   } finally {
     ruleLoading.value = false
@@ -398,10 +905,46 @@ watch([page], () => {
 })
 
 onMounted(async () => {
-  fetchRules()
-  await fetchAllSpecs()
-  if (specificationsStore.specifications.length === 0) {
-    specificationsStore.loadSpecifications()
+  console.log('🔵🔵🔵 SpecLintPage: Component MOUNTED - Starting initialization...')
+  console.log('🔵 SpecLintPage: Route:', route.path, route.name)
+  console.log('🔵 SpecLintPage: Token exists:', !!authStore.token)
+  
+  try {
+    console.log('🔵 SpecLintPage: Step 1 - Calling fetchRules()...')
+    await fetchRules() // Make it await so we can see if it completes
+    console.log('✅ SpecLintPage: Step 1 - fetchRules() completed')
+    
+    console.log('🔵 SpecLintPage: Step 2 - Calling fetchAllSpecs()...')
+    try {
+      await fetchAllSpecs()
+      console.log('✅ SpecLintPage: Step 2 - fetchAllSpecs() completed')
+    } catch (fetchError: any) {
+      console.error('❌ SpecLintPage: Step 2 - Failed to fetch specs:', fetchError.message, fetchError)
+      // Don't throw - continue without specs (user can still use the page)
+    }
+    
+    // Only try to load from store if we don't have any specs yet
+    // And wrap in try-catch to prevent any errors from blocking page load
+    if (allAvailableSpecs.value.length === 0) {
+      console.log('🔵 SpecLintPage: Step 3 - No specs from fetchAllSpecs, trying store...')
+      try {
+        await specificationsStore.loadSpecifications()
+        // If store has specs, add them to allAvailableSpecs
+        if (specificationsStore.specifications.length > 0) {
+          allAvailableSpecs.value = specificationsStore.specifications.map((s: any) => ({ ...s, source: 'store' }))
+          console.log('✅ SpecLintPage: Step 3 - Loaded', allAvailableSpecs.value.length, 'specs from store')
+        }
+      } catch (specError: any) {
+        console.error('❌ SpecLintPage: Step 3 - Failed to load specifications from store:', specError.message, specError)
+        // Don't throw - continue with empty specs list (user can still use the page)
+      }
+    }
+    console.log('✅✅✅ SpecLintPage: Initialization COMPLETE!')
+    console.log('✅ SpecLintPage: Rules loaded:', rules.value.length)
+    console.log('✅ SpecLintPage: Specs loaded:', allAvailableSpecs.value.length)
+  } catch (error) {
+    console.error('❌❌❌ SpecLintPage: CRITICAL ERROR during initialization:', error)
+    console.error('❌ SpecLintPage: Error stack:', (error as Error).stack)
   }
 })
 
@@ -437,56 +980,778 @@ const addRule = async () => {
 
 // Run the linter on a spec
 const runLinter = async () => {
+  if (!specId.value) {
+    lintError.value = 'Please select a spec first'
+    return
+  }
+
   runningLint.value = true
   lintError.value = ''
   lintSuccess.value = ''
+  lintResults.value = []
+  
   try {
-    const res = await authenticatedFetch('/api/v1/lint-results/speclint/lint', {
+    console.log('🧪 Running linter for spec:', specId.value)
+    
+    // ✅ Use the fixed endpoint that supports both UUID and integer spec IDs
+    const res = await apiClient(`/specs/${specId.value}/lint`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ specId: specId.value }) // use camelCase as per backend contract
+      }
     })
+    
+    console.log('🧪 Linter response:', {
+      status: res.status,
+      ok: res.ok,
+      isAuthError: (res as any).isAuthError
+    })
+    
+    // Handle 401 authentication errors specifically
+    if (res.status === 401 || (res as any).isAuthError) {
+      const errorDetail = (res as any).errorDetail || 'Authentication failed'
+      lintError.value = 'Authentication failed. Please refresh the page and log in again.'
+      console.error('❌ Authentication failed:', errorDetail)
+      return
+    }
+    
     if (!res.ok) {
-      let errMsg = 'Failed to run linter'
-      try {
-        const err = await res.json()
-        errMsg = err.detail || errMsg
-      } catch {}
-      throw new Error(errMsg)
+      const errorMessage = await parseApiError(res, 'Failed to run linter')
+      lintError.value = errorMessage
+      console.error('❌ Linter failed:', errorMessage, 'Status:', res.status)
+      return
     }
+    
     const data = await res.json()
-    // Handle response structure: { specId: "123", issues: [...] }
-    if (data && Array.isArray(data.issues)) {
-      lintResults.value = data.issues.map((issue: any) => ({
-        ruleType: issue.ruleType,
-        pattern: issue.pattern,
-        line: issue.line,
-        message: issue.message,
-        severity: issue.severity || 'warning'
-      }))
-    } else if (Array.isArray(data)) {
-      lintResults.value = data.map((issue: any) => ({
-        ruleType: issue.ruleType || issue.rule_type,
-        pattern: issue.pattern,
-        line: issue.line,
-        message: issue.message,
-        severity: issue.severity || 'warning'
-      }))
+    console.log('🧪 Linter data received (full response):', JSON.stringify(data, null, 2))
+    
+    // Determine response format: LintResult (integer spec, saved) vs LintResultResponse (UUID spec, not saved)
+    const isLintResult = 'id' in data && 'spec_id' in data // Integer spec format (saved to DB)
+    const isLintResultResponse = 'specId' in data && 'issues' in data // UUID spec format (not saved)
+    
+    console.log('📋 Response format detection:', {
+      isLintResult,
+      isLintResultResponse,
+      hasId: 'id' in data,
+      hasSpecId: 'specId' in data
+    })
+    
+    // Extract lint result ID and issues based on format
+    let lintResultId: string | number | null = null
+    let issues: any[] = []
+    
+    if (isLintResult) {
+      // Integer spec: LintResult format (auto-saved to DB)
+      lintResultId = data.id
+      issues = data.issues || []
+      console.log('✅ Integer spec detected - Lint result saved with ID:', lintResultId)
+    } else if (isLintResultResponse) {
+      // UUID spec: LintResultResponse format (not saved to DB)
+      lintResultId = null // No ID because it's not saved
+      issues = data.issues || []
+      console.log('✅ UUID spec detected - Lint result NOT saved (use Save Results button)')
     } else {
-      lintResults.value = []
+      // Fallback: try to extract issues from any format
+      issues = data.issues || (Array.isArray(data) ? data : [])
+      console.warn('⚠️ Unknown response format, attempting to extract issues')
     }
+    
+    // Store lint result ID if available
+    if (lintResultId) {
+      createdLintResultId.value = lintResultId
+      console.log('📝 Created lint result ID:', createdLintResultId.value)
+      
+      // If we have a project ID, automatically link the lint result
+      if (projectId.value) {
+        // Set linking status before attempting to link
+        linkingToProject.value = true
+        linkingError.value = ''
+        
+        try {
+          console.log('🔗 Attempting to link lint result', lintResultId, 'to project', projectId.value)
+          await linkLintResultToProject(createdLintResultId.value as string | number)
+          console.log('✅ Linking completed successfully')
+        } catch (linkError: any) {
+          console.error('❌ Failed to auto-link lint result to project:', linkError)
+          linkingError.value = `Failed to automatically link to ${projectName.value}: ${linkError.message || 'Unknown error'}. You can link it manually from the project page.`
+        } finally {
+          linkingToProject.value = false
+        }
+      } else {
+        console.log('ℹ️ No project ID in route, skipping auto-link')
+      }
+    } else if (isLintResultResponse) {
+      // UUID spec - results not saved, show message to save
+      console.log('ℹ️ UUID spec - lint results not saved. User can save using Save Results button.')
+      if (projectId.value) {
+        lintSuccess.value = `Lint completed! Found ${issues.length} issue${issues.length !== 1 ? 's' : ''}. Save results to link to project.`
+      }
+    } else {
+      console.warn('⚠️ No lint result ID found in response')
+      console.warn('⚠️ Response data:', data)
+      if (projectId.value) {
+        linkingError.value = 'Could not find lint result ID. The lint result may need to be saved manually.'
+      }
+    }
+    
+    // Process issues from response
+    lintResults.value = issues.map((issue: any) => ({
+      ruleType: issue.ruleType || issue.rule_type,
+      pattern: issue.pattern,
+      line: issue.line,
+      message: issue.message,
+      severity: issue.severity || 'warning'
+    }))
+    
     if (lintResults.value.length === 0) {
       lintSuccess.value = 'No issues found!'
     } else {
       lintSuccess.value = `Lint completed! Found ${lintResults.value.length} issue${lintResults.value.length !== 1 ? 's' : ''}.`
     }
+    
+    console.log('✅ Linter completed successfully:', lintResults.value.length, 'issues found')
   } catch (e: any) {
+    console.error('❌ Linter error:', e)
+    
+    // More specific error messages
+    if (e.message?.includes('401') || e.message?.includes('Authentication') || e.message?.includes('Not authenticated')) {
+      lintError.value = 'Authentication failed. Please refresh the page and log in again.'
+    } else if (e.message?.includes('Network') || e.message?.includes('fetch')) {
+      lintError.value = 'Network error. Please check your connection and try again.'
+    } else {
     lintError.value = e.message || 'Failed to run linter'
+    }
   } finally {
     runningLint.value = false
+    // Don't auto-hide success message if we have a project context (user might want to click back button)
+    if (!projectId.value) {
     setTimeout(() => { lintSuccess.value = '' }, 2000)
+    }
+  }
+}
+
+// Fetch the latest lint result ID for a spec
+const fetchLatestLintResultId = async (specIdValue: string | number): Promise<string | number | null> => {
+  try {
+    console.log('🔍 Fetching latest lint result for spec:', specIdValue)
+    // Try multiple query parameter formats
+    const urls = [
+      `/lint-results/?spec_id=${specIdValue}&ordering=-created_at&limit=1`,
+      `/lint-results/?specId=${specIdValue}&ordering=-created_at&limit=1`,
+      `/lint-results/?ordering=-created_at&limit=10` // Fallback: get recent and filter client-side
+    ]
+    
+    for (const url of urls) {
+      try {
+        const res = await apiClient(url)
+        
+        if (res.ok) {
+          const data = await res.json()
+          console.log('🔍 Lint results API response:', data)
+          
+          // Handle both array and paginated response
+          let results = Array.isArray(data) ? data : (data.results || [])
+          
+          // If we got all results, filter by spec_id client-side
+          if (url.includes('limit=10')) {
+            results = results.filter((r: any) => 
+              String(r.spec_id) === String(specIdValue) || 
+              String(r.specId) === String(specIdValue)
+            )
+          }
+          
+          if (results.length > 0) {
+            const latest = results[0]
+            console.log('✅ Found latest lint result:', latest.id, 'for spec:', specIdValue)
+            return latest.id
+          }
+        }
+      } catch (urlError: any) {
+        console.warn(`⚠️ Failed to fetch from ${url}:`, urlError)
+        continue
+      }
+    }
+    
+    console.warn('⚠️ No lint results found for spec after trying all URL formats')
+    return null
+  } catch (error: any) {
+    console.error('❌ Error fetching latest lint result:', error)
+    return null
+  }
+}
+
+// Link lint result to project
+const linkLintResultToProject = async (lintResultId: string | number) => {
+  if (!projectId.value) {
+    console.warn('⚠️ No project ID available for linking')
+    return
+  }
+  
+  try {
+    console.log('🔗 Linking lint result', lintResultId, 'to project', projectId.value)
+    const res = await apiClient(`/projects/${projectId.value}/lint-results/${lintResultId}/link`, {
+      method: 'POST'
+    })
+    
+    if (res.ok) {
+      console.log('✅ Lint result linked to project successfully')
+      lintSuccess.value = `${lintSuccess.value} Successfully linked to ${projectName.value}.`
+      
+      // Dispatch event to notify project page to refresh
+      window.dispatchEvent(new CustomEvent('project-content-updated', {
+        detail: { projectId: projectId.value }
+      }))
+      
+      // Start auto-navigate countdown (5 seconds)
+      startAutoNavigate()
+    } else {
+      const errorText = await res.text().catch(() => 'Unknown error')
+      let errorMessage = 'Failed to link lint result to project'
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMessage = errorData.detail || errorData.message || errorMessage
+      } catch {
+        errorMessage = errorText || errorMessage
+      }
+      console.warn('⚠️ Failed to link lint result:', res.status, errorMessage)
+      throw new Error(errorMessage)
+    }
+  } catch (error: any) {
+    console.error('❌ Error linking lint result:', error)
+    throw error
+  }
+}
+
+// Retry linking
+const retryLinking = async () => {
+  if (!createdLintResultId.value || !projectId.value) return
+  
+  linkingError.value = ''
+  linkingToProject.value = true
+  
+  try {
+    await linkLintResultToProject(createdLintResultId.value as string | number)
+  } catch (error: any) {
+    linkingError.value = error.message || 'Failed to link. Please try manually from the project page.'
+  } finally {
+    linkingToProject.value = false
+  }
+}
+
+// Auto-navigate countdown
+let autoNavigateTimer: ReturnType<typeof setInterval> | null = null
+
+const startAutoNavigate = () => {
+  if (!projectId.value) return
+  
+  autoNavigateCountdown.value = 5
+  
+  autoNavigateTimer = setInterval(() => {
+    if (autoNavigateCountdown.value !== null && autoNavigateCountdown.value > 0) {
+      autoNavigateCountdown.value--
+    } else {
+      if (autoNavigateTimer) {
+        clearInterval(autoNavigateTimer)
+        autoNavigateTimer = null
+      }
+      if (autoNavigateCountdown.value === 0) {
+        goBackToProject()
+      }
+    }
+  }, 1000)
+}
+
+const cancelAutoNavigate = () => {
+  if (autoNavigateTimer) {
+    clearInterval(autoNavigateTimer)
+    autoNavigateTimer = null
+  }
+  autoNavigateCountdown.value = null
+}
+
+// Cleanup on component unmount
+onBeforeUnmount(() => {
+  cancelAutoNavigate()
+})
+
+// Navigate back to project
+const goBackToProject = () => {
+  // Cancel auto-navigate if active
+  cancelAutoNavigate()
+  
+  if (projectId.value) {
+    // Dispatch event before navigation to ensure project page refreshes
+    window.dispatchEvent(new CustomEvent('project-content-updated', {
+      detail: { projectId: projectId.value }
+    }))
+    router.push(`/projects/${projectId.value}`)
+  } else {
+    router.push('/projects')
+  }
+}
+
+// Save lint results to database (for UUID specs or when results weren't auto-saved)
+const saveLintResults = async () => {
+  if (!specId.value || lintResults.value.length === 0) {
+    lintError.value = 'No results to save'
+    return
+  }
+  
+  // If already saved (integer spec), don't save again
+  if (createdLintResultId.value) {
+    lintSuccess.value = 'Lint results already saved!'
+    return
+  }
+  
+  savingResults.value = true
+  lintError.value = ''
+  lintSuccess.value = ''
+  
+  try {
+    const errorCount = lintResults.value.filter(r => r.severity === 'error').length
+    const warningCount = lintResults.value.filter(r => r.severity === 'warning').length
+    
+    // For UUID specs, we need to use a different endpoint to save
+    // Check if specId is UUID (contains hyphens) or integer
+    const isUUID = String(specId.value).includes('-')
+    
+    if (isUUID) {
+      // UUID spec - use lint-results endpoint to save
+      const lintResultData = {
+        spec_id: specId.value, // UUID as string
+        issues: lintResults.value.map(issue => ({
+          severity: issue.severity,
+          type: issue.ruleType,
+          message: issue.message,
+          location: { line: issue.line },
+          recommendation: null
+        })),
+        summary: `Found ${errorCount} error(s), ${warningCount} warning(s)`,
+        spec_metadata: {}
+      }
+      
+      const res = await apiClient('/lint-results/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lintResultData)
+      })
+      
+      if (!res.ok) {
+        const errorMessage = await parseApiError(res, 'Failed to save lint results')
+        throw new Error(errorMessage)
+      }
+      
+      const savedResult = await res.json()
+      createdLintResultId.value = savedResult.id
+      lintSuccess.value = 'Lint results saved successfully!'
+    } else {
+      // Integer spec - use /specs/{id}/lint which auto-saves
+      // This should have already been saved, but we can call it again
+      const res = await apiClient(`/specs/${specId.value}/lint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (!res.ok) {
+        const errorMessage = await parseApiError(res, 'Failed to save lint results')
+        throw new Error(errorMessage)
+      }
+      
+      const savedResult = await res.json()
+      
+      // Check if it's a LintResult (saved) or LintResultResponse (not saved)
+      if ('id' in savedResult) {
+        createdLintResultId.value = savedResult.id
+        lintSuccess.value = 'Lint results saved successfully!'
+      } else {
+        lintError.value = 'Results were not saved. Please try again.'
+        return
+      }
+    }
+    
+    // Auto-link if we have project context
+    if (projectId.value && createdLintResultId.value) {
+      try {
+        linkingToProject.value = true
+        await linkLintResultToProject(createdLintResultId.value as string | number)
+      } catch (linkError: any) {
+        console.warn('Failed to auto-link after save:', linkError)
+        linkingError.value = `Results saved but failed to link to project: ${linkError.message || 'Unknown error'}`
+      } finally {
+        linkingToProject.value = false
+      }
+    }
+  } catch (e: any) {
+    lintError.value = e.message || 'Failed to save lint results'
+    console.error('Error saving lint results:', e)
+  } finally {
+    savingResults.value = false
+  }
+}
+
+// Export results (JSON)
+const exportResults = async () => {
+  if (lintResults.value.length === 0) {
+    lintError.value = 'No results to export'
+    return
+  }
+  
+  exportingResults.value = true
+  try {
+    const errorCount = lintResults.value.filter(r => r.severity === 'error').length
+    const warningCount = lintResults.value.filter(r => r.severity === 'warning').length
+    
+    const data = {
+      specId: specId.value,
+      timestamp: new Date().toISOString(),
+      totalIssues: lintResults.value.length,
+      errors: errorCount,
+      warnings: warningCount,
+      issues: lintResults.value
+    }
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `lint-results-${specId.value || 'unknown'}-${Date.now()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    lintSuccess.value = 'Results exported successfully!'
+    setTimeout(() => { lintSuccess.value = '' }, 3000)
+  } catch (e: any) {
+    lintError.value = 'Failed to export results'
+    console.error('Error exporting results:', e)
+  } finally {
+    exportingResults.value = false
+  }
+}
+
+// Export to CSV
+const exportToCSV = () => {
+  if (lintResults.value.length === 0) {
+    lintError.value = 'No results to export'
+    return
+  }
+  
+  const headers = ['Line', 'Severity', 'Rule Type', 'Message', 'Pattern']
+  const rows = lintResults.value.map((issue: any) => [
+    issue.line || '',
+    issue.severity || '',
+    issue.ruleType || '',
+    `"${(issue.message || '').replace(/"/g, '""')}"`,
+    issue.pattern || ''
+  ])
+  
+  const csv = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n')
+  
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `lint-results-${specId.value || 'unknown'}-${Date.now()}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  
+  lintSuccess.value = 'CSV exported successfully!'
+  setTimeout(() => { lintSuccess.value = '' }, 3000)
+}
+
+// View lint history
+const toggleHistory = async () => {
+  showHistory.value = !showHistory.value
+  if (showHistory.value && specId.value && lintHistory.value.length === 0) {
+    await fetchLintHistory()
+  }
+}
+
+const fetchLintHistory = async () => {
+  if (!specId.value) return
+  try {
+    const skip = (historyPage.value - 1) * historyPageSize.value
+    const res = await apiClient(`/specs/${specId.value}/lint-results?skip=${skip}&limit=${historyPageSize.value}`)
+    if (res.ok) {
+      const data = await res.json()
+      lintHistory.value = Array.isArray(data) ? data : (data.results || [])
+      historyTotal.value = Array.isArray(data) ? data.length : (data.total || lintHistory.value.length)
+    } else {
+      console.warn('Failed to fetch lint history:', res.status)
+    }
+  } catch (e) {
+    console.error('Failed to fetch lint history:', e)
+  }
+}
+
+// Select history item for comparison
+const selectHistoryForCompare = async (historyItem: any) => {
+  if (selectedHistoryItem.value?.id === historyItem.id) {
+    selectedHistoryItem.value = null
+    showCompareModal.value = false
+  } else {
+    selectedHistoryItem.value = historyItem
+    showCompareModal.value = true
+    // Fetch full details of selected history item
+    try {
+      const res = await apiClient(`/lint-results/${historyItem.id}`)
+      if (res.ok) {
+        selectedHistoryItem.value = await res.json()
+      }
+    } catch (e) {
+      console.error('Failed to fetch history item details:', e)
+    }
+  }
+}
+
+// Compare lint runs
+const compareLintRuns = computed(() => {
+  if (!selectedHistoryItem.value || !createdLintResultId.value) return null
+  
+  const currentIssues = lintResults.value
+  const previousIssues = selectedHistoryItem.value.issues || []
+  
+  const currentIssueIds = new Set(currentIssues.map((i: any) => `${i.line}-${i.ruleType}-${i.pattern}`))
+  const previousIssueIds = new Set(previousIssues.map((i: any) => `${i.line}-${i.ruleType}-${i.pattern}`))
+  
+  return {
+    new: currentIssues.filter((i: any) => !previousIssueIds.has(`${i.line}-${i.ruleType}-${i.pattern}`)),
+    fixed: previousIssues.filter((i: any) => !currentIssueIds.has(`${i.line}-${i.ruleType}-${i.pattern}`)),
+    unchanged: currentIssues.filter((i: any) => previousIssueIds.has(`${i.line}-${i.ruleType}-${i.pattern}`))
+  }
+})
+
+// Navigate to line (if viewing spec file)
+const navigateToLine = (lineNumber: number) => {
+  // Try to find element with data-line attribute
+  const element = document.querySelector(`[data-line="${lineNumber}"]`)
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    element.classList.add('highlight-line', 'ring-2', 'ring-blue-500')
+    setTimeout(() => {
+      element.classList.remove('highlight-line', 'ring-2', 'ring-blue-500')
+    }, 2000)
+    lintSuccess.value = `Scrolled to line ${lineNumber}`
+  } else {
+    lintSuccess.value = `Line ${lineNumber} - Open spec file to navigate`
+  }
+  setTimeout(() => { lintSuccess.value = '' }, 3000)
+}
+
+// View spec context around line
+const viewSpecContext = async (specIdValue: string | number | undefined, lineNumber: number | undefined) => {
+  if (!specIdValue || !lineNumber || loadingContext.value[lineNumber]) return
+  
+  loadingContext.value[lineNumber] = true
+  try {
+    // Fetch spec file content (this would need backend support)
+    const res = await apiClient(`/specs/${specIdValue}/content?line=${lineNumber}&context=5`)
+    if (res.ok) {
+      const data = await res.json()
+      specContext.value[lineNumber] = data.content || data.context || 'Context not available'
+    } else {
+      specContext.value[lineNumber] = 'Unable to load file context'
+    }
+  } catch (e) {
+    console.error('Failed to fetch spec context:', e)
+    specContext.value[lineNumber] = 'Error loading context'
+  } finally {
+    loadingContext.value[lineNumber] = false
+  }
+}
+
+// Copy issue details
+const copyIssueDetails = (issue: any) => {
+  const text = `Line ${issue.line || 'N/A'}: ${issue.message || 'No message'}
+Rule: ${issue.ruleType || 'N/A'}
+Pattern: ${issue.pattern || 'N/A'}
+Severity: ${issue.severity || 'N/A'}`
+  
+  navigator.clipboard.writeText(text).then(() => {
+    lintSuccess.value = 'Issue details copied to clipboard!'
+    setTimeout(() => { lintSuccess.value = '' }, 3000)
+  }).catch(() => {
+    lintError.value = 'Failed to copy to clipboard'
+  })
+}
+
+// Share lint result
+const shareLintResult = () => {
+  if (!createdLintResultId.value) {
+    lintError.value = 'No lint result to share'
+    return
+  }
+  
+  const url = `${window.location.origin}/speclint?lintResultId=${createdLintResultId.value}`
+  navigator.clipboard.writeText(url).then(() => {
+    lintSuccess.value = 'Link copied to clipboard!'
+    setTimeout(() => { lintSuccess.value = '' }, 3000)
+  }).catch(() => {
+    lintError.value = 'Failed to copy link'
+  })
+}
+
+// View rule details
+const viewRuleDetails = (ruleType: string, pattern: string) => {
+  // Find the rule in the rules list
+  const rule = rules.value.find(r => 
+    (r.ruleType || r.rule_type) === ruleType && r.pattern === pattern
+  )
+  
+  if (rule) {
+    lintSuccess.value = `Rule: ${ruleType}, Pattern: ${pattern}, Severity: ${rule.severity}`
+  } else {
+    lintSuccess.value = `Rule: ${ruleType}, Pattern: ${pattern}`
+  }
+  setTimeout(() => { lintSuccess.value = '' }, 3000)
+}
+
+// Toggle comments display
+const toggleComments = async (issueIndex: number) => {
+  showComments.value[issueIndex] = !showComments.value[issueIndex]
+  
+  // Fetch comments if not already loaded
+  if (showComments.value[issueIndex] && createdLintResultId.value && !comments.value[issueIndex]) {
+    await fetchComments(issueIndex)
+  }
+}
+
+// Fetch comments for an issue
+const fetchComments = async (issueIndex: number) => {
+  if (!createdLintResultId.value) return
+  
+  try {
+    const res = await apiClient(`/comments?entity_type=lint_result&entity_id=${createdLintResultId.value}&issue_index=${issueIndex}`)
+    if (res.ok) {
+      const data = await res.json()
+      comments.value[issueIndex] = Array.isArray(data) ? data : (data.results || [])
+    }
+  } catch (e) {
+    console.error('Failed to fetch comments:', e)
+    comments.value[issueIndex] = []
+  }
+}
+
+// Comment on issue
+const commentOnIssue = async (issueIndex: number) => {
+  if (!createdLintResultId.value) {
+    lintError.value = 'Please save lint results first'
+    return
+  }
+  
+  const comment = prompt('Enter your comment:')
+  if (!comment || !comment.trim()) return
+  
+  try {
+    const res = await apiClient('/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entity_type: 'lint_result',
+        entity_id: createdLintResultId.value,
+        content: comment.trim(),
+        issue_index: issueIndex
+      })
+    })
+    
+    if (res.ok) {
+      lintSuccess.value = 'Comment added successfully!'
+      setTimeout(() => { lintSuccess.value = '' }, 3000)
+      // Refresh comments
+      await fetchComments(issueIndex)
+    } else {
+      const errorMessage = await parseApiError(res, 'Failed to add comment')
+      throw new Error(errorMessage)
+    }
+  } catch (e: any) {
+    lintError.value = e.message || 'Failed to add comment'
+    console.error('Error adding comment:', e)
+  }
+}
+
+// Edit comment
+const startEditComment = (comment: any) => {
+  editingCommentId.value = comment.id
+  editingCommentText.value = comment.content
+}
+
+const saveEditedComment = async (commentId: number) => {
+  if (!editingCommentText.value.trim()) return
+  
+  try {
+    const res = await apiClient(`/comments/${commentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: editingCommentText.value.trim() })
+    })
+    
+    if (res.ok) {
+      lintSuccess.value = 'Comment updated successfully!'
+      setTimeout(() => { lintSuccess.value = '' }, 3000)
+      // Refresh comments for all issues
+      for (const index in comments.value) {
+        await fetchComments(parseInt(index))
+      }
+      editingCommentId.value = null
+    } else {
+      const errorMessage = await parseApiError(res, 'Failed to update comment')
+      throw new Error(errorMessage)
+    }
+  } catch (e: any) {
+    lintError.value = e.message || 'Failed to update comment'
+    console.error('Error updating comment:', e)
+  }
+}
+
+// Delete comment
+const deleteComment = async (commentId: number) => {
+  if (!confirm('Are you sure you want to delete this comment?')) return
+  
+  deletingCommentId.value = commentId
+  try {
+    const res = await apiClient(`/comments/${commentId}`, {
+      method: 'DELETE'
+    })
+    
+    if (res.ok) {
+      lintSuccess.value = 'Comment deleted successfully!'
+      setTimeout(() => { lintSuccess.value = '' }, 3000)
+      // Refresh comments for all issues
+      for (const index in comments.value) {
+        await fetchComments(parseInt(index))
+      }
+    } else {
+      const errorMessage = await parseApiError(res, 'Failed to delete comment')
+      throw new Error(errorMessage)
+    }
+  } catch (e: any) {
+    lintError.value = e.message || 'Failed to delete comment'
+    console.error('Error deleting comment:', e)
+  } finally {
+    deletingCommentId.value = null
+  }
+}
+
+// Format date helper
+const formatDateShort = (dateString: string) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return dateString
   }
 }
 
@@ -517,15 +1782,53 @@ const getResultBadgeClass = (type: string) => {
   }
 }
 
-// Group results by severity
-const groupedResults = computed(() => {
+// Filtered and sorted results
+const filteredAndSortedResults = computed(() => {
+  let results = [...lintResults.value]
+  
+  // Filter by severity
+  if (filterSeverity.value) {
+    results = results.filter(r => r.severity === filterSeverity.value)
+  }
+  
+  // Search filter
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase()
+    results = results.filter(r =>
+      r.message?.toLowerCase().includes(term) ||
+      r.pattern?.toLowerCase().includes(term) ||
+      r.ruleType?.toLowerCase().includes(term) ||
+      r.line?.toString().includes(term)
+    )
+  }
+  
+  // Sort
+  results.sort((a, b) => {
+    switch (sortBy.value) {
+      case 'line':
+        return (a.line || 0) - (b.line || 0)
+      case 'severity':
+        const severityOrder: Record<string, number> = { error: 0, warning: 1, info: 2 }
+        return (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2)
+      case 'ruleType':
+        return (a.ruleType || '').localeCompare(b.ruleType || '')
+      default:
+        return 0
+    }
+  })
+  
+  return results
+})
+
+// Group results by severity (using filtered and sorted results)
+const groupedFilteredResults = computed(() => {
   const groups: Record<string, LintResult[]> = {
     error: [],
     warning: [],
     info: []
   }
   
-  lintResults.value.forEach(result => {
+  filteredAndSortedResults.value.forEach(result => {
     const severity = (result.severity || result.type || 'warning').toLowerCase()
     if (groups[severity]) {
       groups[severity].push(result)
@@ -543,6 +1846,9 @@ const groupedResults = computed(() => {
   
   return groups
 })
+
+// Legacy groupedResults for backward compatibility
+const groupedResults = computed(() => groupedFilteredResults.value)
 
 // Edit rule
 const editRule = (rule: LintRule) => {

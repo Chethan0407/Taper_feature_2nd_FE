@@ -289,7 +289,7 @@ const handleSignUp = async () => {
     return
   }
   try {
-    const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
+    const res = await fetch('/api/v1/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: signupEmail.value, password: signupPassword.value, name: signupName.value })
@@ -309,7 +309,7 @@ const handleForgotPassword = async () => {
   forgotError.value = ''
   forgotSuccess.value = false
   try {
-    const res = await fetch('http://localhost:8000/api/v1/auth/forgot-password', {
+    const res = await fetch('/api/v1/auth/forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: forgotEmail.value })

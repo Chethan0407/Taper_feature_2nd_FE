@@ -85,7 +85,7 @@ const handleSubmit = async () => {
       }))
     }
     
-    const res = await fetch('http://localhost:8000/api/v1/checklists/templates', {
+    const res = await fetch('/api/v1/checklists/templates', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

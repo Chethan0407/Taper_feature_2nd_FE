@@ -26,7 +26,7 @@ export const useProjectsStore = defineStore('projects', () => {
   const error = ref<string | null>(null)
   const authStore = useAuthStore()
 
-  const API_BASE = 'http://localhost:8000/api/v1/projects/'
+  const API_BASE = '/api/v1/projects/'
 
   // Load all projects
   const loadProjects = async () => {

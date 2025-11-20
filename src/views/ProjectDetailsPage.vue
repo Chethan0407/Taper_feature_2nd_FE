@@ -432,9 +432,47 @@
           placeholder="Search lint results by ID, summary, or spec ID..."
         />
 
-        <div v-if="filteredLintResults.length === 0" class="text-center py-8 text-gray-500">
-          <p v-if="lintResultSearch">No lint results match your search.</p>
-          <p v-else>No lint results available to link.</p>
+        <div v-if="filteredLintResults.length === 0" class="text-center py-8">
+          <div v-if="lintResultError" class="mb-4">
+            <svg class="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-red-500 dark:text-red-400 font-medium mb-4">{{ lintResultError }}</p>
+            <div class="flex items-center justify-center gap-3">
+              <button 
+                @click="goToSpecLintPage" 
+                class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                Go to SpecLint Page
+              </button>
+              <button 
+                @click="loadAvailableLintResults" 
+                class="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+          <div v-else class="text-gray-500">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p v-if="lintResultSearch" class="font-medium">No lint results match your search.</p>
+            <p v-else class="font-medium">No lint results available to link.</p>
+            <p class="text-sm mt-2 mb-4">Run linting on a spec first to create lint results.</p>
+            <button 
+              @click="goToSpecLintPage" 
+              class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 mx-auto"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+              Go to SpecLint Page
+            </button>
+          </div>
         </div>
 
         <div v-else class="space-y-3 max-h-96 overflow-y-auto">
@@ -1143,7 +1181,7 @@ const loadProject = async () => {
     // STEP 4: Explicitly load quality score to ensure it's fetched
     await loadQualityScore(projectId)
     
-    // STEP 4: Start auto-refresh (every 30 seconds)
+    // STEP 4: Start auto-refresh (every 5 minutes - less frequent to avoid unnecessary refreshes)
     if (!autoRefreshTimer.value) {
       autoRefreshTimer.value = setInterval(async () => {
         const currentProjectId = project.value?.id || route.params.id
@@ -1151,15 +1189,11 @@ const loadProject = async () => {
           console.log('🔄 Auto-refreshing linked content...')
           await loadLinkedContent()
         }
-      }, 30000) // Every 30 seconds
-      console.log('🔄 Auto-refresh started (every 30 seconds)')
+      }, 300000) // Every 5 minutes (300000ms) instead of 30 seconds
+      console.log('🔄 Auto-refresh started (every 5 minutes)')
     }
     
-    // Also do an immediate refresh after 2 seconds to catch newly added specs
-    setTimeout(async () => {
-      console.log('🔄 Initial delayed refresh...')
-      await loadLinkedContent()
-    }, 2000)
+    // Removed: 2-second delayed refresh - unnecessary and causes flickering
   } catch (err: any) {
     error.value = err.message || 'Failed to load project'
     console.error('Error loading project:', err)
@@ -1600,9 +1634,10 @@ function onMetaChipClick(type: string, value: string) {
 
 const specLikes = ref<Record<string, { likedByUser: boolean; likeCount: number }>>({})
 const checklistLikes = ref<Record<string, { likedByUser: boolean; likeCount: number }>>({})
-// Watch for route changes to reload linked content
-watch(() => route.params.id, async (newId) => {
-  if (newId) {
+// Watch for route changes to reload linked content (only when project ID actually changes)
+watch(() => route.params.id, async (newId, oldId) => {
+  // Only refresh if the project ID actually changed
+  if (newId && newId !== oldId) {
     console.log('🔄 Route changed, loading linked content for project:', newId)
     await loadLinkedContent()
   }
@@ -1648,22 +1683,28 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  // Refresh when component becomes active (user navigates back)
-  if (project.value?.id || route.params.id) {
-    console.log('🔄 Component activated, refreshing...')
+  // Refresh when component becomes active (user navigated back)
+  const currentProjectId = project.value?.id || route.params.id
+  if (currentProjectId) {
+    // Always refresh when returning to the page to catch newly linked items
+    // This ensures lint results appear immediately after linking from SpecLint
+    console.log('🔄 Component activated, refreshing linked content...')
     await loadLinkedContent()
     
-    // Restart auto-refresh
-    if (autoRefreshTimer.value) {
-      clearInterval(autoRefreshTimer.value)
-    }
+    // Also refresh quality score
+    await loadQualityScore(currentProjectId)
+    
+    // Only restart auto-refresh if it's not already running
+    if (!autoRefreshTimer.value) {
     autoRefreshTimer.value = setInterval(async () => {
       const currentProjectId = project.value?.id || route.params.id
       if (currentProjectId) {
         console.log('🔄 Auto-refreshing linked content...')
         await loadLinkedContent()
       }
-    }, 30000)
+      }, 300000) // 5 minutes
+      console.log('🔄 Auto-refresh restarted (every 5 minutes)')
+    }
   }
 })
 
@@ -1678,11 +1719,25 @@ onBeforeUnmount(() => {
 
 // Handle project content update events
 const handleProjectContentUpdate = async (event: CustomEvent) => {
-  const projectId = event.detail?.projectId
-  const currentProjectId = route.params.id as string
-  if (projectId && String(projectId) === String(currentProjectId)) {
-    console.log('🔄 Received project-content-updated event, refreshing...')
+  const eventProjectId = event.detail?.projectId
+  const currentProjectId = project.value?.id || route.params.id as string
+  
+  console.log('🔄 Received project-content-updated event:', {
+    eventProjectId,
+    currentProjectId,
+    match: eventProjectId && String(eventProjectId) === String(currentProjectId)
+  })
+  
+  if (eventProjectId && String(eventProjectId) === String(currentProjectId)) {
+    console.log('🔄 Refreshing linked content after lint result link...')
+    // Add a small delay to ensure backend has processed the link
+    await new Promise(resolve => setTimeout(resolve, 500))
     await loadLinkedContent()
+    // Also refresh quality score
+    if (currentProjectId) {
+      await loadQualityScore(currentProjectId)
+    }
+    console.log('✅ Linked content refreshed')
   }
 }
 
@@ -1985,7 +2040,15 @@ const openLinkLintModal = async () => {
   selectedLintResultId.value = null
   lintResultSearch.value = ''
   lintResultError.value = ''
+  
+  console.log('🔗 Opening link lint modal, loading available lint results...')
   await loadAvailableLintResults()
+  
+  // Log the results after loading
+  console.log('🔗 Available lint results after load:', lintResults.value?.length || 0)
+  if (lintResultError.value) {
+    console.error('🔗 Error loading lint results:', lintResultError.value)
+  }
 }
 
 const closeLinkLintModal = () => {
@@ -1995,19 +2058,101 @@ const closeLinkLintModal = () => {
   lintResultError.value = ''
 }
 
+// Navigate to SpecLint page
+const goToSpecLintPage = () => {
+  closeLinkLintModal() // Close modal first
+  router.push('/speclint') // Navigate to SpecLint page
+}
+
 const loadAvailableLintResults = async () => {
   try {
     lintResultsLoading.value = true
     lintResultError.value = ''
+    
+    console.log('📋 Loading available lint results...')
     const res = await authenticatedFetch('/api/v1/lint-results/')
-    if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to load lint results')
+    
+    console.log('📋 Lint results response:', {
+      status: res.status,
+      ok: res.ok,
+      statusText: res.statusText,
+      isAuthError: (res as any).isAuthError
+    })
+    
+    // Handle 401 errors specifically
+    if (res.status === 401 && (res as any).isAuthError) {
+      const errorDetail = (res as any).errorDetail || 'Authentication failed'
+      lintResultError.value = 'Authentication failed. Please refresh the page or log in again.'
+      console.error('❌ Lint results load failed: 401 Unauthorized', errorDetail)
+      lintResults.value = []
+      return
     }
-    lintResults.value = await res.json()
+    
+    if (!res.ok) {
+      let errorMessage = 'Failed to load lint results'
+      try {
+        const errorText = await res.text()
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.detail || errorData.message || errorText
+        } catch {
+          errorMessage = errorText || errorMessage
+        }
+      } catch (e) {
+        console.error('Failed to read error response:', e)
+      }
+      
+      lintResultError.value = errorMessage
+      console.error('❌ Lint results load failed:', errorMessage, 'Status:', res.status)
+      lintResults.value = []
+      return
+    }
+    
+    // Parse response
+    try {
+      const lintResultsData = await res.json()
+      console.log('📋 Lint results from API:', lintResultsData)
+      console.log('📋 Number of results:', lintResultsData?.length || 0)
+      console.log('📋 Results type:', Array.isArray(lintResultsData) ? 'array' : typeof lintResultsData)
+      
+      // Check if results exist and are an array
+      if (lintResultsData && Array.isArray(lintResultsData)) {
+        if (lintResultsData.length > 0) {
+          lintResults.value = lintResultsData
+          lintResultError.value = '' // Clear any previous errors
+          console.log('✅ Lint results loaded successfully:', lintResultsData.length, 'results')
+        } else {
+          lintResults.value = []
+          lintResultError.value = 'No lint results found. Run linting on a spec first.'
+          console.warn('⚠️ No lint results returned from API (empty array)')
+        }
+      } else {
+        lintResults.value = []
+        lintResultError.value = 'Invalid response format from server.'
+        console.error('❌ Invalid response format - expected array, got:', typeof lintResultsData)
+      }
+    } catch (parseError: any) {
+      console.error('❌ Failed to parse lint results response:', parseError)
+      lintResultError.value = 'Failed to parse response. Please try again.'
+      lintResults.value = []
+    }
   } catch (e: any) {
-    lintResultError.value = e.message || 'Failed to load lint results'
-    console.error('Failed to load lint results:', e)
+    console.error('❌ Error loading lint results:', {
+      message: e.message,
+      stack: e.stack,
+      name: e.name
+    })
+    
+    // More specific error messages
+    if (e.message?.includes('401') || e.message?.includes('Authentication') || e.message?.includes('Not authenticated')) {
+      lintResultError.value = 'Authentication failed. Please log in again.'
+    } else if (e.message?.includes('Network') || e.message?.includes('fetch')) {
+      lintResultError.value = 'Network error. Please check your connection and try again.'
+    } else {
+      lintResultError.value = e.message || 'Failed to load lint results'
+    }
+    
+    lintResults.value = []
   } finally {
     lintResultsLoading.value = false
   }

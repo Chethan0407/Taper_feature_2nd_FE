@@ -293,7 +293,7 @@ const fetchStats = async () => {
     if (authStore.token) {
       headers['Authorization'] = `Bearer ${authStore.token}`
     }
-    const res = await fetch('http://localhost:8000/api/v1/dashboard/stats', { headers })
+    const res = await fetch('/api/v1/dashboard/stats', { headers })
     if (!res.ok) throw new Error('Unable to load dashboard stats.')
     stats.value = await res.json()
   } catch (e: any) {

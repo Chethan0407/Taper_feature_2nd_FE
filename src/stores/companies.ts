@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth'
+import { apiClient } from '@/utils/api-client'
 
 export interface Company {
   id: number
@@ -31,16 +32,14 @@ export const useCompaniesStore = defineStore('companies', () => {
   const error = ref<string | null>(null)
   const authStore = useAuthStore()
 
-  const API_BASE = 'http://localhost:8000/api/v1/companies'
+  const API_BASE = '/companies'
 
   // Load all companies
   const loadCompanies = async () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(API_BASE, {
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      })
+      const response = await apiClient(`${API_BASE}/`)
       
       if (!response.ok) {
         throw new Error('Failed to load companies')
@@ -67,9 +66,7 @@ export const useCompaniesStore = defineStore('companies', () => {
       const params = new URLSearchParams()
       if (query) params.append('search', query)
       if (status) params.append('status', status)
-      const response = await fetch(`${API_BASE}/?${params.toString()}`, {
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      })
+      const response = await apiClient(`${API_BASE}/?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to search companies')
       }
@@ -97,9 +94,7 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      })
+      const response = await apiClient(`${API_BASE}/${id}`)
       
       if (!response.ok) {
         throw new Error('Failed to load company')
@@ -119,12 +114,8 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(API_BASE, {
+      const response = await apiClient(`${API_BASE}/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-        },
         body: JSON.stringify(companyData)
       })
       
@@ -153,12 +144,8 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
+      const response = await apiClient(`${API_BASE}/${id}/`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-        },
         body: JSON.stringify(companyData)
       })
       
@@ -190,9 +177,8 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
-        method: 'DELETE',
-        headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+      const response = await apiClient(`${API_BASE}/${id}/`, {
+        method: 'DELETE'
       })
       
       if (!response.ok) {

@@ -416,6 +416,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useSpecificationsStore } from '@/stores/specifications'
 import { useProjectsStore } from '@/stores/projects'
 import { batchLinkSpecsToProject } from '@/utils/spec-linking-api'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 const route = useRoute()
 const router = useRouter()
@@ -617,9 +618,7 @@ const reviewers = ref<any[]>([])
 
 const fetchReviewers = async () => {
   try {
-    const res = await fetch('/api/v1/users?role=reviewer', {
-      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-    })
+    const res = await authenticatedFetch('/api/v1/users/?role=reviewer')
     if (res.ok) reviewers.value = await res.json()
   } catch {}
 }
@@ -628,16 +627,15 @@ const fetchSpecs = async () => {
   loadingSpecs.value = true;
   specsError.value = '';
   try {
-    let url = '/api/v1/specifications';
+    let url = '/api/v1/specifications/';
     if (selectedStatus.value && selectedStatus.value !== 'All Status') {
       url += `?status=${encodeURIComponent(selectedStatus.value)}`;
     }
-    let fetchOptions: RequestInit = {}
-    if (authStore.token) {
-      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` }
+    const res = await authenticatedFetch(url);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || 'Failed to fetch specifications');
     }
-    const res = await fetch(url, fetchOptions);
-    if (!res.ok) throw new Error(await res.text() || 'Failed to fetch specifications');
     specs.value = await res.json();
   } catch (e: any) {
     specsError.value = e.message || 'Failed to fetch specifications';
@@ -648,7 +646,7 @@ const fetchSpecs = async () => {
 
 const fetchStatusOptions = async () => {
   try {
-    const res = await fetch('/api/v1/specifications/statuses')
+    const res = await authenticatedFetch('/api/v1/specifications/statuses')
     if (!res.ok) throw new Error(await res.text() || 'Failed to fetch statuses')
     statusOptions.value = await res.json()
   } catch (e: any) {
@@ -663,11 +661,7 @@ const handleStatusChange = (e: Event) => {
 
 const handleDownload = async (id: string) => {
   try {
-    let fetchOptions: RequestInit = {}
-    if (authStore.token) {
-      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` }
-    }
-    const res = await fetch(`/api/v1/specifications/${id}/download`, fetchOptions)
+    const res = await authenticatedFetch(`/api/v1/specifications/${id}/download`)
     if (!res.ok) throw new Error('Failed to download file')
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
@@ -694,13 +688,9 @@ function confirmAndDelete(id: string) {
 const handleDelete = async (id: string) => {
   showDeleteModal.value = false
   try {
-    let fetchOptions: RequestInit = {
-      method: 'DELETE',
-    };
-    if (authStore.token) {
-      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` };
-    }
-    const res = await fetch(`/api/v1/specifications/${id}`, fetchOptions);
+    const res = await authenticatedFetch(`/api/v1/specifications/${id}`, {
+      method: 'DELETE'
+    });
     if (!res.ok) throw new Error('Failed to delete specification')
     await specificationsStore.loadSpecifications();
   } catch (e) {

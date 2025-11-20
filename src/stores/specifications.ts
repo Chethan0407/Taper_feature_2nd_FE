@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { useRouter } from 'vue-router'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 export interface Specification {
   id: string
@@ -54,7 +55,7 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     sort_order: 'desc'
   })
 
-  const API_BASE = 'http://localhost:8000/api/v1/specifications'
+  const API_BASE = '/api/v1/specifications'
 
   // Computed properties for filter options
   const statusOptions = computed(() => {
@@ -121,16 +122,26 @@ export const useSpecificationsStore = defineStore('specifications', () => {
         params.append('sort_order', activeFilters.sort_order)
       }
 
-      const url = params.toString() ? `${API_BASE}?${params.toString()}` : API_BASE
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-
-      const response = await fetch(url, { headers })
+      const url = params.toString() ? `${API_BASE}/?${params.toString()}` : `${API_BASE}/`
+      
+      const response = await authenticatedFetch(url)
       
       if (!response.ok) {
         if (response.status === 401) {
-          await authStore.logout()
-          router.push('/login')
-          throw new Error('Session expired. Please log in again.')
+          // Don't automatically logout - let the calling component handle it
+          // This prevents unwanted logouts when loading specs fails
+          let errorText = ''
+          try {
+            errorText = await response.text()
+            try {
+              const errorData = JSON.parse(errorText)
+              errorText = errorData.detail || errorData.message || errorText
+            } catch {}
+          } catch {}
+          
+          console.warn('⚠️ 401 error loading specifications:', errorText)
+          // Just throw the error - don't logout automatically
+          throw new Error(errorText || 'Authentication failed. Please check your login status.')
         }
         let errorText = ''
         try {
@@ -174,8 +185,7 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     loading.value = true
     error.value = null
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const response = await fetch(`${API_BASE}/${id}`, { headers })
+      const response = await authenticatedFetch(`${API_BASE}/${id}`)
       
       if (!response.ok) {
         throw new Error('Failed to load specification')
@@ -195,10 +205,8 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     loading.value = true
     error.value = null
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const response = await fetch(`${API_BASE}/upload-spec`, {
+      const response = await authenticatedFetch(`${API_BASE}/upload-spec`, {
         method: 'POST',
-        headers,
         body: formData
       })
       
@@ -224,10 +232,8 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     error.value = null
     try {
       const endpoint = status === 'approved' ? 'approve' : 'reject'
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const response = await fetch(`${API_BASE}/${id}/${endpoint}`, {
-        method: 'POST',
-        headers
+      const response = await authenticatedFetch(`${API_BASE}/${id}/${endpoint}`, {
+        method: 'POST'
       })
       
       if (!response.ok) {
@@ -246,8 +252,7 @@ export const useSpecificationsStore = defineStore('specifications', () => {
   // Download specification
   const downloadSpecification = async (id: string) => {
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const response = await fetch(`${API_BASE}/${id}/download`, { headers })
+      const response = await authenticatedFetch(`${API_BASE}/${id}/download`)
       
       if (!response.ok) {
         throw new Error('Failed to download specification')
@@ -273,10 +278,8 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     loading.value = true
     error.value = null
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const response = await fetch(`${API_BASE}/${id}`, {
-        method: 'DELETE',
-        headers
+      const response = await authenticatedFetch(`${API_BASE}/${id}`, {
+        method: 'DELETE'
       })
       
       if (!response.ok && response.status !== 404) {
@@ -296,8 +299,7 @@ export const useSpecificationsStore = defineStore('specifications', () => {
   // Get status options from API
   const fetchStatusOptions = async () => {
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const response = await fetch(`${API_BASE}/statuses`, { headers })
+      const response = await authenticatedFetch(`${API_BASE}/statuses`)
       if (response.ok) {
         return await response.json()
       }

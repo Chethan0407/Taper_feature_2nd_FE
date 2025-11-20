@@ -356,7 +356,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { onMounted, ref, watch, nextTick } from 'vue'
+import { onMounted, onActivated, ref, watch, nextTick } from 'vue'
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
@@ -437,18 +437,45 @@ watch(() => route.query.section, (section) => {
   }
 }, { immediate: true })
 
+// Load all data function (reusable)
+const loadAllData = async () => {
+  try {
+    console.log('📋 Loading all Settings page data...')
+    await Promise.all([
+      loadProfile(),
+      loadAPIKeys(),
+      loadNotifications(),
+      loadBranding()
+    ])
+    console.log('✅ All Settings page data loaded')
+  } catch (error) {
+    console.error('❌ Error loading Settings page data:', error)
+  }
+}
+
 // Load all data on mount
 onMounted(async () => {
-  await Promise.all([
-    loadProfile(),
-    loadAPIKeys(),
-    loadNotifications(),
-    loadBranding()
-  ])
+  await loadAllData()
   
   // Check for section query parameter on mount
   const section = route.query.section
   if (section && typeof section === 'string') {
+    scrollToSection(section)
+  }
+})
+
+// Reload data when component is activated (when navigating back)
+onActivated(async () => {
+  console.log('🔄 Settings page activated, reloading data...')
+  // Only reload if data seems stale or missing
+  if (!profile.value.email && !profileLoading.value) {
+    await loadAllData()
+  }
+  
+  // Check for section query parameter
+  const section = route.query.section
+  if (section && typeof section === 'string') {
+    await nextTick()
     scrollToSection(section)
   }
 })
@@ -467,6 +494,7 @@ const loadProfile = async () => {
     } catch (networkError: any) {
       console.error('❌ Network error loading profile:', networkError)
       profileError.value = 'Network error. Please check your connection and try again.'
+      profileLoading.value = false
       return
     }
     

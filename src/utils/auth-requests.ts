@@ -41,8 +41,35 @@ export async function authenticatedFetch(
 ): Promise<Response> {
   const authStore = useAuthStore()
   
-  // Remove trailing slash to avoid 307 redirects (which can lose headers)
-  const cleanUrl = url.endsWith('/') && url.length > 1 ? url.slice(0, -1) : url
+  // Smart URL normalization (same as apiClient):
+  // - Profile endpoint should NOT have trailing slash (causes network error)
+  // - List endpoints (lint-results, settings) NEED trailing slash (to avoid 307 redirects)
+  // - Preserve query parameters
+  let finalUrl = url
+  
+  // Remove trailing slash if it's a profile endpoint
+  if (finalUrl.includes('/user/profile') && finalUrl.endsWith('/')) {
+    finalUrl = finalUrl.slice(0, -1)
+    console.log('🔧 authenticatedFetch - Removed trailing slash from profile endpoint')
+  }
+  // Add trailing slash for list endpoints (except if query params exist or it's a specific resource)
+  else if (
+    (finalUrl.includes('/lint-results') || 
+     finalUrl.startsWith('/api/v1/settings/') ||
+     finalUrl.includes('/checklists') ||
+     finalUrl.includes('/specifications') ||
+     finalUrl.includes('/specs/')) &&
+    !finalUrl.includes('?') && 
+    !finalUrl.endsWith('/') &&
+    !finalUrl.match(/\/\d+$/) && // Don't add if it's a specific resource like /lint-results/123 (no trailing slash)
+    !finalUrl.match(/\/\d+\//) // Don't add if it's a specific resource like /lint-results/123/ (with trailing slash)
+  ) {
+    finalUrl = finalUrl + '/'
+    console.log('🔧 authenticatedFetch - Added trailing slash to list endpoint')
+  }
+  // For other endpoints, preserve as-is (don't auto-add or remove trailing slashes)
+  
+  const cleanUrl = finalUrl
   
   // Prepare headers
   const headers: Record<string, string> = {
@@ -147,13 +174,59 @@ export async function authenticatedFetch(
         })
         
         // Add error information to response for better error handling
-        // Store error detail in a custom property (we'll read it in the calling code)
         ;(response as any).errorDetail = errorDetail
         ;(response as any).isAuthError = true
+        
+        // Only redirect to login for authentication endpoints or if error indicates token is invalid
+        // BUT: Don't redirect for data-loading endpoints (specifications, specs, etc.) - let components handle errors
+        const isAuthEndpoint = cleanUrl.includes('/auth/') || cleanUrl.includes('/me') || cleanUrl.includes('/user/profile')
+        const isDataEndpoint = cleanUrl.includes('/specifications') || 
+                               cleanUrl.includes('/specs/') ||
+                               cleanUrl.includes('/lint-results') ||
+                               cleanUrl.includes('/projects/') ||
+                               cleanUrl.includes('/checklists')
+        const isTokenInvalid = errorDetail.toLowerCase().includes('token') || 
+                               errorDetail.toLowerCase().includes('expired') ||
+                               errorDetail.toLowerCase().includes('invalid') ||
+                               errorDetail.toLowerCase().includes('not authenticated')
+        
+        // NEVER redirect for data endpoints - let components handle the error gracefully
+        // Only redirect if it's an auth endpoint AND token is invalid AND it's NOT a data endpoint
+        if (isDataEndpoint) {
+          // For data endpoints, just log but don't redirect or clear tokens
+          // Components should handle these errors gracefully
+          console.warn('⚠️ 401 error on data endpoint - not redirecting, not clearing tokens, letting component handle:', cleanUrl, errorDetail)
+          // DO NOT clear tokens or redirect - just return the error response
+        } else if (isAuthEndpoint && isTokenInvalid) {
+          // Only for auth endpoints with invalid token - clear tokens and redirect
+          console.warn('⚠️ 401 on auth endpoint with invalid token - clearing tokens and redirecting')
+          // Clear all possible token keys from localStorage
+          const tokenKeys = ['tapeout_token', 'token', 'authToken', 'access_token']
+          tokenKeys.forEach(key => localStorage.removeItem(key))
+          
+          // Redirect to login if we're not already there
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            console.log('🔄 Redirecting to login due to authentication failure on auth endpoint')
+            window.location.href = '/login'
+          }
+        } else {
+          // For other 401 errors (likely permission issues), just log but don't redirect
+          console.warn('⚠️ 401 error on non-auth endpoint - likely a permission issue, not redirecting:', cleanUrl)
+        }
       } catch (e) {
         console.error('❌ 401 Unauthorized - Could not read error text:', e)
         ;(response as any).errorDetail = 'Authentication failed'
         ;(response as any).isAuthError = true
+        
+        // Only redirect if it's an auth endpoint
+        const isAuthEndpoint = cleanUrl.includes('/auth/') || cleanUrl.includes('/me') || cleanUrl.includes('/user/profile')
+        if (isAuthEndpoint) {
+          const tokenKeys = ['tapeout_token', 'token', 'authToken', 'access_token']
+          tokenKeys.forEach(key => localStorage.removeItem(key))
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login'
+          }
+        }
       }
     }
   
