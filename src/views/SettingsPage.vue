@@ -350,6 +350,51 @@
         </div>
       </div>
     </div>
+
+    <!-- API Key Delete Confirmation Modal -->
+    <Transition name="modal">
+      <div v-if="showDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm" @click.self="closeDeleteConfirmModal">
+        <div class="bg-white dark:bg-dark-900 rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all">
+          <!-- Icon -->
+          <div class="flex items-center justify-center mb-4">
+            <div class="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Title -->
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+            Delete API Key
+          </h3>
+          
+          <!-- Message -->
+          <p class="text-gray-600 dark:text-gray-400 text-center mb-6">
+            Are you sure you want to delete this API key? It will no longer work and cannot be recovered.
+          </p>
+          
+          <!-- Buttons -->
+          <div class="flex items-center justify-end space-x-3">
+            <button
+              @click="closeDeleteConfirmModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-dark-700 hover:bg-gray-300 dark:hover:bg-dark-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleDeleteConfirm"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors flex items-center space-x-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -389,6 +434,10 @@ const deletingKey = ref<string | null>(null)
 const showGeneratedKeyModal = ref(false)
 const generatedKey = ref('')
 const rateLimitError = ref('')
+
+// Delete confirmation modal
+const showDeleteConfirmModal = ref(false)
+const keyToDelete = ref<string | null>(null)
 
 // Notifications
 const notificationPreferences = ref<Array<{ notification_type: string; is_enabled: boolean }>>([])
@@ -694,10 +743,24 @@ const regenerateApiKey = async (keyId: string) => {
   }
 }
 
-const deleteApiKey = async (keyId: string) => {
-  if (!confirm('Are you sure you want to delete this API key? It will no longer work and cannot be recovered.')) {
+const deleteApiKey = (keyId: string) => {
+  keyToDelete.value = keyId
+  showDeleteConfirmModal.value = true
+}
+
+const closeDeleteConfirmModal = () => {
+  showDeleteConfirmModal.value = false
+  keyToDelete.value = null
+}
+
+const handleDeleteConfirm = async () => {
+  if (!keyToDelete.value) {
+    closeDeleteConfirmModal()
     return
   }
+
+  const keyId = keyToDelete.value
+  closeDeleteConfirmModal()
 
   try {
     deletingKey.value = keyId
@@ -988,4 +1051,16 @@ const saveBranding = async () => {
     brandingLoading.value = false
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+</style> 

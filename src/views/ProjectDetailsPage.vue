@@ -798,13 +798,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-dark-700">
-            <button 
-              @click="navigateToSpec(selectedLintResult.spec_id)"
-              class="btn-secondary px-4 py-2 text-sm"
-            >
-              View Spec
-            </button>
+          <div class="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
             <button 
               @click="reRunLint(selectedLintResult.spec_id)"
               class="btn-primary px-4 py-2 text-sm"
