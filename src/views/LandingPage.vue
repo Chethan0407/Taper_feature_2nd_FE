@@ -83,16 +83,68 @@
         </div>
 
         <!-- Hero Image/Preview -->
-        <div class="relative max-w-5xl mx-auto">
-          <div class="glass-effect rounded-2xl p-8 shadow-2xl border border-dark-700">
-            <div class="aspect-video bg-gradient-to-br from-dark-800 to-dark-900 rounded-lg flex items-center justify-center">
-              <div class="text-center">
-                <svg class="w-24 h-24 text-neon-blue mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <p class="text-gray-500">Application Preview</p>
+        <div class="relative max-w-6xl mx-auto">
+          <div class="glass-effect rounded-2xl p-6 shadow-2xl border border-dark-700 overflow-hidden">
+            <!-- Mock Dashboard Preview -->
+            <div class="bg-gradient-to-br from-dark-800 to-dark-900 rounded-lg overflow-hidden">
+              <!-- Mock Header -->
+              <div class="bg-dark-700 px-6 py-4 flex items-center justify-between border-b border-dark-600">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-neon-blue/20 rounded-lg"></div>
+                  <div class="h-4 w-32 bg-dark-600 rounded"></div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="w-8 h-8 bg-dark-600 rounded-full"></div>
+                  <div class="w-8 h-8 bg-dark-600 rounded-full"></div>
+                </div>
+              </div>
+              
+              <!-- Mock Content -->
+              <div class="p-6">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
+                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
+                    <div class="h-6 w-12 bg-neon-blue/20 rounded"></div>
+                  </div>
+                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
+                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
+                    <div class="h-6 w-12 bg-green-500/20 rounded"></div>
+                  </div>
+                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
+                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
+                    <div class="h-6 w-12 bg-yellow-500/20 rounded"></div>
+                  </div>
+                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
+                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
+                    <div class="h-6 w-12 bg-purple-500/20 rounded"></div>
+                  </div>
+                </div>
+                
+                <!-- Main Content Area -->
+                <div class="grid grid-cols-3 gap-4">
+                  <div class="col-span-2 bg-dark-700 rounded-lg p-4 border border-dark-600">
+                    <div class="h-4 w-24 bg-dark-600 rounded mb-4"></div>
+                    <div class="space-y-3">
+                      <div class="h-12 bg-dark-600 rounded"></div>
+                      <div class="h-12 bg-dark-600 rounded"></div>
+                      <div class="h-12 bg-dark-600 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
+                    <div class="h-4 w-20 bg-dark-600 rounded mb-4"></div>
+                    <div class="space-y-2">
+                      <div class="h-8 bg-dark-600 rounded"></div>
+                      <div class="h-8 bg-dark-600 rounded"></div>
+                      <div class="h-8 bg-dark-600 rounded"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+            
+            <!-- Glow effect -->
+            <div class="absolute inset-0 bg-gradient-to-r from-neon-blue/0 via-neon-blue/5 to-neon-purple/0 pointer-events-none rounded-2xl"></div>
           </div>
         </div>
       </div>
