@@ -75,49 +75,217 @@
       </main>
     </div>
 
-    <!-- Vendor Modal -->
-    <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div class="bg-dark-900 p-6 rounded-2xl relative w-[420px] max-w-full shadow-2xl border border-dark-700">
-        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="showVendorModal = false">&times;</button>
-        <h2 class="text-2xl font-bold text-gradient mb-6">{{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}</h2>
-        <form @submit.prevent="handleSubmit" class="space-y-4">
-          <div>
-            <label for="name" class="block text-base font-medium text-gray-200 mb-1">Name</label>
-            <input id="name" v-model="vendorForm.name" class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-400" placeholder="Vendor name" required>
+    <!-- Vendor Modal - Improved Design -->
+    <!-- WHY: Better UX with larger modal, better spacing, searchable multi-selects, and validation -->
+    <Transition name="modal">
+      <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closeModal">
+        <div class="bg-dark-900 rounded-2xl relative w-full max-w-2xl shadow-2xl border border-dark-700 max-h-[90vh] overflow-y-auto">
+          <!-- Header -->
+          <div class="sticky top-0 bg-dark-900 border-b border-dark-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+            <h2 class="text-2xl font-bold text-gradient">{{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}</h2>
+            <button 
+              class="text-gray-400 hover:text-gray-200 transition-colors p-2 hover:bg-dark-800 rounded-lg" 
+              @click="closeModal"
+              aria-label="Close modal"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
           </div>
-          <div>
-            <label for="type" class="block text-base font-medium text-gray-200 mb-1">Type</label>
-            <input id="type" v-model="vendorForm.type" class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-400" placeholder="Type" required>
-          </div>
-          <div>
-            <label for="status" class="block text-base font-medium text-gray-200 mb-1">Status</label>
-            <select id="status" v-model="vendorForm.status" class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white">
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-base font-medium text-gray-200 mb-1">Linked Specs</label>
-            <select v-model="vendorForm.linkedSpecs" class="input-field w-full bg-dark-800 border border-dark-700 text-white" multiple>
-              <option v-for="spec in allSpecs" :key="spec.id" :value="spec.id">
-                {{ spec.name || spec.file_name || 'Unnamed Spec' }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-base font-medium text-gray-200 mb-1">Linked Checklists</label>
-            <select v-model="vendorForm.linkedChecklists" class="input-field w-full bg-dark-800 border border-dark-700 text-white" multiple>
-              <option v-for="checklist in allChecklists" :key="checklist.id" :value="checklist.id">
-                {{ checklist.name }}
-              </option>
-            </select>
-          </div>
-          <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="vendorsStore.loading">{{ editingVendor ? 'Update' : 'Add' }}<span v-if="vendorsStore.loading" class="ml-2 animate-spin">⏳</span></button>
-          <div v-if="vendorsStore.error" class="text-red-500 text-center mt-2">{{ vendorsStore.error }}</div>
-        </form>
+
+          <!-- Form Content -->
+          <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
+            <!-- Name Field -->
+            <div>
+              <label for="name" class="block text-sm font-semibold text-gray-200 mb-2">
+                Vendor Name <span class="text-red-400">*</span>
+              </label>
+              <input 
+                id="name" 
+                v-model="vendorForm.name" 
+                type="text"
+                class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-500 focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all" 
+                placeholder="Enter vendor name"
+                required
+                :class="{ 'border-red-500': formErrors.name }"
+              >
+              <p v-if="formErrors.name" class="text-red-400 text-sm mt-1">{{ formErrors.name }}</p>
+            </div>
+
+            <!-- Type Field - Dropdown with common types -->
+            <div>
+              <label for="type" class="block text-sm font-semibold text-gray-200 mb-2">
+                Vendor Type <span class="text-red-400">*</span>
+              </label>
+              <select 
+                id="type" 
+                v-model="vendorForm.type" 
+                class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all"
+                required
+                :class="{ 'border-red-500': formErrors.type }"
+              >
+                <option value="">Select vendor type</option>
+                <option value="EDA Tool">EDA Tool</option>
+                <option value="IP Provider">IP Provider</option>
+                <option value="Foundry">Foundry</option>
+                <option value="Packaging">Packaging</option>
+                <option value="Testing">Testing</option>
+                <option value="Design Services">Design Services</option>
+                <option value="Other">Other</option>
+              </select>
+              <p v-if="formErrors.type" class="text-red-400 text-sm mt-1">{{ formErrors.type }}</p>
+            </div>
+
+            <!-- Status Field -->
+            <div>
+              <label for="status" class="block text-sm font-semibold text-gray-200 mb-2">
+                Status <span class="text-red-400">*</span>
+              </label>
+              <select 
+                id="status" 
+                v-model="vendorForm.status" 
+                class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all"
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            <!-- Linked Specs - Improved with search and chips -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-200 mb-2">
+                Linked Specifications
+                <span class="text-xs font-normal text-gray-400 ml-2">(Optional)</span>
+              </label>
+              <div class="relative">
+                <input 
+                  v-model="specSearch" 
+                  type="text"
+                  class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-500 focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all" 
+                  placeholder="Search specifications..."
+                  @focus="showSpecDropdown = true"
+                >
+                <!-- Dropdown -->
+                <div v-if="showSpecDropdown && filteredSpecs.length > 0" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div 
+                    v-for="spec in filteredSpecs" 
+                    :key="spec.id"
+                    class="px-4 py-2 hover:bg-dark-700 cursor-pointer flex items-center justify-between"
+                    @click="toggleSpec(spec.id)"
+                  >
+                    <span class="text-white text-sm">{{ spec.name || spec.file_name || 'Unnamed Spec' }}</span>
+                    <svg v-if="vendorForm.linkedSpecs.includes(spec.id)" class="w-5 h-5 text-neon-blue" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <!-- Selected Specs Chips -->
+              <div v-if="vendorForm.linkedSpecs.length > 0" class="flex flex-wrap gap-2 mt-3">
+                <span 
+                  v-for="specId in vendorForm.linkedSpecs" 
+                  :key="specId"
+                  class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-neon-blue/20 text-neon-blue border border-neon-blue/30"
+                >
+                  {{ getSpecName(specId) }}
+                  <button 
+                    type="button"
+                    @click="removeSpec(specId)"
+                    class="ml-2 text-neon-blue hover:text-neon-blue/70"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <!-- Linked Checklists - Improved with search and chips -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-200 mb-2">
+                Linked Checklists
+                <span class="text-xs font-normal text-gray-400 ml-2">(Optional)</span>
+              </label>
+              <div class="relative">
+                <input 
+                  v-model="checklistSearch" 
+                  type="text"
+                  class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-500 focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all" 
+                  placeholder="Search checklists..."
+                  @focus="showChecklistDropdown = true"
+                >
+                <!-- Dropdown -->
+                <div v-if="showChecklistDropdown && filteredChecklists.length > 0" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div 
+                    v-for="checklist in filteredChecklists" 
+                    :key="checklist.id"
+                    class="px-4 py-2 hover:bg-dark-700 cursor-pointer flex items-center justify-between"
+                    @click="toggleChecklist(checklist.id)"
+                  >
+                    <span class="text-white text-sm">{{ checklist.name || 'Unnamed Checklist' }}</span>
+                    <svg v-if="vendorForm.linkedChecklists.includes(checklist.id)" class="w-5 h-5 text-neon-blue" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <!-- Selected Checklists Chips -->
+              <div v-if="vendorForm.linkedChecklists.length > 0" class="flex flex-wrap gap-2 mt-3">
+                <span 
+                  v-for="checklistId in vendorForm.linkedChecklists" 
+                  :key="checklistId"
+                  class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-neon-blue/20 text-neon-blue border border-neon-blue/30"
+                >
+                  {{ getChecklistName(checklistId) }}
+                  <button 
+                    type="button"
+                    @click="removeChecklist(checklistId)"
+                    class="ml-2 text-neon-blue hover:text-neon-blue/70"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="vendorsStore.error" class="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              <p class="text-red-400 text-sm">{{ vendorsStore.error }}</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 pt-4 border-t border-dark-700">
+              <button 
+                type="button" 
+                class="btn-secondary flex-1 py-3 font-semibold" 
+                @click="closeModal"
+                :disabled="vendorsStore.loading"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                class="btn-primary flex-1 py-3 font-semibold flex items-center justify-center" 
+                :disabled="vendorsStore.loading || !isFormValid"
+              >
+                <span v-if="vendorsStore.loading" class="mr-2">
+                  <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </span>
+                <span>{{ editingVendor ? 'Update Vendor' : 'Add Vendor' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -160,7 +328,7 @@ const activitiesLoading = ref(false)
 const activitiesError = ref('')
 const showVendorModal = ref(false)
 const editingVendor = ref<Vendor | null>(null)
-const vendorForm = ref({ name: '', type: '', status: 'active', linkedSpecs: [], linkedChecklists: [] })
+const vendorForm = ref({ name: '', type: '', status: 'active' as 'active' | 'pending' | 'inactive', linkedSpecs: [] as (string | number)[], linkedChecklists: [] as (string | number)[] })
 const deleting = ref<string | null>(null)
 const uploadingNDA = ref<string | null>(null)
 const acknowledging = ref<string | null>(null)
@@ -169,8 +337,90 @@ const vendorDetails = ref(null)
 const vendorList = computed(() => vendorsStore.vendors as Vendor[])
 const authStore = useAuthStore()
 
-const allSpecs = ref([])
-const allChecklists = ref([])
+const allSpecs = ref<any[]>([])
+const allChecklists = ref<any[]>([])
+
+// Form validation and search states
+const formErrors = ref<{ name?: string; type?: string }>({})
+const specSearch = ref('')
+const checklistSearch = ref('')
+const showSpecDropdown = ref(false)
+const showChecklistDropdown = ref(false)
+
+// Form validation
+const isFormValid = computed(() => {
+  return vendorForm.value.name.trim() !== '' && vendorForm.value.type.trim() !== ''
+})
+
+// Filtered specs and checklists for search
+const filteredSpecs = computed(() => {
+  if (!specSearch.value) return allSpecs.value
+  const search = specSearch.value.toLowerCase()
+  return allSpecs.value.filter(spec => 
+    (spec.name || spec.file_name || '').toLowerCase().includes(search)
+  )
+})
+
+const filteredChecklists = computed(() => {
+  if (!checklistSearch.value) return allChecklists.value
+  const search = checklistSearch.value.toLowerCase()
+  return allChecklists.value.filter(checklist => 
+    (checklist.name || '').toLowerCase().includes(search)
+  )
+})
+
+// Helper functions for multi-select
+const toggleSpec = (specId: string | number) => {
+  const index = vendorForm.value.linkedSpecs.indexOf(specId)
+  if (index > -1) {
+    vendorForm.value.linkedSpecs.splice(index, 1)
+  } else {
+    vendorForm.value.linkedSpecs.push(specId)
+  }
+}
+
+const removeSpec = (specId: string | number) => {
+  const index = vendorForm.value.linkedSpecs.indexOf(specId)
+  if (index > -1) {
+    vendorForm.value.linkedSpecs.splice(index, 1)
+  }
+}
+
+const getSpecName = (specId: string | number) => {
+  const spec = allSpecs.value.find(s => s.id === specId)
+  return spec?.name || spec?.file_name || 'Unnamed Spec'
+}
+
+const toggleChecklist = (checklistId: string | number) => {
+  const index = vendorForm.value.linkedChecklists.indexOf(checklistId)
+  if (index > -1) {
+    vendorForm.value.linkedChecklists.splice(index, 1)
+  } else {
+    vendorForm.value.linkedChecklists.push(checklistId)
+  }
+}
+
+const removeChecklist = (checklistId: string | number) => {
+  const index = vendorForm.value.linkedChecklists.indexOf(checklistId)
+  if (index > -1) {
+    vendorForm.value.linkedChecklists.splice(index, 1)
+  }
+}
+
+const getChecklistName = (checklistId: string | number) => {
+  const checklist = allChecklists.value.find(c => c.id === checklistId)
+  return checklist?.name || 'Unnamed Checklist'
+}
+
+// Close modal and reset form
+const closeModal = () => {
+  showVendorModal.value = false
+  formErrors.value = {}
+  specSearch.value = ''
+  checklistSearch.value = ''
+  showSpecDropdown.value = false
+  showChecklistDropdown.value = false
+}
 
 // Fetch recent activity from API
 const fetchActivities = async () => {
@@ -220,23 +470,61 @@ const getStatusClass = (status: string) => {
   }
 }
 
+// Validate form before submission
+const validateForm = () => {
+  formErrors.value = {}
+  let isValid = true
+
+  if (!vendorForm.value.name.trim()) {
+    formErrors.value.name = 'Vendor name is required'
+    isValid = false
+  }
+
+  if (!vendorForm.value.type.trim()) {
+    formErrors.value.type = 'Vendor type is required'
+    isValid = false
+  }
+
+  return isValid
+}
+
 // Call fetchActivities after vendor CRUD
 const handleSubmit = async () => {
-  if (editingVendor.value) {
-    await vendorsStore.updateVendor(editingVendor.value.id, vendorForm.value)
-  } else {
-    await vendorsStore.createVendor(vendorForm.value)
+  // Validate form
+  if (!validateForm()) {
+    return
   }
-  showVendorModal.value = false
-  vendorForm.value = { name: '', type: '', status: 'active', linkedSpecs: [], linkedChecklists: [] }
-  editingVendor.value = null
-  await fetchActivities()
+
+  try {
+    if (editingVendor.value) {
+      await vendorsStore.updateVendor(editingVendor.value.id, vendorForm.value)
+    } else {
+      await vendorsStore.createVendor(vendorForm.value)
+    }
+    
+    // Only close if successful
+    if (!vendorsStore.error) {
+      closeModal()
+      vendorForm.value = { name: '', type: '', status: 'active', linkedSpecs: [], linkedChecklists: [] }
+      editingVendor.value = null
+      await fetchActivities()
+    }
+  } catch (error: any) {
+    console.error('Error submitting vendor form:', error)
+  }
 }
 
 const handleEdit = (vendor: Vendor) => {
   editingVendor.value = vendor
-  vendorForm.value = { name: vendor.name, type: vendor.type, status: vendor.status, linkedSpecs: vendor.linked_specs, linkedChecklists: vendor.linked_checklists }
+  vendorForm.value = { 
+    name: vendor.name, 
+    type: vendor.type, 
+    status: vendor.status, 
+    linkedSpecs: vendor.linked_specs || [], 
+    linkedChecklists: vendor.linked_checklists || [] 
+  }
   showVendorModal.value = true
+  formErrors.value = {}
 }
 
 const showDeleteModal = ref(false)
@@ -291,12 +579,40 @@ const acknowledge = async () => {
   }
 }
 
-const viewVendor = async () => {
-  if (vendorDetails.value) {
-    const res = await fetch(`/api/v1/vendors/${vendorDetails.value.id}`)
-    if (res.ok) {
-      vendorDetails.value = await res.json()
-    }
-  }
+// WHY: Function kept for potential future use, but currently unused
+// const viewVendor = async () => {
+//   if (vendorDetails.value) {
+//     const res = await fetch(`/api/v1/vendors/${(vendorDetails.value as any).id}`)
+//     if (res.ok) {
+//       vendorDetails.value = await res.json()
+//     }
+//   }
+// }
+</script>
+
+<style scoped>
+/**
+ * Modal transition animations
+ * WHY: Smooth fade and scale animation for better UX
+ */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
 }
-</script> 
+
+.modal-enter-active .bg-dark-900,
+.modal-leave-active .bg-dark-900 {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .bg-dark-900,
+.modal-leave-to .bg-dark-900 {
+  transform: scale(0.95);
+  opacity: 0;
+}
+</style> 

@@ -82,7 +82,7 @@
           <!-- Login Button -->
           <button
             type="submit"
-            :disabled="isLoading"
+            :disabled="isLoading || !email || !password"
             class="btn-primary w-full py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="isLoading" class="flex items-center justify-center">
@@ -245,10 +245,34 @@ const forgotError = ref('')
 const loginError = ref('')
 
 const handleLogin = async () => {
+  // Prevent multiple simultaneous login attempts
+  if (isLoading.value) {
+    console.log('⏸️ Login already in progress, skipping duplicate call')
+    return
+  }
+
+  // Validate inputs before attempting login
+  if (!email.value || !email.value.trim()) {
+    loginError.value = 'Please enter your email address.'
+    return
+  }
+
+  if (!password.value || !password.value.trim()) {
+    loginError.value = 'Please enter your password.'
+    return
+  }
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value.trim())) {
+    loginError.value = 'Please enter a valid email address.'
+    return
+  }
+
   isLoading.value = true
   loginError.value = ''
   try {
-    const result = await authStore.login(email.value, password.value)
+    const result = await authStore.login(email.value.trim(), password.value)
     if (result.success) {
       router.push('/dashboard')
     } else {

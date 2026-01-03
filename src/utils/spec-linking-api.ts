@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 // Use proxy path to work with Vite dev server
 const API_BASE = '/api/v1'
@@ -105,55 +106,93 @@ export async function unlinkSpecFromProject(
  * ]
  * 
  * Returns: Object with specs, checklists, specLints arrays
+ * 
+ * WHY: This function fetches all content linked to a project. We don't use
+ * API cache here because linked content changes frequently (specs/checklists
+ * added/removed), so we always want fresh data.
  */
 export async function getLinkedContent(projectId: string | number): Promise<LinkedContentResponse> {
-  const authStore = useAuthStore()
-  
   // Add cache-busting parameter to force fresh data
+  // WHY: Ensures we always get the latest linked content, not cached version
   const cacheBuster = `?t=${Date.now()}`
-  const response = await fetch(
-    `${API_BASE}/projects/${projectId}/linked-content${cacheBuster}`,
-    {
-      headers: {
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {}),
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      },
-      cache: 'no-store'
-    }
-  )
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText || 'Failed to load linked content')
-  }
-
-  // ✅ API returns a FLAT ARRAY directly
-  const linkedContentArray = await response.json()
   
-  console.log('🔍 DEBUG - Raw API response (linked-content):', linkedContentArray)
-  console.log('🔍 DEBUG - Is array?', Array.isArray(linkedContentArray))
-  console.log('🔍 DEBUG - Total items:', Array.isArray(linkedContentArray) ? linkedContentArray.length : 0)
+  // Add timeout to prevent hanging
+  // WHY: If API call hangs, this ensures it fails after 8 seconds instead of waiting forever
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
   
-  // ✅ Filter by type (handle both camelCase "specLint" and snake_case "spec_lint")
-  if (Array.isArray(linkedContentArray)) {
-    const specs = linkedContentArray.filter((item: any) => item.type === 'specification')
-    const checklists = linkedContentArray.filter((item: any) => item.type === 'checklist')
-    // Handle both "specLint" (camelCase) and "spec_lint" (snake_case) formats
-    const specLints = linkedContentArray.filter((item: any) => 
-      item.type === 'specLint' || item.type === 'spec_lint'
+  try {
+    const response = await authenticatedFetch(
+      `${API_BASE}/projects/${projectId}/linked-content${cacheBuster}`,
+      {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store',
+        signal: controller.signal // Add abort signal for timeout
+      }
     )
+
+    clearTimeout(timeoutId) // Clear timeout if request succeeds
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(errorText || `Failed to load linked content (${response.status})`)
+    }
+
+    // ✅ API returns a FLAT ARRAY directly
+    const linkedContentArray = await response.json()
     
-    console.log('🔍 DEBUG - Filtered specs:', specs.length)
-    console.log('🔍 DEBUG - Filtered checklists:', checklists.length)
-    console.log('🔍 DEBUG - Filtered specLints:', specLints.length)
+    console.log('🔍 DEBUG - Raw API response (linked-content):', linkedContentArray)
+    console.log('🔍 DEBUG - Is array?', Array.isArray(linkedContentArray))
+    console.log('🔍 DEBUG - Total items:', Array.isArray(linkedContentArray) ? linkedContentArray.length : 0)
     
-    return { specs, checklists, specLints }
+    // ✅ Filter by type (handle both camelCase "specLint" and snake_case "spec_lint")
+    if (Array.isArray(linkedContentArray)) {
+      // Log all unique types found in the response
+      const allTypes = linkedContentArray.map((item: any) => item.type).filter((t: any) => t)
+      const uniqueTypes = Array.from(new Set(allTypes))
+      console.log('🔍 DEBUG - All types found in response:', uniqueTypes)
+      console.log('🔍 DEBUG - Full items with types:', linkedContentArray.map((item: any) => ({ id: item.id, type: item.type })))
+      
+      const specs = linkedContentArray.filter((item: any) => item.type === 'specification')
+      const checklists = linkedContentArray.filter((item: any) => item.type === 'checklist')
+      // Handle both "specLint" (camelCase) and "spec_lint" (snake_case) formats
+      // Also check for "lint_result" or "lintResult" as fallback
+      const specLints = linkedContentArray.filter((item: any) => {
+        const type = item.type?.toLowerCase()
+        return type === 'speclint' || 
+               type === 'spec_lint' || 
+               type === 'lint_result' || 
+               type === 'lintresult' ||
+               item.type === 'specLint' || 
+               item.type === 'spec_lint'
+      })
+      
+      console.log('🔍 DEBUG - Filtered specs:', specs.length)
+      console.log('🔍 DEBUG - Filtered checklists:', checklists.length)
+      console.log('🔍 DEBUG - Filtered specLints:', specLints.length)
+      console.log('🔍 DEBUG - SpecLints items:', specLints)
+      
+      return { specs, checklists, specLints }
+    }
+    
+    // Fallback if response is not an array (shouldn't happen per API spec)
+    console.warn('🔍 DEBUG - ⚠️ API response is not an array:', linkedContentArray)
+    return { specs: [], checklists: [], specLints: [] }
+  } catch (error: any) {
+    clearTimeout(timeoutId) // Clear timeout on error
+    
+    // Handle timeout specifically
+    // WHY: Provides clear error message for timeout vs other errors
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      throw new Error('Request timeout: Linked content took too long to load. Please check your connection and try again.')
+    }
+    
+    // Re-throw other errors
+    throw error
   }
-  
-  // Fallback if response is not an array (shouldn't happen per API spec)
-  console.warn('🔍 DEBUG - ⚠️ API response is not an array:', linkedContentArray)
-  return { specs: [], checklists: [], specLints: [] }
 }
 
 /**

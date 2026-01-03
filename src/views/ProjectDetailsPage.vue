@@ -128,12 +128,17 @@
             <input v-model="specSearchTerm" class="input-field w-full mb-4" placeholder="Search specifications..." />
             
             <!-- Specs will be loaded here -->
+            <!-- WHY: v-if must be on same level as v-else-if, Transition breaks the chain -->
             <div v-if="linkedContentLoading" class="text-center py-8">
-              <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <p class="text-gray-500">Loading specifications...</p>
+              <Transition name="fade">
+                <div>
+                  <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p class="text-gray-500">Loading specifications...</p>
+                </div>
+              </Transition>
             </div>
             <div v-else-if="dashboardData.specs.length === 0" class="text-center py-8">
               <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,12 +208,17 @@
             <input v-model="checklistSearchTerm" class="input-field w-full mb-4" placeholder="Search linked checklists..." />
             
             <!-- Loading State -->
+            <!-- WHY: v-if must be on same level as v-else-if, Transition breaks the chain -->
             <div v-if="linkedContentLoading" class="text-center py-8">
-              <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <p class="text-gray-500">Loading checklists...</p>
+              <Transition name="fade">
+                <div>
+                  <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p class="text-gray-500">Loading checklists...</p>
+                </div>
+              </Transition>
             </div>
 
             <!-- Empty State -->
@@ -236,18 +246,87 @@
               >
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                      {{ typeof checklist === 'object' && checklist !== null ? (checklist.name || `Checklist ${checklist.id}`) : `Checklist ${checklist}` }}
-                    </h3>
-                    <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span v-if="typeof checklist === 'object' && checklist !== null && checklist.status" class="flex items-center">
-                        <span class="w-2 h-2 rounded-full mr-2" :class="getStatusColor(checklist.status)"></span>
-                        {{ checklist.status }}
+                    <div class="flex items-center gap-3">
+                      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {{ typeof checklist === 'object' && checklist !== null ? (checklist.name || `Checklist ${checklist.id}`) : `Checklist ${checklist}` }}
+                      </h3>
+                      <!-- Status Badge with Icon -->
+                      <span 
+                        v-if="typeof checklist === 'object' && checklist !== null && checklist.status" 
+                        :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getChecklistStatusBadgeClass(checklist.status)]"
+                      >
+                        <svg 
+                          v-if="checklist.status === 'approved'" 
+                          class="w-3 h-3 mr-1" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                        <svg 
+                          v-else-if="checklist.status === 'declined'" 
+                          class="w-3 h-3 mr-1" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        <span class="w-1.5 h-1.5 mr-1 rounded-full" v-else :class="getStatusColor(checklist.status)"></span>
+                        {{ checklist.status.charAt(0).toUpperCase() + checklist.status.slice(1) }}
                       </span>
+            </div>
+                    <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      <!-- Show "Already Approved" text if approved -->
+                      <span 
+                        v-if="typeof checklist === 'object' && checklist !== null && checklist.status === 'approved'" 
+                        class="flex items-center text-green-600 dark:text-green-400 font-medium"
+                      >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Already Approved
+                </span>
                     </div>
                   </div>
-                  <div class="flex items-center ml-4">
-              <button 
+                  <div class="flex items-center ml-4 gap-2">
+                    <!-- Approve Button (only show if status is not "approved") -->
+                    <button 
+                      v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'approved'"
+                      @click="onApproveChecklist(checklist)"
+                      class="px-3 py-1 text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center space-x-1"
+                      :disabled="approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      title="Approve checklist"
+                    >
+                      <svg v-if="approvingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>{{ approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Approving...' : 'Approve' }}</span>
+                  </button>
+                    <!-- Reject Button (only show if status is not "declined" and not "approved") -->
+                    <button 
+                      v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'declined' && checklist.status !== 'approved'"
+                      @click="onRejectChecklist(checklist)"
+                      class="px-3 py-1 text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex items-center space-x-1"
+                      :disabled="approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      title="Reject checklist"
+                    >
+                      <svg v-if="approvingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>{{ approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Rejecting...' : 'Reject' }}</span>
+                    </button>
+                    <!-- Unlink Button -->
+                    <button 
                       @click="onUnlinkChecklist(checklist)"
                       class="px-3 py-1 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center space-x-1"
                       :disabled="removingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
@@ -255,15 +334,15 @@
                     >
                       <svg v-if="removingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
+                      </svg>
                       <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       <span>{{ removingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Removing...' : 'Unlink' }}</span>
-              </button>
-            </div>
-            </div>
+                  </button>
+                </div>
+          </div>
                 </div>
           </div>
           </div>
@@ -941,9 +1020,19 @@ const linkedSpecifications = ref<LinkedSpecification[]>([])
 const linkedChecklists = ref<any[]>([])
 const linkedSpecLints = ref<any[]>([])
 const linkedContentLoading = ref(false)
+// WHY: Prevent multiple simultaneous calls to loadLinkedContent (causes jerky loading)
+let loadLinkedContentInProgress = false
+// WHY: Track minimum display time for loader to prevent flickering
+let loaderShowTime = 0
+const MIN_LOADER_DISPLAY_TIME = 300 // Minimum 300ms to prevent flicker
+const LOADER_DELAY = 150 // Wait 150ms before showing loader (fast loads won't show it)
+let loaderDelayTimer: ReturnType<typeof setTimeout> | null = null
+let loaderMinTimeTimer: ReturnType<typeof setTimeout> | null = null
+
 const removingSpecId = ref<string | number | null>(null)
 const removingChecklistId = ref<string | number | null>(null)
 const removingLintId = ref<string | number | null>(null)
+const approvingChecklistId = ref<string | number | null>(null)
 
 // Link Lint Result Modal
 const showLinkLintModal = ref(false)
@@ -1062,17 +1151,22 @@ const loadProject = async () => {
   error.value = null
   
   // Add timeout to prevent infinite loading
+  // WHY: If project doesn't load in 15 seconds, show error and allow user to retry
   let timeoutId: ReturnType<typeof setTimeout> | null = null
   timeoutId = setTimeout(() => {
     if (loading.value && !project.value) {
-      console.error('⏱️ Project load timeout after 10 seconds')
-      error.value = 'Request timed out. Please try again.'
+      console.error('⏱️ Project load timeout after 15 seconds')
+      error.value = 'Request timed out. The server may be slow or unavailable. Please try again.'
       loading.value = false
+      // Clear any pending operations
+      loadLinkedContentInProgress = false
+      linkedContentLoading.value = false
     }
-  }, 10000) // 10 second timeout
+  }, 15000) // 15 second timeout (increased from 10s to account for multiple API calls)
   
   try {
     // STEP 1: Load project details (use authenticatedFetch for proper auth)
+    // WHY: This is the main API call - if it fails, we can't show the page
     console.log('🔍 Loading project:', projectId)
     console.log('🔍 Auth store state:', {
       hasToken: !!authStore.token,
@@ -1080,7 +1174,26 @@ const loadProject = async () => {
       isAuthenticated: authStore.isAuthenticated
     })
     
-    const projectRes = await authenticatedFetch(`/api/v1/projects/${projectId}`)
+    // Add timeout for the main project fetch
+    // WHY: Prevents hanging if API is slow or unresponsive
+    const projectFetchPromise = authenticatedFetch(`/api/v1/projects/${projectId}`)
+    const projectFetchTimeout = new Promise<Response>((_, reject) => {
+      setTimeout(() => reject(new Error('Project fetch timeout after 8 seconds')), 8000)
+    })
+    
+    let projectRes: Response
+    try {
+      projectRes = await Promise.race([projectFetchPromise, projectFetchTimeout]) as Response
+    } catch (raceError: any) {
+      // Handle timeout or other race errors
+      if (raceError.message?.includes('timeout')) {
+        error.value = 'Project fetch timed out. The server may be slow. Please try again.'
+        loading.value = false
+        if (timeoutId) clearTimeout(timeoutId)
+        return
+      }
+      throw raceError // Re-throw if it's not a timeout
+    }
     if (!projectRes.ok) {
       // Read error response body only once
       let errorDetail = 'Failed to load project'
@@ -1173,13 +1286,31 @@ const loadProject = async () => {
     if (!metadataStore.platforms.length) await metadataStore.fetchMetadata()
     
     // STEP 2: Load linked content FIRST (source of truth for specs)
-    await loadLinkedContent()
+    // WHY: Wrap in try-catch to prevent one failure from blocking the entire page
+    try {
+      await loadLinkedContent()
+    } catch (err: any) {
+      console.error('⚠️ Failed to load linked content (non-blocking):', err)
+      // Don't throw - allow page to render even if linked content fails
+    }
     
     // STEP 3: Load dashboard data (but preserve specs from linked-content)
-    await loadDashboardData(projectId)
+    // WHY: Wrap in try-catch to prevent one failure from blocking the entire page
+    try {
+      await loadDashboardData(projectId)
+    } catch (err: any) {
+      console.error('⚠️ Failed to load dashboard data (non-blocking):', err)
+      // Don't throw - allow page to render even if dashboard data fails
+    }
     
     // STEP 4: Explicitly load quality score to ensure it's fetched
-    await loadQualityScore(projectId)
+    // WHY: Wrap in try-catch to prevent one failure from blocking the entire page
+    try {
+      await loadQualityScore(projectId)
+    } catch (err: any) {
+      console.error('⚠️ Failed to load quality score (non-blocking):', err)
+      // Don't throw - allow page to render even if quality score fails
+    }
     
     // STEP 4: Start auto-refresh (every 5 minutes - less frequent to avoid unnecessary refreshes)
     if (!autoRefreshTimer.value) {
@@ -1196,15 +1327,38 @@ const loadProject = async () => {
     // Removed: 2-second delayed refresh - unnecessary and causes flickering
   } catch (err: any) {
     error.value = err.message || 'Failed to load project'
-    console.error('Error loading project:', err)
+    console.error('❌ Error loading project:', err)
+    console.error('❌ Error details:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    })
+    
     // Ensure loading is set to false on error
+    // WHY: Prevents infinite loading spinner
     loading.value = false
+    loadLinkedContentInProgress = false
+    linkedContentLoading.value = false
   } finally {
-    if (timeoutId) clearTimeout(timeoutId)
-    // Always set loading to false, even if there was an error
-    if (loading.value) {
-    loading.value = false
+    // Clear timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId)
     }
+    
+    // Always set loading to false, even if there was an error
+    // WHY: Ensures UI is never stuck in loading state
+    if (loading.value) {
+      console.warn('⚠️ Force-clearing loading state in finally block')
+      loading.value = false
+    }
+    
+    // Ensure linked content loading is also cleared
+    if (linkedContentLoading.value) {
+      linkedContentLoading.value = false
+    }
+    loadLinkedContentInProgress = false
+    
+    console.log('✅ loadProject completed (success or error)')
   }
 }
 
@@ -1214,30 +1368,55 @@ const loadProject = async () => {
 const loadSpecLints = async (linkedContent: { specLints?: any[] }): Promise<any[]> => {
   try {
     console.log('🔍 Processing spec lints from linked-content')
+    console.log('🔍 Raw linkedContent:', linkedContent)
+    console.log('🔍 linkedContent.specLints:', linkedContent.specLints)
     
     // Get spec lints from linked content (already filtered by getLinkedContent)
     const specLintsArray = linkedContent.specLints || []
     
     console.log('🔍 Loaded spec lints from linked-content:', specLintsArray.length)
+    console.log('🔍 Spec lints array:', specLintsArray)
     
     // Transform the response to match our format
-    return specLintsArray.map((lint: any) => ({
-      id: lint.id,
-      spec_id: lint.spec_id || lint.id,
-      spec_name: lint.spec_name || lint.name,
+    return specLintsArray.map((lint: any) => {
+      // Handle summary - it might be an object like { error: 1, warning: 0, info: 0 }
+      let summary = lint.summary || ''
+      if (typeof summary === 'object' && summary !== null) {
+        // Convert object to readable string
+        const errorCount = summary.error || 0
+        const warningCount = summary.warning || 0
+        const infoCount = summary.info || 0
+        summary = `Found ${errorCount} error(s), ${warningCount} warning(s), ${infoCount} info`
+      }
+      
+      // Calculate issues_count from summary if not provided
+      let issuesCount = lint.issues_count
+      if (issuesCount === undefined || issuesCount === null) {
+        if (typeof lint.summary === 'object' && lint.summary !== null) {
+          issuesCount = (lint.summary.error || 0) + (lint.summary.warning || 0) + (lint.summary.info || 0)
+        } else {
+          issuesCount = 0
+        }
+      }
+      
+      return {
+        id: lint.id,
+        spec_id: lint.spec_id || lint.id,
+        spec_name: lint.spec_name || lint.name,
       name: lint.spec_name || lint.name || `Spec Lint ${lint.id}`,
       file_name: lint.file_name,
-      status: lint.status || 'pending', // "approved", "pending", or "declined"
-      reviewer_info: lint.reviewer_info || null,
-      review_timestamp: lint.review_timestamp,
-      review_comment: lint.review_comment,
-      issues_count: lint.issues_count || 0,
-      summary: lint.summary || '',
-      created_at: lint.created_at,
+        status: lint.status || 'pending', // "approved", "pending", or "declined"
+        reviewer_info: lint.reviewer_info || null,
+        review_timestamp: lint.review_timestamp,
+        review_comment: lint.review_comment,
+        issues_count: issuesCount,
+        summary: summary,
+        created_at: lint.created_at,
       liked_by_me: lint.liked_by_me || false,
       like_count: lint.like_count || 0,
       type: 'spec_lint'
-    }))
+      }
+    })
   } catch (err: any) {
     console.error('Error processing spec lints:', err)
     return []
@@ -1245,32 +1424,121 @@ const loadSpecLints = async (linkedContent: { specLints?: any[] }): Promise<any[
 }
 
 // Load linked content (specs, checklists, etc.)
+/**
+ * Load linked content (specs, checklists, spec lints) for the project
+ * 
+ * WHY: This function fetches all content linked to the project. It includes
+ * error handling and timeout to prevent infinite loading states.
+ * 
+ * OPTIMIZATION: Could use API cache here, but we want fresh data on each load
+ * since linked content changes frequently (specs/checklists added/removed).
+ * 
+ * ANTI-FLICKER: Uses debouncing to prevent jerky loading indicators:
+ * 1. Prevents multiple simultaneous calls
+ * 2. Delays showing loader for fast loads (<150ms)
+ * 3. Ensures loader shows for minimum 300ms to prevent flicker
+ */
 const loadLinkedContent = async () => {
   const projectId = project.value?.id || route.params.id
   if (!projectId) {
     console.warn('⚠️ No project ID available')
+    linkedContentLoading.value = false
     return
   }
   
-  linkedContentLoading.value = true
+  // Prevent multiple simultaneous calls
+  // WHY: Multiple calls cause jerky loading state changes
+  if (loadLinkedContentInProgress) {
+    console.log('⏸️ loadLinkedContent already in progress, skipping duplicate call')
+    return
+  }
+  
+  loadLinkedContentInProgress = true
+  
+  // Clear any existing timers
+  if (loaderDelayTimer) {
+    clearTimeout(loaderDelayTimer)
+    loaderDelayTimer = null
+  }
+  if (loaderMinTimeTimer) {
+    clearTimeout(loaderMinTimeTimer)
+    loaderMinTimeTimer = null
+  }
+  
+  // Delay showing loader for fast loads
+  // WHY: If data loads in <150ms, don't show loader at all (prevents flicker)
+  loaderDelayTimer = setTimeout(() => {
+    if (loadLinkedContentInProgress) {
+      linkedContentLoading.value = true
+      loaderShowTime = Date.now()
+    }
+  }, LOADER_DELAY)
   
   try {
     console.log('🔍 Loading linked content for project:', projectId)
-    const linkedContent = await getLinkedContent(projectId)
+    
+    // Add timeout to prevent infinite loading
+    // WHY: If API call hangs, this ensures loading state is cleared after 10 seconds
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout: Linked content took too long to load')), 10000)
+    })
+    
+    // Race between API call and timeout
+    const linkedContent = await Promise.race([
+      getLinkedContent(projectId),
+      timeoutPromise
+    ]) as Awaited<ReturnType<typeof getLinkedContent>>
+    
     console.log('🔍 Loaded linked content:', linkedContent)
     
     const specsArray = linkedContent.specs || []
     const checklistsArray = linkedContent.checklists || []
     
+    // Fetch checklists with status from the with-status endpoint
+    // This ensures we have the correct status (approved/declined/pending)
+    let checklistsWithStatus: any[] = []
+    try {
+      console.log('📋 Fetching checklists with status for project:', projectId)
+      const checklistsStatusResponse = await authenticatedFetch(`/api/v1/projects/${projectId}/checklists/with-status`)
+      if (checklistsStatusResponse.ok) {
+        checklistsWithStatus = await checklistsStatusResponse.json()
+        console.log('✅ Checklists with status fetched:', checklistsWithStatus.length)
+        console.log('📋 Checklists status details:', checklistsWithStatus.map((c: any) => ({ id: c.id, name: c.name, status: c.status })))
+      } else {
+        console.warn('⚠️ Failed to fetch checklists with status:', checklistsStatusResponse.status)
+      }
+    } catch (err: any) {
+      console.error('❌ Error fetching checklists with status:', err)
+    }
+    
+    // Merge checklists from linked-content with status from with-status endpoint
+    // Create a map of checklist status by ID
+    const statusMap = new Map<number | string, string>()
+    checklistsWithStatus.forEach((checklist: any) => {
+      statusMap.set(checklist.id, checklist.status || 'pending')
+    })
+    
+    // Merge status into checklists from linked-content
+    const mergedChecklists = checklistsArray.map((checklist: any) => {
+      const checklistId = checklist.id
+      const status = statusMap.get(checklistId) || checklist.status || 'pending'
+      return {
+        ...checklist,
+        status: status // Use status from with-status endpoint, fallback to linked-content status, then 'pending'
+      }
+    })
+    
     // Process spec lints from linked-content (no separate API call needed)
     const specLintsArray = await loadSpecLints(linkedContent)
     
     console.log('🔍 Specs found:', specsArray.length)
-    console.log('🔍 Checklists found:', checklistsArray.length)
+    console.log('🔍 Checklists found:', mergedChecklists.length)
+    console.log('🔍 Checklists with merged status:', mergedChecklists.map((c: any) => ({ id: c.id, name: c.name, status: c.status })))
     console.log('🔍 Spec Lints found:', specLintsArray.length)
+    console.log('🔍 Spec Lints details:', specLintsArray)
     
     linkedSpecifications.value = specsArray
-    linkedChecklists.value = checklistsArray
+    linkedChecklists.value = mergedChecklists
     linkedSpecLints.value = specLintsArray
     
     // Map specs to dashboard format
@@ -1299,10 +1567,55 @@ const loadLinkedContent = async () => {
     }
     
     await nextTick()
+    
+    // Ensure minimum display time for loader
+    // WHY: Prevents flickering if load completes too quickly
+    const elapsed = Date.now() - loaderShowTime
+    if (elapsed < MIN_LOADER_DISPLAY_TIME && linkedContentLoading.value) {
+      const remaining = MIN_LOADER_DISPLAY_TIME - elapsed
+      loaderMinTimeTimer = setTimeout(() => {
+        linkedContentLoading.value = false
+        loadLinkedContentInProgress = false
+      }, remaining)
+    } else {
+      linkedContentLoading.value = false
+      loadLinkedContentInProgress = false
+    }
   } catch (err: any) {
-    console.error('Error loading linked content:', err)
-  } finally {
+    // Log error with details
+    // WHY: Helps debug why loading is stuck
+    console.error('❌ Error loading linked content:', err)
+    console.error('❌ Error message:', err.message)
+    console.error('❌ Error stack:', err.stack)
+    
+    // Show error to user
+    // WHY: User should know why content isn't loading
+    showToast(err.message || 'Failed to load linked content. Please try refreshing.', true)
+    
+    // Clear loading state even on error
+    // WHY: Prevents infinite loading spinner
     linkedContentLoading.value = false
+    loadLinkedContentInProgress = false
+    
+    // Set empty arrays to show empty state instead of loading
+    // WHY: Better UX than stuck loading spinner
+    linkedSpecifications.value = []
+    linkedChecklists.value = []
+    linkedSpecLints.value = []
+    dashboardData.value.specs = []
+  } finally {
+    // Clear timers
+    if (loaderDelayTimer) {
+      clearTimeout(loaderDelayTimer)
+      loaderDelayTimer = null
+    }
+    
+    // Always clear loading state after minimum display time
+    // WHY: Ensures loading spinner stops even if something goes wrong
+    if (!loaderMinTimeTimer) {
+      linkedContentLoading.value = false
+      loadLinkedContentInProgress = false
+    }
   }
 }
 
@@ -1463,6 +1776,20 @@ const getStatusColor = (status: string) => {
       return 'bg-blue-500'
     default:
       return 'bg-gray-500'
+  }
+}
+
+// Get status badge class for checklists
+// Approved: Green, Pending: Yellow/Orange, Declined: Red
+const getChecklistStatusBadgeClass = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'approved':
+      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
+    case 'declined':
+      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
+    case 'pending':
+    default:
+      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
   }
 }
 
@@ -1890,6 +2217,135 @@ async function onUnlinkChecklist(checklist: any) {
     }
   })
 }
+
+// Approve checklist by creating a comment with "approve" in the content
+async function onApproveChecklist(checklist: any) {
+  console.log('✅ onApproveChecklist called with checklist:', checklist)
+  
+  const projectId = project.value?.id || route.params.id as string
+  if (!projectId) {
+    console.error('❌ No project ID found')
+    showToast('Project not found. Please refresh the page.', true)
+    return
+  }
+  
+  const checklistId = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
+  const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
+  
+  try {
+    approvingChecklistId.value = checklistId
+    
+    // Create a comment with "approve" in the content to trigger approval
+    console.log('📝 Creating approval comment for checklist:', checklistId)
+    const commentResponse = await authenticatedFetch('/api/v1/comments/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_type: 'checklist',
+        entity_id: checklistId,
+        content: 'Approved by reviewer' // Must contain "approve" (case-insensitive)
+      })
+    })
+    
+    if (!commentResponse.ok) {
+      if (commentResponse.status === 401) {
+        const errorText = await commentResponse.text()
+        console.error('❌ 401 Unauthorized:', errorText)
+        showToast('Authentication failed. Please log in again.', true)
+        router.push('/login')
+        return
+      }
+      const errorText = await commentResponse.text()
+      throw new Error(errorText || 'Failed to approve checklist')
+    }
+    
+    const commentData = await commentResponse.json()
+    console.log('✅ Approval comment created:', commentData)
+    
+    // Wait a bit for backend to process the approval
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // Refresh linked content to get updated checklist status
+    await loadLinkedContent()
+    
+    // Refresh quality score to show updated completion rate
+    await loadQualityScore(projectId)
+    
+    showToast(`"${checklistName}" has been approved successfully.`, false)
+  } catch (e: any) {
+    console.error('❌ Error approving checklist:', e)
+    showToast(`Failed to approve checklist: ${e.message || e}`, true)
+  } finally {
+    approvingChecklistId.value = null
+  }
+}
+
+// Reject checklist by creating a comment with "reject" in the content
+async function onRejectChecklist(checklist: any) {
+  console.log('❌ onRejectChecklist called with checklist:', checklist)
+  
+  const projectId = project.value?.id || route.params.id as string
+  if (!projectId) {
+    console.error('❌ No project ID found')
+    showToast('Project not found. Please refresh the page.', true)
+    return
+  }
+  
+  const checklistId = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
+  const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
+  
+  try {
+    approvingChecklistId.value = checklistId
+    
+    // Create a comment with "reject" in the content to trigger rejection
+    console.log('📝 Creating rejection comment for checklist:', checklistId)
+    const commentResponse = await authenticatedFetch('/api/v1/comments/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_type: 'checklist',
+        entity_id: checklistId,
+        content: 'Rejected by reviewer' // Must contain "reject" (case-insensitive)
+      })
+    })
+    
+    if (!commentResponse.ok) {
+      if (commentResponse.status === 401) {
+        const errorText = await commentResponse.text()
+        console.error('❌ 401 Unauthorized:', errorText)
+        showToast('Authentication failed. Please log in again.', true)
+        router.push('/login')
+        return
+      }
+      const errorText = await commentResponse.text()
+      throw new Error(errorText || 'Failed to reject checklist')
+    }
+    
+    const commentData = await commentResponse.json()
+    console.log('✅ Rejection comment created:', commentData)
+    
+    // Wait a bit for backend to process the rejection
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // Refresh linked content to get updated checklist status
+    await loadLinkedContent()
+    
+    // Refresh quality score to show updated completion rate
+    await loadQualityScore(projectId)
+    
+    showToast(`"${checklistName}" has been rejected.`, false)
+  } catch (e: any) {
+    console.error('❌ Error rejecting checklist:', e)
+    showToast(`Failed to reject checklist: ${e.message || e}`, true)
+  } finally {
+    approvingChecklistId.value = null
+  }
+}
+
 // Like/unlike handlers will be implemented in Phase 2
 async function onLikeSpec(spec: any) {
   if (!project.value) return
@@ -2208,8 +2664,26 @@ const linkSelectedLintResult = async () => {
     console.log('✅ Lint result linked:', data)
 
     closeLinkLintModal()
-    await loadLinkedContent()
     showToast('Lint result linked successfully!', false)
+    
+    // Add a small delay to ensure backend has processed the link
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // Refresh linked content to show the newly linked lint result
+    await loadLinkedContent()
+    
+    // Also dispatch event to trigger refresh in other components
+    // Note: projectId is already defined above, don't redeclare it
+    if (projectId) {
+      window.dispatchEvent(new CustomEvent('project-content-updated', {
+        detail: { projectId }
+      }))
+    }
+    
+    // Refresh quality score as well
+    if (projectId) {
+      await loadQualityScore(projectId)
+    }
   } catch (e: any) {
     console.error('❌ Error linking lint result:', e)
     lintResultError.value = e.message || 'Failed to link lint result'
@@ -2664,6 +3138,22 @@ async function batchUnlinkSpecLints() {
 
 // Tab state removed - only one view now
 </script>
+
+<style scoped>
+/**
+ * Fade transition for loading states
+ * WHY: Smooth fade in/out prevents jerky appearance when loading state changes
+ */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
 
 <style scoped>
 /* Modal animations */

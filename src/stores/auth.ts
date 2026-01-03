@@ -22,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
       : null
   )
   const isLoading = ref(false)
+  let authCheckInProgress = false // Flag to prevent multiple simultaneous auth checks
 
   const isAuthenticated = computed(() => {
     const authenticated = !!token.value && !!user.value
@@ -45,12 +46,29 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const login = async (email: string, password: string) => {
+    // Validate inputs
+    if (!email || !email.trim()) {
+      console.error('❌ Login attempted with empty email')
+      return { success: false, error: 'Email is required' }
+    }
+
+    if (!password || !password.trim()) {
+      console.error('❌ Login attempted with empty password')
+      return { success: false, error: 'Password is required' }
+    }
+
+    // Prevent multiple simultaneous login attempts
+    if (isLoading.value) {
+      console.log('⏸️ Login already in progress, skipping duplicate call')
+      return { success: false, error: 'Login already in progress' }
+    }
+
     isLoading.value = true
     try {
       const response = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: email.trim(), password })
       })
       if (!response.ok) {
         const errorText = await response.text()
@@ -156,6 +174,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const checkAuth = async () => {
+    // Prevent multiple simultaneous calls
+    if (authCheckInProgress) {
+      console.log('⏸️ Auth check already in progress, skipping duplicate call')
+      return false
+    }
+    
     console.log('🔍 checkAuth called')
     console.log('Token exists:', !!token.value)
     console.log('Token value:', token.value)
@@ -165,6 +189,7 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
     
+    authCheckInProgress = true
     try {
       const authHeaders = getAuthHeader()
       console.log('🔗 Making auth check request to:', `${API_BASE}/me`)
@@ -199,6 +224,7 @@ export const useAuthStore = defineStore('auth', () => {
       const userData = await response.json()
       console.log('✅ Auth check successful, user data:', userData)
       user.value = userData
+      authCheckInProgress = false
       return true
     } catch (error: any) {
       console.log('💥 Auth check error:', error)
@@ -207,12 +233,18 @@ export const useAuthStore = defineStore('auth', () => {
         console.log('⏱️ Auth check timed out after 5 seconds')
       }
       console.log('⚠️ Network or other error during auth check - not clearing token')
+      authCheckInProgress = false
       return false
     }
   }
 
   // Auto-load user data if token exists but user is missing
   const initializeAuth = async () => {
+    // Prevent multiple simultaneous auth checks
+    if (authCheckInProgress) {
+      console.log('⏸️ Auth check already in progress, skipping initializeAuth...')
+      return
+    }
     try {
       if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
         console.log('🔄 Auto-loading user data for existing token')
@@ -232,13 +264,15 @@ export const useAuthStore = defineStore('auth', () => {
   // Initialize auth on store creation (don't block app loading)
   // Only initialize if we have a token and no user - don't run if user is already set
   // Use setTimeout to ensure it doesn't block app initialization
-  if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
-    setTimeout(() => {
-      initializeAuth().catch(err => {
-        console.error('⚠️ Auth initialization failed:', err)
-      })
-    }, 100) // Delay to ensure app loads first
-  }
+  // DISABLED: Don't auto-initialize on store creation to prevent repeated failed requests
+  // Components should call initializeAuth() explicitly when needed
+  // if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
+  //   setTimeout(() => {
+  //     initializeAuth().catch(err => {
+  //       console.error('⚠️ Auth initialization failed:', err)
+  //     })
+  //   }, 100) // Delay to ensure app loads first
+  // }
   
   return {
     user,
