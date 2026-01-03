@@ -24,7 +24,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      name: 'Landing',
+      // Landing page - public, no auth required
+      component: () => import('@/views/LandingPage.vue'),
+      meta: { requiresAuth: false },
     },
     {
       path: '/login',
@@ -141,8 +144,8 @@ router.beforeEach((to, from, next) => {
   try {
     const authStore = useAuthStore()
     
-    // Always allow access to login page (no checks)
-    // WHY: Login page must always be accessible, even if user is logged out
+    // Always allow access to landing and login pages (no checks)
+    // WHY: Landing and login pages must always be accessible, even if user is logged out
     if (to.path === '/login' || to.path === '/') {
       next()
       return
