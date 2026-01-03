@@ -495,15 +495,15 @@
           <div>
             <h4 class="text-white font-semibold mb-4">Legal</h4>
             <ul class="space-y-2 text-sm text-gray-400">
-              <li><a href="#" class="hover:text-neon-blue transition-colors">Privacy</a></li>
-              <li><a href="#" class="hover:text-neon-blue transition-colors">Terms</a></li>
-              <li><a href="#" class="hover:text-neon-blue transition-colors">Security</a></li>
+              <li><router-link to="/privacy" class="hover:text-neon-blue transition-colors">Privacy</router-link></li>
+              <li><router-link to="/terms" class="hover:text-neon-blue transition-colors">Terms</router-link></li>
+              <li><router-link to="/security" class="hover:text-neon-blue transition-colors">Security</router-link></li>
             </ul>
           </div>
         </div>
 
         <div class="mt-8 pt-8 border-t border-dark-700 text-center text-sm text-gray-400">
-          <p>&copy; 2025 TapeOutOps. All rights reserved.</p>
+          <p>&copy; 2026 TapeOutOps. All rights reserved.</p>
         </div>
       </div>
     </footer>

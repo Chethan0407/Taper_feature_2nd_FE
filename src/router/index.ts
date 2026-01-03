@@ -21,6 +21,14 @@ import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior(to, from, savedPosition) {
+    // If there's a saved position (e.g., from browser back button), use it
+    if (savedPosition) {
+      return savedPosition
+    }
+    // Otherwise, scroll to top
+    return { top: 0, behavior: 'smooth' }
+  },
   routes: [
     {
       path: '/',
@@ -42,6 +50,27 @@ const router = createRouter({
       name: 'About',
       // About page - public, no auth required
       component: () => import('@/views/AboutPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/privacy',
+      name: 'Privacy',
+      // Privacy policy page - public, no auth required
+      component: () => import('@/views/PrivacyPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/terms',
+      name: 'Terms',
+      // Terms of service page - public, no auth required
+      component: () => import('@/views/TermsPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/security',
+      name: 'Security',
+      // Security page - public, no auth required
+      component: () => import('@/views/SecurityPage.vue'),
       meta: { requiresAuth: false },
     },
     {
@@ -151,9 +180,10 @@ router.beforeEach((to, from, next) => {
   try {
     const authStore = useAuthStore()
     
-    // Always allow access to landing, login, and about pages (no checks)
+    // Always allow access to public pages (no checks)
     // WHY: These pages must always be accessible, even if user is logged out
-    if (to.path === '/login' || to.path === '/' || to.path === '/about') {
+    const publicPaths = ['/login', '/', '/about', '/privacy', '/terms', '/security']
+    if (publicPaths.includes(to.path)) {
       next()
       return
     }
