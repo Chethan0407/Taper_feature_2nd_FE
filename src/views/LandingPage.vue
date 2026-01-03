@@ -84,67 +84,117 @@
 
         <!-- Hero Image/Preview -->
         <div class="relative max-w-6xl mx-auto">
-          <div class="glass-effect rounded-2xl p-6 shadow-2xl border border-dark-700 overflow-hidden">
+          <div class="glass-effect rounded-3xl p-1 shadow-2xl border border-neon-blue/30 overflow-hidden">
+            <!-- Glow border effect -->
+            <div class="absolute inset-0 bg-gradient-to-r from-neon-blue/20 via-neon-purple/20 to-neon-blue/20 blur-xl opacity-50"></div>
+            
             <!-- Mock Dashboard Preview -->
-            <div class="bg-gradient-to-br from-dark-800 to-dark-900 rounded-lg overflow-hidden">
+            <div class="bg-gradient-to-br from-dark-800 via-dark-800 to-dark-900 rounded-2xl overflow-hidden relative">
               <!-- Mock Header -->
-              <div class="bg-dark-700 px-6 py-4 flex items-center justify-between border-b border-dark-600">
+              <div class="bg-dark-700/80 backdrop-blur-sm px-6 py-3 flex items-center justify-between border-b border-dark-600/50">
                 <div class="flex items-center space-x-3">
-                  <div class="w-8 h-8 bg-neon-blue/20 rounded-lg"></div>
-                  <div class="h-4 w-32 bg-dark-600 rounded"></div>
+                  <div class="w-8 h-8 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="6" height="6" rx="1"/>
+                      <rect x="15" y="3" width="6" height="6" rx="1"/>
+                      <rect x="3" y="15" width="6" height="6" rx="1"/>
+                      <rect x="15" y="15" width="6" height="6" rx="1"/>
+                    </svg>
+                  </div>
+                  <div class="h-3 w-24 bg-dark-600/60 rounded animate-pulse"></div>
                 </div>
                 <div class="flex items-center space-x-2">
-                  <div class="w-8 h-8 bg-dark-600 rounded-full"></div>
-                  <div class="w-8 h-8 bg-dark-600 rounded-full"></div>
+                  <div class="w-7 h-7 bg-dark-600/60 rounded-full"></div>
+                  <div class="w-7 h-7 bg-dark-600/60 rounded-full"></div>
                 </div>
               </div>
               
               <!-- Mock Content -->
-              <div class="p-6">
+              <div class="p-6 space-y-6">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-4 gap-4 mb-6">
-                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
-                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
-                    <div class="h-6 w-12 bg-neon-blue/20 rounded"></div>
+                <div class="grid grid-cols-4 gap-4">
+                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-neon-blue/50 transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
+                      <div class="w-3 h-3 bg-neon-blue/30 rounded"></div>
+                    </div>
+                    <div class="h-7 w-16 bg-neon-blue/20 rounded-lg mb-1"></div>
+                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
                   </div>
-                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
-                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
-                    <div class="h-6 w-12 bg-green-500/20 rounded"></div>
+                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-green-500/50 transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
+                      <div class="w-3 h-3 bg-green-500/30 rounded"></div>
+                    </div>
+                    <div class="h-7 w-16 bg-green-500/20 rounded-lg mb-1"></div>
+                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
                   </div>
-                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
-                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
-                    <div class="h-6 w-12 bg-yellow-500/20 rounded"></div>
+                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-yellow-500/50 transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
+                      <div class="w-3 h-3 bg-yellow-500/30 rounded"></div>
+                    </div>
+                    <div class="h-7 w-16 bg-yellow-500/20 rounded-lg mb-1"></div>
+                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
                   </div>
-                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
-                    <div class="h-3 w-16 bg-dark-600 rounded mb-2"></div>
-                    <div class="h-6 w-12 bg-purple-500/20 rounded"></div>
+                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-purple-500/50 transition-colors">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
+                      <div class="w-3 h-3 bg-purple-500/30 rounded"></div>
+                    </div>
+                    <div class="h-7 w-16 bg-purple-500/20 rounded-lg mb-1"></div>
+                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
                   </div>
                 </div>
                 
                 <!-- Main Content Area -->
                 <div class="grid grid-cols-3 gap-4">
-                  <div class="col-span-2 bg-dark-700 rounded-lg p-4 border border-dark-600">
-                    <div class="h-4 w-24 bg-dark-600 rounded mb-4"></div>
+                  <div class="col-span-2 glass-effect rounded-xl p-5 border border-dark-600/50">
+                    <div class="h-4 w-32 bg-dark-600/40 rounded mb-5"></div>
                     <div class="space-y-3">
-                      <div class="h-12 bg-dark-600 rounded"></div>
-                      <div class="h-12 bg-dark-600 rounded"></div>
-                      <div class="h-12 bg-dark-600 rounded"></div>
+                      <div class="flex items-center space-x-3 p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
+                        <div class="w-10 h-10 bg-neon-blue/20 rounded-lg"></div>
+                        <div class="flex-1 space-y-2">
+                          <div class="h-3 w-3/4 bg-dark-600/40 rounded"></div>
+                          <div class="h-2 w-1/2 bg-dark-600/30 rounded"></div>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-3 p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
+                        <div class="w-10 h-10 bg-green-500/20 rounded-lg"></div>
+                        <div class="flex-1 space-y-2">
+                          <div class="h-3 w-2/3 bg-dark-600/40 rounded"></div>
+                          <div class="h-2 w-1/2 bg-dark-600/30 rounded"></div>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-3 p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
+                        <div class="w-10 h-10 bg-yellow-500/20 rounded-lg"></div>
+                        <div class="flex-1 space-y-2">
+                          <div class="h-3 w-4/5 bg-dark-600/40 rounded"></div>
+                          <div class="h-2 w-1/2 bg-dark-600/30 rounded"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="bg-dark-700 rounded-lg p-4 border border-dark-600">
-                    <div class="h-4 w-20 bg-dark-600 rounded mb-4"></div>
-                    <div class="space-y-2">
-                      <div class="h-8 bg-dark-600 rounded"></div>
-                      <div class="h-8 bg-dark-600 rounded"></div>
-                      <div class="h-8 bg-dark-600 rounded"></div>
+                  <div class="glass-effect rounded-xl p-5 border border-dark-600/50">
+                    <div class="h-4 w-24 bg-dark-600/40 rounded mb-5"></div>
+                    <div class="space-y-3">
+                      <div class="p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
+                        <div class="h-2.5 w-full bg-dark-600/40 rounded mb-2"></div>
+                        <div class="h-2 w-2/3 bg-dark-600/30 rounded"></div>
+                      </div>
+                      <div class="p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
+                        <div class="h-2.5 w-full bg-dark-600/40 rounded mb-2"></div>
+                        <div class="h-2 w-2/3 bg-dark-600/30 rounded"></div>
+                      </div>
+                      <div class="p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
+                        <div class="h-2.5 w-full bg-dark-600/40 rounded mb-2"></div>
+                        <div class="h-2 w-2/3 bg-dark-600/30 rounded"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            <!-- Glow effect -->
-            <div class="absolute inset-0 bg-gradient-to-r from-neon-blue/0 via-neon-blue/5 to-neon-purple/0 pointer-events-none rounded-2xl"></div>
           </div>
         </div>
       </div>
