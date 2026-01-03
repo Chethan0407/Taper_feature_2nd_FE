@@ -38,6 +38,13 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/about',
+      name: 'About',
+      // About page - public, no auth required
+      component: () => import('@/views/AboutPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/dashboard',
       name: 'Dashboard',
       // Code split: Creates "dashboard" chunk
@@ -144,9 +151,9 @@ router.beforeEach((to, from, next) => {
   try {
     const authStore = useAuthStore()
     
-    // Always allow access to landing and login pages (no checks)
-    // WHY: Landing and login pages must always be accessible, even if user is logged out
-    if (to.path === '/login' || to.path === '/') {
+    // Always allow access to landing, login, and about pages (no checks)
+    // WHY: These pages must always be accessible, even if user is logged out
+    if (to.path === '/login' || to.path === '/' || to.path === '/about') {
       next()
       return
     }

@@ -21,7 +21,8 @@
           <div class="hidden md:flex items-center space-x-8">
             <a href="#features" class="text-gray-300 hover:text-neon-blue transition-colors">Features</a>
             <a href="#how-it-works" class="text-gray-300 hover:text-neon-blue transition-colors">How It Works</a>
-            <a href="#pricing" class="text-gray-300 hover:text-neon-blue transition-colors">Pricing</a>
+            <a href="#about" class="text-gray-300 hover:text-neon-blue transition-colors">About</a>
+            <a href="/about" class="text-gray-300 hover:text-neon-blue transition-colors">About Page</a>
           </div>
 
           <!-- Auth Buttons -->
@@ -362,6 +363,96 @@
       </div>
     </section>
 
+    <!-- About Section -->
+    <section id="about" class="py-20 px-4 sm:px-6 lg:px-8 bg-dark-900/50">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">About TapeOutOps</h2>
+          <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+            Revolutionizing semiconductor tapeout workflows with cutting-edge technology
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+          <!-- Product Story -->
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+            <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-4">Our Mission</h3>
+            <p class="text-gray-400 leading-relaxed mb-4">
+              TapeOutOps was born from a simple observation: semiconductor tapeout workflows are complex, fragmented, and often inefficient. We set out to create a unified platform that brings together all aspects of the tapeout process—from specification management to quality checks and vendor collaboration.
+            </p>
+            <p class="text-gray-400 leading-relaxed">
+              Our platform empowers engineering teams to streamline their workflows, reduce errors, and accelerate time-to-market. With intelligent automation, real-time collaboration, and comprehensive quality assurance, TapeOutOps transforms how semiconductor companies manage their tapeout processes.
+            </p>
+          </div>
+
+          <!-- Founder Story -->
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+            <div class="flex items-center mb-6">
+              <div class="w-20 h-20 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full flex items-center justify-center text-2xl font-bold text-white mr-4">
+                C
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-white">Chethan</h3>
+                <p class="text-neon-blue">Founder & CEO</p>
+              </div>
+            </div>
+            <p class="text-gray-400 leading-relaxed mb-4">
+              As the founder of TapeOutOps, I've spent years working in semiconductor design and witnessed firsthand the challenges teams face during tapeout. The lack of integrated tools, manual processes, and communication gaps between teams inspired me to build a solution that addresses these pain points.
+            </p>
+            <p class="text-gray-400 leading-relaxed">
+              TapeOutOps represents my vision of a modern, efficient tapeout workflow—one where engineers can focus on what they do best: designing exceptional chips. Every feature we build is driven by real-world needs and feedback from the semiconductor community.
+            </p>
+            <div class="mt-6 flex items-center space-x-4">
+              <a href="mailto:chethan@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                Get in Touch
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Values -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="glass-effect rounded-xl p-6 border border-dark-700 text-center">
+            <div class="w-12 h-12 bg-neon-blue/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </div>
+            <h4 class="text-lg font-semibold text-white mb-2">Innovation First</h4>
+            <p class="text-gray-400 text-sm">We continuously push the boundaries of what's possible in tapeout management.</p>
+          </div>
+
+          <div class="glass-effect rounded-xl p-6 border border-dark-700 text-center">
+            <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+            </div>
+            <h4 class="text-lg font-semibold text-white mb-2">User-Centric</h4>
+            <p class="text-gray-400 text-sm">Every feature is designed with engineers and their workflows in mind.</p>
+          </div>
+
+          <div class="glass-effect rounded-xl p-6 border border-dark-700 text-center">
+            <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
+            <h4 class="text-lg font-semibold text-white mb-2">Reliable & Secure</h4>
+            <p class="text-gray-400 text-sm">Enterprise-grade security and reliability for mission-critical workflows.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Footer -->
     <footer class="py-12 px-4 sm:px-6 lg:px-8 border-t border-dark-700">
       <div class="max-w-7xl mx-auto">
@@ -395,8 +486,8 @@
           <div>
             <h4 class="text-white font-semibold mb-4">Company</h4>
             <ul class="space-y-2 text-sm text-gray-400">
-              <li><a href="#" class="hover:text-neon-blue transition-colors">About</a></li>
-              <li><a href="#" class="hover:text-neon-blue transition-colors">Blog</a></li>
+              <li><a href="#about" class="hover:text-neon-blue transition-colors">About</a></li>
+              <li><a href="/about" class="hover:text-neon-blue transition-colors">About Page</a></li>
               <li><a href="#" class="hover:text-neon-blue transition-colors">Contact</a></li>
             </ul>
           </div>
