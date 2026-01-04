@@ -41,13 +41,21 @@ const COMMON_PASSWORDS = [
 const SPECIAL_CHARS = /[!@#$%^&*(),.?":{}|<>]/
 
 /**
+ * Get byte length of a string (handles Unicode/emoji correctly)
+ */
+function getByteLength(str: string): number {
+  return new TextEncoder().encode(str).length
+}
+
+/**
  * Validates a password against all requirements
  */
 export function validatePassword(password: string): PasswordValidationResult {
   const errors: string[] = []
+  const passwordByteLength = getByteLength(password)
   const checks = {
     minLength: password.length >= 8,
-    maxLength: password.length <= 72, // bcrypt limit is 72 bytes
+    maxLength: passwordByteLength <= 72, // bcrypt limit is 72 bytes (not characters)
     hasUppercase: /[A-Z]/.test(password),
     hasLowercase: /[a-z]/.test(password),
     hasNumber: /[0-9]/.test(password),
@@ -59,7 +67,7 @@ export function validatePassword(password: string): PasswordValidationResult {
     errors.push('Password must be at least 8 characters long')
   }
   if (!checks.maxLength) {
-    errors.push('Password must be no more than 72 bytes long (approximately 72 characters for ASCII)')
+    errors.push(`Password cannot exceed 72 bytes. Current: ${passwordByteLength} bytes. Please use a shorter password (avoid special Unicode characters or emojis).`)
   }
   if (!checks.hasUppercase) {
     errors.push('Password must contain at least one uppercase letter (A-Z)')
