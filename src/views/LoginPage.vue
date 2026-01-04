@@ -33,9 +33,24 @@
               v-model="email"
               type="email"
               required
-              class="input-field w-full"
-              placeholder="Enter your email"
+              :class="[
+                'input-field w-full',
+                loginEmailError && email
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : ''
+              ]"
+              placeholder="Enter your company email"
+              @input="loginEmailError = ''"
             />
+            <!-- Email Error Message -->
+            <Transition name="fade">
+              <div v-if="loginEmailError && email" class="mt-2 flex items-center gap-2 text-red-500 text-sm">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>{{ loginEmailError }}</span>
+              </div>
+            </Transition>
           </div>
 
           <!-- Password Input -->
@@ -106,8 +121,26 @@
           </p>
         </div>
 
-        <!-- Login Error -->
-        <div v-if="loginError" class="text-red-500 text-center mt-2">{{ loginError }}</div>
+          <!-- Login Error -->
+          <Transition name="fade">
+            <div v-if="loginError" class="mt-4">
+              <div class="flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>{{ loginError }}</span>
+              </div>
+              <!-- Resend OTP option if email not verified -->
+              <div v-if="loginRequiresVerification" class="mt-3 text-center">
+                <button
+                  @click="handleResendOTPFromLogin"
+                  class="text-sm text-neon-blue hover:text-neon-blue/80 font-medium transition-colors"
+                >
+                  Resend OTP and verify email
+                </button>
+              </div>
+            </div>
+          </Transition>
       </div>
 
       <!-- Footer -->
@@ -120,8 +153,8 @@
 
     <!-- Sign Up Modal -->
     <Transition name="modal">
-      <div v-if="showSignUp" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-        <div class="bg-white dark:bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
+      <div v-if="showSignUp" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 overflow-y-auto">
+        <div class="bg-white dark:bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative my-8 max-h-[90vh] flex flex-col">
           <!-- Close Button -->
           <button 
             type="button"
@@ -135,13 +168,14 @@
           </button>
 
           <!-- Header -->
-          <div class="mb-6">
+          <div class="mb-6 flex-shrink-0">
             <h2 class="text-3xl font-bold mb-2 text-center text-gradient">Create Account</h2>
             <p class="text-sm text-center text-gray-600 dark:text-gray-400">Join TapeOutOps to get started</p>
           </div>
 
-          <!-- Form -->
-          <form @submit.prevent="handleSignUp" class="space-y-5">
+          <!-- Form - Scrollable Area -->
+          <div class="flex-1 overflow-y-auto pr-2 -mr-2 custom-scrollbar">
+            <form @submit.prevent="handleSignUp" class="space-y-5">
             <!-- Name Field -->
             <div>
               <label for="signup-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -187,6 +221,23 @@
                 </div>
               </Transition>
           </div>
+
+            <!-- Role Field (Optional) -->
+            <div>
+              <label for="signup-role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Role <span class="text-gray-500 text-xs">(optional)</span>
+              </label>
+              <select 
+                id="signup-role"
+                v-model="signupRole" 
+                class="input-field w-full"
+              >
+                <option value="engineer">Engineer</option>
+                <option value="lead">Lead</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
 
             <!-- Password Field -->
           <div>
@@ -250,9 +301,9 @@
               </div>
             </Transition>
 
-            <!-- Password Requirements List -->
+            <!-- Password Requirements List - Only show if password is invalid (not all requirements met) -->
             <Transition name="fade">
-              <div v-if="showPasswordRequirements && signupPassword" class="mt-3 p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600">
+              <div v-if="showPasswordRequirements && signupPassword && !passwordValidation?.isValid" class="mt-3 p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600">
                 <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Password Requirements:</p>
                 <ul class="space-y-1.5">
                   <li 
@@ -300,7 +351,14 @@
                   :type="signupShowConfirmPassword ? 'text' : 'password'" 
                   v-model="signupConfirmPassword" 
                   required 
-                  class="input-field w-full pr-12" 
+                  :class="[
+                    'input-field w-full pr-12',
+                    signupConfirmPassword && signupPassword && signupConfirmPassword !== signupPassword
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : signupConfirmPassword && signupPassword && signupConfirmPassword === signupPassword
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                      : ''
+                  ]"
                   placeholder="Confirm your password"
                   autocomplete="new-password"
                 />
@@ -321,14 +379,24 @@
               </div>
             </div>
 
-            <!-- Password Mismatch Error -->
+            <!-- Password Mismatch Error - Show in real-time -->
             <Transition name="fade">
-              <div v-if="signupPasswordMismatch" class="flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <div v-if="signupConfirmPassword && signupPassword && signupConfirmPassword !== signupPassword" class="mt-2 flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <span>Passwords do not match</span>
-          </div>
+              </div>
+            </Transition>
+            
+            <!-- Password Match Success - Show when they match -->
+            <Transition name="fade">
+              <div v-if="signupConfirmPassword && signupPassword && signupConfirmPassword === signupPassword && signupConfirmPassword.length > 0" class="mt-2 flex items-center gap-2 text-green-600 dark:text-green-400 text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>Passwords match</span>
+              </div>
             </Transition>
 
             <!-- Sign Up Button -->
@@ -380,9 +448,10 @@
                 </a>
               </p>
             </div>
-        </form>
+            </form>
+          </div>
+        </div>
       </div>
-    </div>
     </Transition>
 
     <!-- Forgot Password Modal -->
@@ -427,6 +496,7 @@ const showSignUp = ref(false)
 const signupEmail = ref('')
 const signupPassword = ref('')
 const signupName = ref('')
+const signupRole = ref('engineer') // Default role
 const signupLoading = ref(false)
 const signupSuccess = ref(false)
 const signupError = ref('')
@@ -566,6 +636,9 @@ const forgotSuccess = ref(false)
 const forgotError = ref('')
 
 const loginError = ref('')
+const loginRequiresVerification = ref(false)
+const loginEmailForVerification = ref('')
+const loginEmailError = ref('')
 
 // Function to open signup modal
 const openSignUpModal = () => {
@@ -586,6 +659,7 @@ const closeSignUpModal = () => {
     signupEmail.value = ''
     signupPassword.value = ''
     signupConfirmPassword.value = ''
+    signupRole.value = 'engineer'
     signupPasswordMismatch.value = false
     signupError.value = ''
     signupEmailError.value = ''
@@ -605,11 +679,13 @@ const handleLogin = async () => {
   // Validate inputs before attempting login
   if (!email.value || !email.value.trim()) {
     loginError.value = 'Please enter your email address.'
+    loginRequiresVerification.value = false
     return
   }
 
   if (!password.value || !password.value.trim()) {
     loginError.value = 'Please enter your password.'
+    loginRequiresVerification.value = false
     return
   }
 
@@ -617,23 +693,64 @@ const handleLogin = async () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email.value.trim())) {
     loginError.value = 'Please enter a valid email address.'
+    loginEmailError.value = 'Please enter a valid email address.'
+    loginRequiresVerification.value = false
     return
   }
 
+  // Validate email domain (block free email providers)
+  const emailValidation = validateEmailDomain(email.value.trim())
+  if (!emailValidation.isValid) {
+    loginError.value = emailValidation.error
+    loginEmailError.value = emailValidation.error
+    loginRequiresVerification.value = false
+    return
+  }
+  
+  // Clear email error if validation passes
+  loginEmailError.value = ''
+
   isLoading.value = true
   loginError.value = ''
+  loginRequiresVerification.value = false
+  loginEmailForVerification.value = ''
+  
   try {
     const result = await authStore.login(email.value.trim(), password.value)
     if (result.success) {
       router.push('/dashboard')
     } else {
-      loginError.value = result.error || 'Wrong email or password.'
+      // Check if email verification is required
+      if (result.requiresVerification) {
+        loginRequiresVerification.value = true
+        loginEmailForVerification.value = result.email || email.value.trim()
+        loginError.value = result.error || 'Email not verified. Please verify your email address first.'
+      } else {
+        loginError.value = result.error || 'Wrong email or password.'
+      }
     }
   } catch (error) {
     loginError.value = 'Wrong email or password.'
+    loginRequiresVerification.value = false
     console.error('Login failed:', error)
   } finally {
     isLoading.value = false
+  }
+}
+
+const handleResendOTPFromLogin = async () => {
+  if (!loginEmailForVerification.value) return
+  
+  try {
+    const result = await authStore.resendOTP(loginEmailForVerification.value)
+    if (result.success) {
+      // Redirect to verification page
+      router.push(`/verify-email?email=${encodeURIComponent(loginEmailForVerification.value)}`)
+    } else {
+      loginError.value = result.error || 'Failed to resend OTP. Please try again.'
+    }
+  } catch (error: any) {
+    loginError.value = error.message || 'Failed to resend OTP. Please try again.'
   }
 }
 
@@ -674,17 +791,49 @@ const handleSignUp = async () => {
       body: JSON.stringify({ 
         email: signupEmail.value.trim(), 
         password: signupPassword.value, 
-        name: signupName.value.trim() 
+        full_name: signupName.value.trim(),
+        role: signupRole.value || 'engineer'
       })
     })
 
     if (!res.ok) {
-      // Handle 422 validation errors from backend
-      if (res.status === 422) {
-        const errorData = await res.json()
-        // Backend may return error details in different formats
+      const errorData = await res.json().catch(() => ({}))
+      const errorDetail = errorData.detail || errorData.message || errorData.error || ''
+      
+      // Handle specific error cases according to the guide
+      if (res.status === 400) {
+        // Email already registered
+        if (errorDetail.toLowerCase().includes('already registered') || 
+            errorDetail.toLowerCase().includes('already exists') ||
+            errorDetail.toLowerCase().includes('email already')) {
+          signupError.value = 'Email already registered. Please log in instead.'
+        }
+        // Domain not allowed
+        else if (errorDetail.toLowerCase().includes('domain') && 
+                 errorDetail.toLowerCase().includes('not allowed')) {
+          const domainMatch = errorDetail.match(/['"]([^'"]+)['"]/)
+          const domain = domainMatch ? domainMatch[1] : 'this domain'
+          signupError.value = `Domain '${domain}' is not allowed. Please contact your administrator to add your company domain.`
+        }
+        // Free email provider blocked
+        else if (errorDetail.toLowerCase().includes('company email') ||
+                 errorDetail.toLowerCase().includes('personal email') ||
+                 errorDetail.toLowerCase().includes('free email')) {
+          signupError.value = 'Company email address required. Personal email addresses (Gmail, Yahoo, etc.) are not allowed.'
+        }
+        // Password validation failed
+        else if (errorDetail.toLowerCase().includes('password') ||
+                 errorDetail.toLowerCase().includes('72 bytes')) {
+          signupError.value = errorDetail || 'Password does not meet requirements. Please check all requirements.'
+        }
+        // Generic 400 error
+        else {
+          signupError.value = errorDetail || 'Sign up failed. Please check your information and try again.'
+        }
+      }
+      // Handle 422 validation errors
+      else if (res.status === 422) {
         if (errorData.detail) {
-          // Handle detailed validation errors
           if (Array.isArray(errorData.detail)) {
             signupError.value = errorData.detail.map((err: any) => err.msg || err.message || err).join('. ')
           } else if (typeof errorData.detail === 'string') {
@@ -696,48 +845,51 @@ const handleSignUp = async () => {
           } else {
             signupError.value = 'Password does not meet requirements'
           }
-        } else if (errorData.message) {
-          signupError.value = errorData.message
-        } else if (errorData.error) {
-          signupError.value = errorData.error
         } else {
-          signupError.value = 'Password does not meet requirements. Please check all requirements.'
+          signupError.value = errorDetail || 'Password does not meet requirements. Please check all requirements.'
         }
-      } else {
-        // Handle other error status codes (400, 409, etc.)
-        const errorData = await res.json().catch(() => ({}))
-        // Check for detail field first (common in FastAPI/backend APIs)
-        if (errorData.detail) {
-          signupError.value = typeof errorData.detail === 'string' 
-            ? errorData.detail 
-            : JSON.stringify(errorData.detail)
-        } else if (errorData.message) {
-          signupError.value = errorData.message
-        } else if (errorData.error) {
-          signupError.value = errorData.error
-        } else {
-          signupError.value = 'Sign up failed. Please try again.'
-        }
+      }
+      // Handle 500 server errors
+      else if (res.status === 500) {
+        signupError.value = 'An error occurred during signup. Please try again.'
+      }
+      // Handle other errors
+      else {
+        signupError.value = errorDetail || 'Sign up failed. Please try again.'
       }
       signupLoading.value = false
       return
     }
 
-    signupSuccess.value = true
-    // Reset form after successful signup
-    setTimeout(() => {
-      signupName.value = ''
-      signupEmail.value = ''
-      signupPassword.value = ''
-      signupConfirmPassword.value = ''
-      passwordValidation.value = null
-      showPasswordRequirements.value = false
-      signupSuccess.value = false
-      showSignUp.value = false
-    }, 1500)
+    // Success - account created, OTP sent
+    const data = await res.json()
+    
+    // Close signup modal
+    showSignUp.value = false
+    
+    // Store email and user_id for verification page
+    if (data.email) {
+      sessionStorage.setItem('signup_email', data.email)
+    }
+    if (data.user_id) {
+      sessionStorage.setItem('signup_user_id', String(data.user_id))
+    }
+    
+    // Reset form
+    signupName.value = ''
+    signupEmail.value = ''
+    signupPassword.value = ''
+    signupConfirmPassword.value = ''
+    signupRole.value = 'engineer'
+    passwordValidation.value = null
+    showPasswordRequirements.value = false
+    signupError.value = ''
+    signupSuccess.value = false
+    
+    // Redirect to OTP verification page
+    router.push(`/verify-email?email=${encodeURIComponent(data.email || signupEmail.value.trim())}`)
   } catch (e: any) {
     signupError.value = e.message || 'Sign up failed. Please try again.'
-  } finally {
     signupLoading.value = false
   }
 }
@@ -784,5 +936,31 @@ const handleForgotPassword = async () => {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+/* Custom scrollbar for modal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.7);
 }
 </style>

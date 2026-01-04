@@ -46,6 +46,13 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/verify-email',
+      name: 'VerifyEmail',
+      // OTP verification page - public, no auth required
+      component: () => import('@/views/VerifyEmailPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/about',
       name: 'About',
       // About page - public, no auth required
@@ -182,7 +189,7 @@ router.beforeEach((to, from, next) => {
     
     // Always allow access to public pages (no checks)
     // WHY: These pages must always be accessible, even if user is logged out
-    const publicPaths = ['/login', '/', '/about', '/privacy', '/terms', '/security']
+    const publicPaths = ['/login', '/verify-email', '/', '/about', '/privacy', '/terms', '/security']
     if (publicPaths.includes(to.path)) {
       next()
       return

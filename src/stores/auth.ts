@@ -70,10 +70,51 @@ export const useAuthStore = defineStore('auth', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password })
       })
+      
+      // Handle 403 - Email not verified
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Email not verified. Please verify your email address first. Check your email for the OTP code or request a new one.'
+        return { 
+          success: false, 
+          error: errorMessage,
+          requiresVerification: true,
+          email: email.trim()
+        }
+      }
+      
+      // Handle 401 - Invalid credentials
+      if (response.status === 401) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Invalid email or password'
+        return {
+          success: false,
+          error: errorMessage
+        }
+      }
+      
+      // Handle 429 - Account locked
+      if (response.status === 429) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Account temporarily locked due to too many failed login attempts. Please try again later.'
+        return {
+          success: false,
+          error: errorMessage
+        }
+      }
+      
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(errorText || 'Invalid credentials')
+        let errorMessage = 'Invalid credentials'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.detail || errorData.message || errorText || 'Invalid credentials'
+        } catch {
+          errorMessage = errorText || 'Invalid credentials'
+        }
+        throw new Error(errorMessage)
       }
+      
       const data = await response.json()
       let receivedToken = data.token || data.access_token
       
@@ -113,6 +154,104 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: false, error: error.message || 'Invalid credentials' }
     } finally {
       isLoading.value = false
+    }
+  }
+
+  const verifyEmail = async (email: string, otp: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), otp })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        let errorMessage = errorData.detail || errorData.message || 'Invalid or expired OTP. Please check your email and try again, or request a new OTP.'
+        
+        // Handle 404 - User not found
+        if (response.status === 404) {
+          errorMessage = 'User not found'
+        }
+        // Handle 400 - Invalid or expired OTP
+        else if (response.status === 400) {
+          if (errorMessage.toLowerCase().includes('expired')) {
+            errorMessage = 'Invalid or expired OTP. Please check your email and try again, or request a new OTP.'
+          } else if (errorMessage.toLowerCase().includes('invalid')) {
+            errorMessage = 'Invalid or expired OTP. Please check your email and try again, or request a new OTP.'
+          }
+        }
+        
+        return { success: false, error: errorMessage }
+      }
+
+      const data = await response.json()
+      let receivedToken = data.access_token || data.token
+
+      // Validate token before storing
+      if (!receivedToken || receivedToken === 'undefined' || receivedToken === 'null' || receivedToken.trim() === '') {
+        return { success: false, error: 'No valid token received from server' }
+      }
+
+      // Remove "Bearer " prefix if present
+      if (receivedToken.startsWith('Bearer ')) {
+        receivedToken = receivedToken.substring(7)
+      }
+
+      // Store token
+      token.value = receivedToken
+      localStorage.setItem('tapeout_token', receivedToken)
+      console.log('✅ Token stored after email verification')
+
+      // Set user data from response
+      if (data.user) {
+        user.value = data.user
+        console.log('✅ User data set after email verification:', user.value?.email)
+      } else {
+        // Fetch user profile if not included in response
+        const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
+        const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
+        if (profileRes.ok) {
+          user.value = await profileRes.json()
+          console.log('✅ User profile loaded after verification')
+        }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      console.error('❌ Email verification error:', error)
+      return { success: false, error: error.message || 'Verification failed. Please try again.' }
+    }
+  }
+
+  const resendOTP = async (email: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        let errorMessage = errorData.detail || errorData.message || 'Failed to resend OTP. Please try again.'
+        
+        // Handle specific error: email already verified
+        if (response.status === 400 && 
+            (errorMessage.toLowerCase().includes('already verified') ||
+             errorMessage.toLowerCase().includes('email already'))) {
+          errorMessage = 'Email already verified. Please log in.'
+        }
+        
+        return { success: false, error: errorMessage }
+      }
+
+      // Success response - message is optional
+      const data = await response.json().catch(() => ({}))
+      return { success: true, message: data.message || 'New OTP sent to your email' }
+    } catch (error: any) {
+      console.error('❌ Resend OTP error:', error)
+      return { success: false, error: error.message || 'Failed to resend OTP. Please try again.' }
     }
   }
 
@@ -284,6 +423,8 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     checkAuth,
     getAuthHeader,
-    initializeAuth
+    initializeAuth,
+    verifyEmail,
+    resendOTP
   }
 }) 

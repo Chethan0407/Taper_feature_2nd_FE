@@ -3,7 +3,7 @@
  * 
  * Validates passwords according to backend requirements:
  * - Minimum length: 8 characters
- * - Maximum length: 128 characters
+ * - Maximum length: 72 bytes (bcrypt limit - approximately 72 characters for ASCII)
  * - Must contain at least one uppercase letter (A-Z)
  * - Must contain at least one lowercase letter (a-z)
  * - Must contain at least one number (0-9)
@@ -47,7 +47,7 @@ export function validatePassword(password: string): PasswordValidationResult {
   const errors: string[] = []
   const checks = {
     minLength: password.length >= 8,
-    maxLength: password.length <= 128,
+    maxLength: password.length <= 72, // bcrypt limit is 72 bytes
     hasUppercase: /[A-Z]/.test(password),
     hasLowercase: /[a-z]/.test(password),
     hasNumber: /[0-9]/.test(password),
@@ -59,7 +59,7 @@ export function validatePassword(password: string): PasswordValidationResult {
     errors.push('Password must be at least 8 characters long')
   }
   if (!checks.maxLength) {
-    errors.push('Password must be no more than 128 characters long')
+    errors.push('Password must be no more than 72 bytes long (approximately 72 characters for ASCII)')
   }
   if (!checks.hasUppercase) {
     errors.push('Password must contain at least one uppercase letter (A-Z)')
@@ -103,7 +103,7 @@ export function validatePassword(password: string): PasswordValidationResult {
 export function getPasswordRequirements(): Array<{ text: string; key: keyof PasswordValidationResult['checks'] }> {
   return [
     { text: 'At least 8 characters', key: 'minLength' },
-    { text: 'No more than 128 characters', key: 'maxLength' },
+    { text: 'No more than 72 bytes (approx. 72 characters)', key: 'maxLength' },
     { text: 'At least one uppercase letter (A-Z)', key: 'hasUppercase' },
     { text: 'At least one lowercase letter (a-z)', key: 'hasLowercase' },
     { text: 'At least one number (0-9)', key: 'hasNumber' },
