@@ -40,7 +40,7 @@
                   : ''
               ]"
               placeholder="Enter your company email"
-              @input="loginEmailError = ''"
+              @input="validateLoginEmail"
             />
             <!-- Email Error Message -->
             <Transition name="fade">
@@ -97,7 +97,7 @@
           <!-- Login Button -->
           <button
             type="submit"
-            :disabled="isLoading || !email || !password"
+            :disabled="isLoading || !email || !password || !!loginEmailError"
             class="btn-primary w-full py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="isLoading" class="flex items-center justify-center">
@@ -639,6 +639,29 @@ const loginError = ref('')
 const loginRequiresVerification = ref(false)
 const loginEmailForVerification = ref('')
 const loginEmailError = ref('')
+
+// Real-time email validation function
+const validateLoginEmail = () => {
+  if (!email.value || !email.value.trim()) {
+    loginEmailError.value = ''
+    return
+  }
+
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value.trim())) {
+    loginEmailError.value = 'Please enter a valid email address.'
+    return
+  }
+
+  // Validate email domain (block free email providers)
+  const emailValidation = validateEmailDomain(email.value.trim())
+  if (!emailValidation.isValid) {
+    loginEmailError.value = emailValidation.error
+  } else {
+    loginEmailError.value = ''
+  }
+}
 
 // Function to open signup modal
 const openSignUpModal = () => {
