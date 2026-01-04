@@ -807,6 +807,14 @@ const handleSignUp = async () => {
     return
   }
 
+  // Double-check byte length before sending (extra safety check)
+  const passwordByteLength = new TextEncoder().encode(signupPassword.value).length
+  if (passwordByteLength > 72) {
+    signupError.value = `Password cannot exceed 72 bytes. Current: ${passwordByteLength} bytes. Please use a shorter password (avoid special Unicode characters or emojis).`
+    signupLoading.value = false
+    return
+  }
+
   try {
     const res = await fetch('/api/v1/auth/signup', {
       method: 'POST',
