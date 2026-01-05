@@ -17,7 +17,7 @@ export default defineConfig({
     port: 5177,
     host: 'localhost',
     strictPort: false, // Allow fallback to next available port if 5177 is busy
-    open: false, // Don't auto-open browser (can cause issues)
+    open: true, // Auto-open browser when server starts
     // CRITICAL: API proxy - required for all /api requests to work
     proxy: {
       '/api': {

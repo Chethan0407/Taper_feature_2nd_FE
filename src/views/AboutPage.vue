@@ -102,7 +102,7 @@
               <!-- Founder Info -->
               <div class="flex-1 text-center md:text-left">
                 <h3 class="text-3xl font-bold text-white mb-2">Chethan</h3>
-                <p class="text-neon-blue text-lg mb-6">Founder & CEO</p>
+                <p class="text-neon-blue text-lg mb-6">Founder</p>
                 
                 <div class="space-y-4 text-gray-300 leading-relaxed">
                   <p>

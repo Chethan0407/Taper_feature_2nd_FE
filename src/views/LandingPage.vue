@@ -398,7 +398,7 @@
               </div>
               <div>
                 <h3 class="text-2xl font-bold text-white">Chethan</h3>
-                <p class="text-neon-blue">Founder & CEO</p>
+                <p class="text-neon-blue">Founder</p>
               </div>
             </div>
             <p class="text-gray-400 leading-relaxed mb-4">
