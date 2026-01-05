@@ -34,10 +34,10 @@
                 </div>
                 
                 <div v-else class="space-y-2">
-                  <div v-for="template in checklistsStore.list.filter(t => t && t.name)" :key="template.id" class="bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors p-4">
+                  <div v-for="template in checklistsStore.list.filter(t => t)" :key="template.id" class="bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors p-4">
                     <div class="flex items-center gap-2">
                       <div class="flex-1">
-                        <h3 class="font-medium text-gray-900 dark:text-white text-base">{{ template.name }}</h3>
+                        <h3 class="font-medium text-gray-900 dark:text-white text-base">{{ template.name || `Template ${template.id}` }}</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                           {{ template.items?.length || 0 }} items
                           <span v-if="template.description">• {{ template.description }}</span>

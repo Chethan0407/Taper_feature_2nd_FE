@@ -38,8 +38,18 @@ export const useChecklistsStore = defineStore('checklists', () => {
       const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
       const res = await fetch('/api/v1/checklists/templates', { headers })
       if (!res.ok) throw new Error('Failed to fetch templates')
-      list.value = await res.json()
+      const data = await res.json()
+      console.log('📋 Templates API Response:', data)
+      // Handle both array and single object responses
+      // Also ensure templates have a name field (use id or default if missing)
+      const templates = Array.isArray(data) ? data : [data]
+      list.value = templates.map((t: any) => ({
+        ...t,
+        name: t.name || t.title || `Template ${t.id}` || 'Unnamed Template'
+      }))
+      console.log('✅ Processed templates:', list.value)
     } catch (e: any) {
+      console.error('❌ Error fetching templates:', e)
       error.value = e.message || 'Failed to fetch templates'
     } finally {
       loading.value = false
