@@ -48,6 +48,9 @@ export interface SpecificationFilters {
   file_type?: string
   date_from?: string
   date_to?: string
+  platform?: string
+  eda_tool?: string
+  type?: string
   sort_by?: 'name' | 'uploaded_on' | 'status' | 'assigned_to' | 'uploaded_by'
   sort_order?: 'asc' | 'desc'
 }
@@ -81,6 +84,9 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     file_type: '',
     date_from: '',
     date_to: '',
+    platform: '',
+    eda_tool: '',
+    type: '',
     sort_by: 'uploaded_on',
     sort_order: 'desc'
   })
@@ -176,6 +182,16 @@ export const useSpecificationsStore = defineStore('specifications', () => {
       }
       if (activeFilters.date_to) {
         params.append('date_to', activeFilters.date_to)
+      }
+      // New filters: platform, eda_tool, type
+      if (activeFilters.platform && activeFilters.platform.trim() !== '') {
+        params.append('platform', activeFilters.platform)
+      }
+      if (activeFilters.eda_tool && activeFilters.eda_tool.trim() !== '') {
+        params.append('eda_tool', activeFilters.eda_tool)
+      }
+      if (activeFilters.type && activeFilters.type.trim() !== '') {
+        params.append('type', activeFilters.type)
       }
       if (activeFilters.sort_by) {
         params.append('sort_by', activeFilters.sort_by)
@@ -415,7 +431,10 @@ export const useSpecificationsStore = defineStore('specifications', () => {
         statusText: response.statusText
       })
       
-      if (!response.ok && response.status !== 404) {
+      // Handle 204 No Content (success) or 200 OK
+      if (response.status === 204 || response.status === 200) {
+        console.log('✅ Specification deleted successfully (204 No Content)')
+      } else if (!response.ok && response.status !== 404) {
         const errorText = await response.text()
         let errorMsg = 'Failed to delete specification'
         try {
@@ -436,13 +455,13 @@ export const useSpecificationsStore = defineStore('specifications', () => {
         throw new Error(errorMsg)
       }
       
-      console.log('✅ Specification deleted successfully')
-      
       // Invalidate cache and remove from local list
       // WHY: After deletion, we need to update both cache and local state
       invalidateCache()
       // Update local array (shallowRef requires reassignment)
       specifications.value = specifications.value.filter(spec => spec.id !== id)
+      
+      console.log('✅ Cache invalidated and local list updated after deletion')
     } catch (err: any) {
       error.value = err.message || 'Failed to delete specification'
       console.error('❌ Error deleting specification:', err)

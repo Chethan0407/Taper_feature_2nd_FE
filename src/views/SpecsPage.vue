@@ -274,6 +274,46 @@
               </option>
             </datalist>
           </div>
+          <!-- Platform Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platform (Optional)</label>
+            <select
+              class="input-field w-full"
+              v-model="createSpecForm.platform"
+            >
+              <option value="">Select Platform</option>
+              <option value="TSMC">TSMC</option>
+              <option value="Intel">Intel</option>
+              <option value="Samsung">Samsung</option>
+            </select>
+          </div>
+          <!-- EDA Tool Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">EDA Tool (Optional)</label>
+            <select
+              class="input-field w-full"
+              v-model="createSpecForm.eda_tool"
+            >
+              <option value="">Select EDA Tool</option>
+              <option value="Calibre">Calibre</option>
+              <option value="Innovus">Innovus</option>
+              <option value="ICC2">ICC2</option>
+            </select>
+          </div>
+          <!-- Type Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type (Optional)</label>
+            <select
+              class="input-field w-full"
+              v-model="createSpecForm.type"
+            >
+              <option value="">Select Type</option>
+              <option value="DRC">DRC</option>
+              <option value="LVS">LVS</option>
+              <option value="STA">STA</option>
+              <option value="Layout">Layout</option>
+            </select>
+          </div>
           <button class="btn-primary w-full py-3 text-lg font-semibold" :disabled="creatingSpec">
             <span v-if="creatingSpec">Creating...</span>
             <span v-else>Create</span>
@@ -690,10 +730,19 @@ const handleDelete = async (id: string) => {
   try {
     // Use the store's deleteSpecification method which handles cache invalidation and updates
     await specificationsStore.deleteSpecification(id)
-    showToast('Specification deleted successfully.')
-    // Reload the list to reflect the deletion
+    
+    // ✅ CRITICAL: Reload the list to reflect the deletion
+    // This ensures the UI shows the updated list without the deleted item
     await specificationsStore.loadSpecifications()
+    
+    showToast('Specification deleted successfully.')
+    
+    // Optionally: Dispatch event to refresh dashboard stats if on dashboard
+    // This allows the dashboard to refresh its stats if it's listening
+    window.dispatchEvent(new CustomEvent('specification-deleted', { detail: { id } }))
   } catch (e: any) {
+    // On error, refresh to restore correct state
+    await specificationsStore.loadSpecifications()
     showToast(e.message || 'Failed to delete specification', true)
     console.error('Error deleting specification:', e)
   } finally {
@@ -751,7 +800,16 @@ const handleTableScroll = () => {
 const showCreateModal = ref(false)
 const allowedExtensions = ['pdf', 'docx', 'ppt', 'xls', 'pptx', 'xlsx'];
 const createSpecFile = ref<File | null>(null);
-const createSpecForm = ref({ name: '', version: '', description: '', assigned_to: '', status: 'Pending' });
+const createSpecForm = ref({ 
+  name: '', 
+  version: '', 
+  description: '', 
+  assigned_to: '', 
+  status: 'Pending',
+  platform: '',
+  eda_tool: '',
+  type: ''
+});
 const creatingSpec = ref(false);
 const createSpecError = ref('');
 const createSpecFileInput = ref<HTMLInputElement | null>(null);
@@ -781,7 +839,16 @@ function closeCreateModal() {
   if (dragDropFileInput.value) dragDropFileInput.value.value = '';
   if (createSpecFileInput.value) createSpecFileInput.value.value = '';
   createSpecFile.value = null;
-  createSpecForm.value = { name: '', version: '', description: '', assigned_to: '', status: 'Pending' };
+  createSpecForm.value = { 
+    name: '', 
+    version: '', 
+    description: '', 
+    assigned_to: '', 
+    status: 'Pending',
+    platform: '',
+    eda_tool: '',
+    type: ''
+  };
   createSpecError.value = '';
 }
 
@@ -841,6 +908,17 @@ async function handleCreateSpec() {
     formData.append('uploaded_by', authStore.user?.email || 'unknown');
     formData.append('assigned_to', createSpecForm.value.assigned_to);
     formData.append('status', 'Pending'); // Always set to Pending on create
+    
+    // Add new filter fields if provided
+    if (createSpecForm.value.platform) {
+      formData.append('platform', createSpecForm.value.platform);
+    }
+    if (createSpecForm.value.eda_tool) {
+      formData.append('eda_tool', createSpecForm.value.eda_tool);
+    }
+    if (createSpecForm.value.type) {
+      formData.append('type', createSpecForm.value.type);
+    }
     
     // Use the store's createSpecification method which handles cache invalidation and refresh
     await specificationsStore.createSpecification(formData);

@@ -12,7 +12,52 @@
     </div>
     <transition name="fade">
       <div v-if="showFilters">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Platform Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Platform</label>
+            <select
+              v-model="localFilters.platform"
+              @change="handleFilterChange"
+              class="w-full input-field"
+            >
+              <option value="">All Platforms</option>
+              <option v-for="platform in platformOptions" :key="platform" :value="platform">
+                {{ platform }}
+              </option>
+            </select>
+          </div>
+
+          <!-- EDA Tool Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">EDA Tool</label>
+            <select
+              v-model="localFilters.eda_tool"
+              @change="handleFilterChange"
+              class="w-full input-field"
+            >
+              <option value="">All EDA Tools</option>
+              <option v-for="tool in edaToolOptions" :key="tool" :value="tool">
+                {{ tool }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Type Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Type</label>
+            <select
+              v-model="localFilters.type"
+              @change="handleFilterChange"
+              class="w-full input-field"
+            >
+              <option value="">All Types</option>
+              <option v-for="type in typeOptions" :key="type" :value="type">
+                {{ type }}
+              </option>
+            </select>
+          </div>
+
           <!-- Status Filter -->
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Status</label>
@@ -173,9 +218,17 @@ const localFilters = ref<SpecificationFilters>({
   file_type: '',
   date_from: '',
   date_to: '',
+  platform: '',
+  eda_tool: '',
+  type: '',
   sort_by: 'uploaded_on',
   sort_order: 'desc'
 })
+
+// Filter options
+const platformOptions = ['TSMC', 'Intel', 'Samsung']
+const edaToolOptions = ['Calibre', 'Innovus', 'ICC2']
+const typeOptions = ['DRC', 'LVS', 'STA', 'Layout']
 
 // Computed properties from store
 const statusOptions = computed(() => specificationsStore.statusOptions)
@@ -206,6 +259,9 @@ const resetFilters = () => {
     file_type: '',
     date_from: '',
     date_to: '',
+    platform: '',
+    eda_tool: '',
+    type: '',
     sort_by: 'uploaded_on',
     sort_order: 'desc'
   }
@@ -259,7 +315,10 @@ const getFilterLabel = (key: string, value: string) => {
     uploaded_by: 'Uploaded By',
     file_type: 'File Type',
     date_from: 'From Date',
-    date_to: 'To Date'
+    date_to: 'To Date',
+    platform: 'Platform',
+    eda_tool: 'EDA Tool',
+    type: 'Type'
   }
   return `${labels[key] || key}: ${value}`
 }

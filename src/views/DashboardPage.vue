@@ -221,8 +221,14 @@
           <button @click="fetchTapeouts" class="btn-primary">Try Again</button>
         </div>
 
+        <!-- Stats Error Display -->
+        <div v-if="statsError" class="mt-12 flex flex-col items-center justify-center py-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+          <div class="text-red-600 dark:text-red-400 mb-4 font-mono text-sm">{{ statsError }}</div>
+          <button @click="fetchStats" class="btn-primary">Try Again</button>
+        </div>
+
         <!-- Quick Stats -->
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div v-else class="mt-12 grid grid-cols-1 md:grid-cols-5 gap-6">
           <div class="card text-center">
             <div class="text-3xl font-bold text-neon-blue mb-2">{{ loadingStats ? '--' : stats.approved_specs ?? '--' }}</div>
             <div class="text-gray-600 dark:text-gray-400">Approved Specs</div>
@@ -256,11 +262,13 @@ import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { useMetadataStore } from '@/stores/metadata'
+import { useSpecificationsStore } from '@/stores/specifications'
 import { authenticatedFetch } from '@/utils/auth-requests'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const metadataStore = useMetadataStore()
+const specificationsStore = useSpecificationsStore()
 
 const goToProjects = () => {
   router.push('/projects')
@@ -289,15 +297,26 @@ const fetchStats = async () => {
   loadingStats.value = true
   statsError.value = ''
   try {
-    const headers: HeadersInit = {}
-    if (authStore.token) {
-      headers['Authorization'] = `Bearer ${authStore.token}`
+    // Use authenticatedFetch which automatically includes Authorization header and handles URL normalization
+    const res = await authenticatedFetch('/api/v1/dashboard/stats')
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      let errorMsg = 'Unable to load dashboard stats.'
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMsg = errorData.detail || errorData.message || errorMsg
+      } catch {
+        errorMsg = errorText || errorMsg
+      }
+      throw new Error(errorMsg)
     }
-    const res = await fetch('/api/v1/dashboard/stats', { headers })
-    if (!res.ok) throw new Error('Unable to load dashboard stats.')
+    
     stats.value = await res.json()
+    statsError.value = '' // Clear any previous errors on success
   } catch (e: any) {
     statsError.value = e.message || 'Unable to load dashboard stats.'
+    console.error('Error fetching dashboard stats:', e)
     // Show toast (simple alert for now)
     window.dispatchEvent(new CustomEvent('toast', { detail: { message: statsError.value, type: 'error' } }))
   } finally {
@@ -317,24 +336,28 @@ const fetchTapeouts = async () => {
   }, 200)
   tapeoutsError.value = ''
   try {
-    const params = []
-    if (selectedFilters.value.platform) params.push(`platform=${encodeURIComponent(selectedFilters.value.platform)}`)
-    if (selectedFilters.value.edaTool) params.push(`eda_tool=${encodeURIComponent(selectedFilters.value.edaTool)}`)
-    if (selectedFilters.value.type) params.push(`type=${encodeURIComponent(selectedFilters.value.type)}`)
-    if (selectedFilters.value.status) params.push(`status=${encodeURIComponent(selectedFilters.value.status)}`)
-    const query = params.length ? `?${params.join('&')}` : ''
-    const res = await authenticatedFetch(`/api/v1/specifications${query}`)
-    if (!res.ok) {
-      const errText = await res.text()
-      if (errText.includes('Not authenticated')) {
-        router.push('/login')
-        return
-      }
-      throw new Error(errText || 'Failed to fetch specifications')
-    }
-    tapeouts.value = await res.json()
+    // Build filters from selectedFilters
+    const filters: any = {}
+    if (selectedFilters.value.platform) filters.platform = selectedFilters.value.platform
+    if (selectedFilters.value.edaTool) filters.eda_tool = selectedFilters.value.edaTool
+    if (selectedFilters.value.type) filters.type = selectedFilters.value.type
+    if (selectedFilters.value.status) filters.status = selectedFilters.value.status
+    
+    // Use the store's loadSpecifications method which handles caching and URL construction correctly
+    await specificationsStore.loadSpecifications(filters)
+    
+    // Get the specifications from the store
+    tapeouts.value = specificationsStore.specifications || []
   } catch (e: any) {
-    tapeoutsError.value = e.message || 'Failed to fetch specifications'
+    const errorMessage = e.message || 'Failed to fetch specifications'
+    tapeoutsError.value = errorMessage
+    
+    // Check if it's an authentication error
+    if (errorMessage.includes('Not authenticated') || errorMessage.includes('Authentication')) {
+      console.warn('⚠️ Authentication error in fetchTapeouts, but not redirecting to allow graceful error display')
+    }
+    
+    console.error('Error fetching tapeouts:', e)
   } finally {
     tapeoutsLoading.value = false
     if (tapeoutsLoadingDelay) clearTimeout(tapeoutsLoadingDelay)
@@ -354,6 +377,12 @@ const fetchTapeouts = async () => {
   }
 }
 
+// Listen for specification deletion events to refresh stats
+const handleSpecDeleted = () => {
+  console.log('🔄 Specification deleted, refreshing dashboard stats...')
+  fetchStats()
+}
+
 onMounted(async () => {
   // Check authentication on mount
   await authStore.checkAuth()
@@ -362,10 +391,15 @@ onMounted(async () => {
   await fetchStats()
   await fetchTapeouts()
   statsInterval = window.setInterval(fetchStats, 10000)
+  
+  // Listen for specification deletion events to refresh stats
+  window.addEventListener('specification-deleted', handleSpecDeleted)
 })
 
 onUnmounted(() => {
   if (statsInterval) clearInterval(statsInterval)
+  // Clean up event listener on unmount
+  window.removeEventListener('specification-deleted', handleSpecDeleted)
 })
 
 const handleFilter = (key: keyof typeof selectedFilters.value, value: string) => {
