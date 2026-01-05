@@ -402,7 +402,7 @@
               </div>
             </div>
             <p class="text-gray-400 leading-relaxed mb-4">
-              As the founder of TapeOutOps, I've spent years working in semiconductor design and witnessed firsthand the challenges teams face during tapeout. The lack of integrated tools, manual processes, and communication gaps between teams inspired me to build a solution that addresses these pain points.
+              As the founder of TapeOutOps, I've spent considerable time researching and understanding the challenges teams face during tapeout. Through extensive conversations with engineers and deep analysis of industry workflows, I recognized the critical need for integrated tools. The lack of unified solutions, manual processes, and communication gaps between teams inspired me to build a platform that addresses these pain points.
             </p>
             <p class="text-gray-400 leading-relaxed">
               TapeOutOps represents my vision of a modern, efficient tapeout workflow—one where engineers can focus on what they do best: designing exceptional chips. Every feature we build is driven by real-world needs and feedback from the semiconductor community.

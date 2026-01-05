@@ -70,7 +70,7 @@
             </p>
             
             <p class="text-lg text-gray-300 leading-relaxed mb-6">
-              After years of working in semiconductor design and witnessing teams struggle with fragmented tools, manual processes, and communication gaps, we set out to build a unified platform that brings everything together. TapeOutOps is the result of that vision—a comprehensive solution designed by engineers, for engineers.
+              After extensive research and conversations with engineering teams, we recognized the significant challenges they face with fragmented tools, manual processes, and communication gaps during tapeout. This inspired us to build a unified platform that brings everything together. TapeOutOps is the result of that vision—a comprehensive solution designed by engineers, for engineers.
             </p>
             
             <p class="text-lg text-gray-300 leading-relaxed">
@@ -106,11 +106,11 @@
                 
                 <div class="space-y-4 text-gray-300 leading-relaxed">
                   <p>
-                    As the founder of TapeOutOps, I've dedicated my career to understanding and solving the complex challenges in semiconductor design and tapeout processes. My experience working with engineering teams across the industry has given me deep insights into the pain points that slow down innovation.
+                    As the founder of TapeOutOps, I've dedicated myself to understanding and solving the complex challenges in semiconductor tapeout processes. Through extensive research, conversations with engineering teams, and deep analysis of industry workflows, I've gained valuable insights into the pain points that slow down innovation.
                   </p>
                   
                   <p>
-                    The idea for TapeOutOps came from countless conversations with engineers who were frustrated by the lack of integrated tools and the time wasted on manual processes. I realized that what the industry needed wasn't just another tool—it needed a platform that truly understands the tapeout workflow.
+                    The idea for TapeOutOps emerged from extensive discussions with engineering teams who identified significant inefficiencies in existing workflows, particularly the lack of integrated tools and the substantial time investment required for manual processes. Through this analysis, it became clear that the industry needed more than just another tool—it required a comprehensive platform that deeply understands the tapeout workflow and systematically addresses operational challenges.
                   </p>
                   
                   <p>
