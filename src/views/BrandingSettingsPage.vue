@@ -46,22 +46,24 @@
                 </label>
                 
                 <!-- Current Logo Display -->
-                <div v-if="currentLogo" class="mb-4">
+                <div v-if="currentLogo || logoPreview" class="mb-4">
                   <div class="flex items-center space-x-4">
                     <img 
-                      :src="currentLogo" 
-                      alt="Current Logo" 
+                      :src="logoPreview || currentLogo" 
+                      alt="Logo" 
                       class="h-16 w-16 object-contain rounded-lg border border-gray-200 dark:border-dark-600"
                     />
                     <div>
-                      <p class="text-sm text-gray-600 dark:text-gray-400">Current logo</p>
+                      <p class="text-sm text-gray-600 dark:text-gray-400">
+                        {{ logoPreview ? 'New logo (will be saved)' : 'Current logo' }}
+                      </p>
                       <button 
                         type="button"
                         @click="removeLogo"
                         :disabled="loading"
                         class="text-sm text-red-500 hover:text-red-600 transition-colors"
                       >
-                        Remove logo
+                        {{ logoPreview ? 'Cancel' : 'Remove logo' }}
                       </button>
                     </div>
                   </div>
@@ -251,6 +253,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import Header from '@/components/Layout/Header.vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import { useAuthStore } from '@/stores/auth'
+import { authenticatedFetch } from '@/utils/auth-requests'
+import { useBrandingStore } from '@/stores/branding'
 
 interface BrandingSettings {
   company_name: string
@@ -260,6 +264,7 @@ interface BrandingSettings {
 }
 
 const authStore = useAuthStore()
+const brandingStore = useBrandingStore()
 
 // Form state
 const form = ref<BrandingSettings>({
@@ -278,6 +283,10 @@ const uploadError = ref('')
 const isDragOver = ref(false)
 const fileInput = ref<HTMLInputElement>()
 
+// Track selected logo file (not yet uploaded)
+const selectedLogoFile = ref<File | null>(null)
+const logoPreview = ref<string | null>(null) // Preview URL for selected file
+
 // Auto-save state
 const autoSaveStatus = ref('')
 let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null
@@ -292,7 +301,8 @@ const hasChanges = computed(() => {
   return (
     form.value.company_name !== originalValues.value.company_name ||
     form.value.primary_color !== originalValues.value.primary_color ||
-    form.value.secondary_color !== originalValues.value.secondary_color
+    form.value.secondary_color !== originalValues.value.secondary_color ||
+    selectedLogoFile.value !== null // Logo file selected but not saved
   )
 })
 
@@ -308,11 +318,18 @@ const fetchBrandingSettings = async () => {
   error.value = ''
   
   try {
-    const headers = authStore.getAuthHeader() || {}
-    const response = await fetch('/api/v1/settings/branding/', { headers })
+    const response = await authenticatedFetch('/api/v1/settings/branding/')
     
     if (!response.ok) {
-      throw new Error('Failed to load branding settings')
+      const errorText = await response.text()
+      let errorMsg = 'Failed to load branding settings'
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMsg = errorData.detail || errorData.message || errorMsg
+      } catch {
+        errorMsg = errorText || errorMsg
+      }
+      throw new Error(errorMsg)
     }
     
     const data = await response.json()
@@ -326,6 +343,10 @@ const fetchBrandingSettings = async () => {
     originalValues.value = { ...form.value }
     currentLogo.value = data.logo_url || ''
     
+    // Apply branding to UI on load
+    applyBrandingToUI(form.value)
+    updateGlobalBranding(form.value)
+    
   } catch (e: any) {
     error.value = e.message || 'Failed to load branding settings'
   } finally {
@@ -337,39 +358,156 @@ const saveBranding = async () => {
   loading.value = true
   error.value = ''
   success.value = false
+  uploadError.value = ''
   
   try {
-    const headers = {
-      ...authStore.getAuthHeader(),
-      'Content-Type': 'application/json'
+    let logoUrl = form.value.logo_url // Keep existing logo if not changed
+    
+    // Step 1: Upload logo first if a new file was selected
+    if (selectedLogoFile.value) {
+      try {
+        uploading.value = true
+        const formData = new FormData()
+        formData.append('file', selectedLogoFile.value)
+        
+        const logoResponse = await authenticatedFetch('/api/v1/settings/branding/logo', {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!logoResponse.ok) {
+          const errorText = await logoResponse.text()
+          let errorMsg = 'Logo upload failed'
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMsg = errorData.detail || errorData.message || errorMsg
+          } catch {
+            errorMsg = errorText || errorMsg
+          }
+          throw new Error(errorMsg)
+        }
+        
+        const logoData = await logoResponse.json()
+        logoUrl = logoData.logo_url
+        form.value.logo_url = logoUrl
+        currentLogo.value = logoUrl
+        selectedLogoFile.value = null // Clear selected file after successful upload
+        logoPreview.value = null // Clear preview after successful upload
+        
+      } catch (e: any) {
+        uploadError.value = e.message || 'Logo upload failed'
+        // Don't throw - allow saving other fields even if logo upload fails
+        console.error('Logo upload error:', e)
+      } finally {
+        uploading.value = false
+      }
     }
     
-    const response = await fetch('/api/v1/settings/branding/', {
+    // Step 2: Update branding settings with all fields
+    const updateData: any = {
+      company_name: form.value.company_name,
+      primary_color: form.value.primary_color,
+      secondary_color: form.value.secondary_color
+    }
+    
+    // Include logo_url if we have one (either existing or newly uploaded)
+    if (logoUrl) {
+      updateData.logo_url = logoUrl
+    }
+    
+    const response = await authenticatedFetch('/api/v1/settings/branding/', {
       method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        company_name: form.value.company_name,
-        primary_color: form.value.primary_color,
-        secondary_color: form.value.secondary_color
-      })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updateData)
     })
     
     if (!response.ok) {
-      throw new Error('Failed to save branding settings')
+      const errorText = await response.text()
+      let errorMsg = 'Failed to save branding settings'
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMsg = errorData.detail || errorData.message || errorMsg
+      } catch {
+        errorMsg = errorText || errorMsg
+      }
+      throw new Error(errorMsg)
     }
     
-    success.value = true
+    const updatedData = await response.json()
+    
+    // Step 3: Update form with response data
+    form.value = {
+      company_name: updatedData.company_name || form.value.company_name,
+      logo_url: updatedData.logo_url || form.value.logo_url,
+      primary_color: updatedData.primary_color || form.value.primary_color,
+      secondary_color: updatedData.secondary_color || form.value.secondary_color
+    }
+    
+    // Update current logo display
+    if (updatedData.logo_url) {
+      currentLogo.value = updatedData.logo_url
+    }
+    
+    // Update original values to reflect saved state
     originalValues.value = { ...form.value }
     
-    // Hide success message after 3 seconds
+    // Step 4: Apply branding to UI immediately
+    applyBrandingToUI(updatedData)
+    
+    // Step 5: Update global store
+    updateGlobalBranding(updatedData)
+    
+    // Step 6: Show success message
+    success.value = true
+    
+    // Hide success message after 5 seconds
     setTimeout(() => {
       success.value = false
-    }, 3000)
+    }, 5000)
     
   } catch (e: any) {
     error.value = e.message || 'Failed to save branding settings'
+    // Keep form data on error - don't clear inputs
   } finally {
     loading.value = false
+  }
+}
+
+// Apply branding changes to UI immediately
+const applyBrandingToUI = (branding: BrandingSettings) => {
+  // Update CSS variables for colors
+  if (branding.primary_color) {
+    document.documentElement.style.setProperty('--primary-color', branding.primary_color)
+  }
+  if (branding.secondary_color) {
+    document.documentElement.style.setProperty('--secondary-color', branding.secondary_color)
+  }
+  
+  // Update logo in header/sidebar if needed
+  // This would require accessing header/sidebar components or using a global store
+  // For now, we'll update the store and let components react to it
+  
+  // Update company name in document title or other places
+  if (branding.company_name) {
+    document.title = `${branding.company_name} - TapeOutOps`
+  }
+}
+
+// Update global branding store
+const updateGlobalBranding = (branding: BrandingSettings) => {
+  if (brandingStore) {
+    brandingStore.company_name = branding.company_name
+    brandingStore.logo_url = branding.logo_url || ''
+    // Update both brand_color (legacy) and primary_color/secondary_color
+    if (branding.primary_color) {
+      brandingStore.brand_color = branding.primary_color
+      brandingStore.primary_color = branding.primary_color
+    }
+    if (branding.secondary_color) {
+      brandingStore.secondary_color = branding.secondary_color
+    }
   }
 }
 
@@ -381,7 +519,7 @@ const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-    uploadLogo(file)
+    handleLogoFileSelection(file)
   }
 }
 
@@ -389,17 +527,19 @@ const handleFileDrop = (event: DragEvent) => {
   isDragOver.value = false
   const files = event.dataTransfer?.files
   if (files && files.length > 0) {
-    uploadLogo(files[0])
+    handleLogoFileSelection(files[0])
   }
 }
 
-const uploadLogo = async (file: File) => {
+const handleLogoFileSelection = (file: File) => {
   // Validate file
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/svg+xml']
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp']
   const maxSize = 5 * 1024 * 1024 // 5MB
   
+  uploadError.value = ''
+  
   if (!allowedTypes.includes(file.type)) {
-    uploadError.value = 'Please select a PNG, JPG, or SVG file'
+    uploadError.value = 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP'
     return
   }
   
@@ -408,44 +548,37 @@ const uploadLogo = async (file: File) => {
     return
   }
   
-  uploading.value = true
-  uploadError.value = ''
+  // Store the file for upload when "Save Changes" is clicked
+  selectedLogoFile.value = file
   
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    
-    const headers = authStore.getAuthHeader() || {}
-    const response = await fetch('/api/v1/uploads/logo', {
-      method: 'POST',
-      headers,
-      body: formData
-    })
-    
-    if (!response.ok) {
-      throw new Error('Failed to upload logo')
-    }
-    
-    const data = await response.json()
-    currentLogo.value = data.logo_url
-    form.value.logo_url = data.logo_url
-    
-    // Clear file input
-    if (fileInput.value) {
-      fileInput.value.value = ''
-    }
-    
-  } catch (e: any) {
-    uploadError.value = e.message || 'Failed to upload logo'
-  } finally {
-    uploading.value = false
+  // Show preview immediately for better UX
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    logoPreview.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+  
+  // Clear file input to allow selecting the same file again
+  if (fileInput.value) {
+    fileInput.value.value = ''
   }
 }
 
 const removeLogo = () => {
-  currentLogo.value = ''
-  form.value.logo_url = ''
+  // If there's a preview, just clear the selection
+  if (logoPreview.value) {
+    selectedLogoFile.value = null
+    logoPreview.value = null
+  } else {
+    // Otherwise, remove the current logo
+    currentLogo.value = ''
+    form.value.logo_url = ''
+  }
   uploadError.value = ''
+  // Clear file input
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 
 const resetForm = () => {
@@ -453,8 +586,14 @@ const resetForm = () => {
     form.value = { ...originalValues.value }
     currentLogo.value = originalValues.value.logo_url || ''
   }
+  selectedLogoFile.value = null
+  logoPreview.value = null
   error.value = ''
   uploadError.value = ''
+  // Clear file input
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 
 // Auto-save functionality

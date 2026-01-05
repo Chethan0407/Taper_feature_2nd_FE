@@ -308,17 +308,59 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     error.value = null
     try {
       const endpoint = status === 'approved' ? 'approve' : 'reject'
-      const response = await authenticatedFetch(`${API_BASE}/${id}/${endpoint}`, {
+      const url = `${API_BASE}/${id}/${endpoint}`
+      
+      console.log('📤 Updating specification status:', {
+        id,
+        status,
+        endpoint,
+        url,
         method: 'POST'
       })
       
+      // Use authenticatedFetch which automatically includes Authorization header
+      const response = await authenticatedFetch(url, {
+        method: 'POST'
+      })
+      
+      console.log('📥 Specification status update response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      })
+      
       if (!response.ok) {
-        throw new Error('Failed to update specification status')
+        const errorText = await response.text()
+        let errorMsg = 'Failed to update specification status'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        
+        // Log detailed error information
+        console.error('❌ Specification status update failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMsg,
+          url
+        })
+        
+        throw new Error(errorMsg)
       }
       
-      await loadSpecifications() // Reload to get updated list
+      const result = await response.json()
+      console.log('✅ Specification status updated successfully:', result)
+      
+      // Invalidate cache before reloading to ensure fresh data
+      invalidateCache()
+      
+      // Reload to get updated list with new status
+      await loadSpecifications()
     } catch (err: any) {
       error.value = err.message || 'Failed to update specification status'
+      console.error('❌ Error updating specification status:', err)
       throw err
     } finally {
       loading.value = false
@@ -354,13 +396,47 @@ export const useSpecificationsStore = defineStore('specifications', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await authenticatedFetch(`${API_BASE}/${id}`, {
+      const url = `${API_BASE}/${id}`
+      
+      console.log('🗑️ Deleting specification:', {
+        id,
+        url,
         method: 'DELETE'
       })
       
+      // Use authenticatedFetch which automatically includes Authorization header
+      const response = await authenticatedFetch(url, {
+        method: 'DELETE'
+      })
+      
+      console.log('📥 Delete specification response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      })
+      
       if (!response.ok && response.status !== 404) {
-        throw new Error('Failed to delete specification')
+        const errorText = await response.text()
+        let errorMsg = 'Failed to delete specification'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        
+        // Log detailed error information
+        console.error('❌ Delete specification failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMsg,
+          url
+        })
+        
+        throw new Error(errorMsg)
       }
+      
+      console.log('✅ Specification deleted successfully')
       
       // Invalidate cache and remove from local list
       // WHY: After deletion, we need to update both cache and local state
@@ -369,6 +445,7 @@ export const useSpecificationsStore = defineStore('specifications', () => {
       specifications.value = specifications.value.filter(spec => spec.id !== id)
     } catch (err: any) {
       error.value = err.message || 'Failed to delete specification'
+      console.error('❌ Error deleting specification:', err)
       throw err
     } finally {
       loading.value = false

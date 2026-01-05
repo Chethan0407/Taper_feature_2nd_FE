@@ -109,7 +109,9 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Templates</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ checklistsStore.list.length }}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {{ checklistsStore.stats?.total_templates ?? (checklistsStore.statsLoading ? '...' : checklistsStore.list.length) }}
+                </p>
               </div>
               <div class="p-3 bg-blue-500/10 rounded-lg">
                 <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +125,9 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Active Checklists</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ activeChecklists.length }}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {{ checklistsStore.stats?.active_checklists ?? (checklistsStore.statsLoading ? '...' : activeChecklists.length) }}
+                </p>
               </div>
               <div class="p-3 bg-green-500/10 rounded-lg">
                 <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +141,9 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Approved</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ approvedCount }}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {{ checklistsStore.stats?.approved_checklists ?? (checklistsStore.statsLoading ? '...' : approvedCount) }}
+                </p>
               </div>
               <div class="p-3 bg-purple-500/10 rounded-lg">
                 <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +157,9 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Avg. Completion</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ averageCompletion }}%</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {{ checklistsStore.stats ? `${Math.round(checklistsStore.stats.avg_completion_rate)}%` : (checklistsStore.statsLoading ? '...' : `${averageCompletion}%`) }}
+                </p>
               </div>
               <div class="p-3 bg-orange-500/10 rounded-lg">
                 <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +273,10 @@ const fetchChecklistCompletion = async (checklistId: string) => {
 }
 
 const handleTemplateCreated = async () => {
-  await fetchTemplates()
+  await Promise.all([
+    fetchTemplates(),
+    checklistsStore.fetchStats() // Refresh statistics after creating template
+  ])
   toast.value = { message: 'Template created successfully!', type: 'success' }
   setTimeout(() => { toast.value = null }, 2500)
 }
@@ -279,7 +290,10 @@ const useTemplate = async (templateId: string | number) => {
     if (!res.ok) throw new Error('Failed to create active checklist')
     const activeChecklist = await res.json()
     toast.value = { message: 'Checklist instantiated!', type: 'success' }
-    await fetchActiveChecklists()
+    await Promise.all([
+      fetchActiveChecklists(),
+      checklistsStore.fetchStats() // Refresh statistics after creating active checklist
+    ])
     // Optionally, you could redirect to the new checklist here
     // router.push(`/checklists/active/${activeChecklist.id}`)
   } catch (e: any) {
@@ -311,7 +325,8 @@ onMounted(async () => {
   
   await Promise.all([
     fetchTemplates(),
-    fetchActiveChecklists()
+    fetchActiveChecklists(),
+    checklistsStore.fetchStats() // Fetch statistics on page load
   ])
 })
 
@@ -335,6 +350,8 @@ const approveChecklist = async (id: string) => {
     if (idx !== -1) {
       activeChecklists.value[idx] = { ...activeChecklists.value[idx], ...updatedChecklist }
     }
+    // Refresh statistics after approval
+    await checklistsStore.fetchStats()
     toast.value = { message: 'Checklist approved!', type: 'success' }
   } catch (e) {
     toast.value = { message: 'Approval failed', type: 'error' }

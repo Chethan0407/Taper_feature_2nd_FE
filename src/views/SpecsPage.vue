@@ -688,13 +688,14 @@ function confirmAndDelete(id: string) {
 const handleDelete = async (id: string) => {
   showDeleteModal.value = false
   try {
-    const res = await authenticatedFetch(`/api/v1/specifications/${id}`, {
-      method: 'DELETE'
-    });
-    if (!res.ok) throw new Error('Failed to delete specification')
-    await specificationsStore.loadSpecifications();
-  } catch (e) {
-    // Optionally show toast
+    // Use the store's deleteSpecification method which handles cache invalidation and updates
+    await specificationsStore.deleteSpecification(id)
+    showToast('Specification deleted successfully.')
+    // Reload the list to reflect the deletion
+    await specificationsStore.loadSpecifications()
+  } catch (e: any) {
+    showToast(e.message || 'Failed to delete specification', true)
+    console.error('Error deleting specification:', e)
   } finally {
     specToDelete.value = null
   }
@@ -795,26 +796,15 @@ function showToast(message: string, isError = false) {
 
 async function updateSpecStatus(spec: any, status: string) {
   try {
-    let endpoint = '';
-    if (status === 'approved') {
-      endpoint = `/api/v1/specifications/${spec.id}/approve`;
-    } else if (status === 'rejected') {
-      endpoint = `/api/v1/specifications/${spec.id}/reject`;
+    // Use the store's method which handles cache invalidation and updates
+    if (status === 'approved' || status === 'rejected') {
+      await specificationsStore.updateSpecificationStatus(spec.id, status as 'approved' | 'rejected')
+      showToast(`Spec marked as ${status}.`)
     } else {
-      throw new Error('Invalid status');
+      throw new Error('Invalid status')
     }
-    let fetchOptions: RequestInit = {
-      method: 'POST',
-    };
-    if (authStore.token) {
-      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` };
-    }
-    const res = await fetch(endpoint, fetchOptions);
-    if (!res.ok) throw new Error('Failed to update status');
-    showToast(`Spec marked as ${status}.`);
-    await specificationsStore.loadSpecifications();
   } catch (e: any) {
-    showToast(e.message || 'Failed to update status', true);
+    showToast(e.message || 'Failed to update status', true)
   }
 }
 

@@ -24,11 +24,21 @@ export interface Checklist {
   is_template?: boolean
 }
 
+export interface ChecklistStats {
+  total_templates: number
+  active_checklists: number
+  approved_checklists: number
+  avg_completion_rate: number
+}
+
 export const useChecklistsStore = defineStore('checklists', () => {
   const list = ref<Checklist[]>([])
   const details = ref<Checklist | null>(null)
   const loading = ref(false)
   const error = ref('')
+  const stats = ref<ChecklistStats | null>(null)
+  const statsLoading = ref(false)
+  const statsError = ref('')
   const authStore = useAuthStore()
 
   // 1. List all templates
@@ -384,11 +394,55 @@ export const useChecklistsStore = defineStore('checklists', () => {
     }
   }
 
+  // 11. Get checklist statistics
+  async function fetchStats() {
+    statsLoading.value = true
+    statsError.value = ''
+    try {
+      const res = await authenticatedFetch('/api/v1/checklists/stats')
+      
+      if (!res.ok) {
+        let errorMessage = 'Failed to fetch checklist statistics'
+        try {
+          const errorData = await res.json()
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch {
+          const errorText = await res.text().catch(() => '')
+          if (errorText) errorMessage = errorText
+        }
+        
+        if (res.status === 401) {
+          errorMessage = 'Authentication required. Please log in again.'
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      const data = await res.json()
+      stats.value = {
+        total_templates: data.total_templates || 0,
+        active_checklists: data.active_checklists || 0,
+        approved_checklists: data.approved_checklists || 0,
+        avg_completion_rate: data.avg_completion_rate || 0.0
+      }
+      
+      return stats.value
+    } catch (e: any) {
+      statsError.value = e.message || 'Failed to fetch checklist statistics'
+      throw e
+    } finally {
+      statsLoading.value = false
+    }
+  }
+
   return {
     list,
     details,
     loading,
     error,
+    stats,
+    statsLoading,
+    statsError,
     fetchTemplates,
     createTemplate,
     addItemToTemplate,
@@ -398,6 +452,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     fetchActiveChecklistItems,
     updateActiveChecklistItem,
     uploadEvidence,
-    fetchChecklistCompletion
+    fetchChecklistCompletion,
+    fetchStats
   }
 }) 

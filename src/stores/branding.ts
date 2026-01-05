@@ -6,6 +6,8 @@ export const useBrandingStore = defineStore('branding', () => {
   const logo_url = ref('')
   const company_name = ref('')
   const brand_color = ref('#1e293b')
+  const primary_color = ref('#3B82F6')
+  const secondary_color = ref('#8B5CF6')
   const loading = ref(false)
   const error = ref('')
 
@@ -21,7 +23,9 @@ export const useBrandingStore = defineStore('branding', () => {
       const data = await res.json()
       logo_url.value = data.logo_url || ''
       company_name.value = data.company_name || ''
-      brand_color.value = data.brand_color || '#1e293b'
+      brand_color.value = data.brand_color || data.primary_color || '#1e293b'
+      primary_color.value = data.primary_color || '#3B82F6'
+      secondary_color.value = data.secondary_color || '#8B5CF6'
     } catch (e: any) {
       error.value = e.message || 'Failed to fetch branding'
     } finally {
@@ -58,6 +62,8 @@ export const useBrandingStore = defineStore('branding', () => {
     logo_url,
     company_name,
     brand_color,
+    primary_color,
+    secondary_color,
     loading,
     error,
     fetchBranding,
