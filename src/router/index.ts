@@ -88,6 +88,13 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/documentation',
+      name: 'Documentation',
+      // Documentation page - public, no auth required
+      component: () => import('@/views/DocumentationPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/dashboard',
       name: 'Dashboard',
       // Code split: Creates "dashboard" chunk
@@ -196,7 +203,7 @@ router.beforeEach((to, from, next) => {
     
     // Always allow access to public pages (no checks)
     // WHY: These pages must always be accessible, even if user is logged out
-    const publicPaths = ['/login', '/verify-email', '/reset-password', '/', '/about', '/privacy', '/terms', '/security']
+    const publicPaths = ['/login', '/verify-email', '/reset-password', '/', '/about', '/privacy', '/terms', '/security', '/documentation']
     if (publicPaths.includes(to.path)) {
       next()
       return

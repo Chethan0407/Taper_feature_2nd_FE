@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuthStore } from './auth'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 export interface ChecklistItem {
   id?: number
@@ -35,9 +36,11 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const res = await fetch('/api/v1/checklists/templates', { headers })
-      if (!res.ok) throw new Error('Failed to fetch templates')
+      const res = await authenticatedFetch('/api/v1/checklists/templates/')
+      if (!res.ok) {
+        const errorText = await res.text()
+        throw new Error(errorText || 'Failed to fetch templates')
+      }
       const data = await res.json()
       console.log('📋 Templates API Response:', data)
       // Handle both array and single object responses
@@ -70,14 +73,8 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      }
-      
-      const res = await fetch('/api/v1/checklists/templates', {
+      const res = await authenticatedFetch('/api/v1/checklists/templates/', {
         method: 'POST',
-        headers,
         body: JSON.stringify(data)
       })
       
@@ -102,14 +99,8 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      }
-      
-      const res = await fetch(`/api/v1/checklists/templates/${templateId}/items`, {
+      const res = await authenticatedFetch(`/api/v1/checklists/templates/${templateId}/items/`, {
         method: 'POST',
-        headers,
         body: JSON.stringify(item)
       })
       if (!res.ok) throw new Error('Failed to add item to template')
@@ -127,8 +118,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const res = await fetch(`/api/v1/checklists/templates/${templateId}/items`, { headers })
+      const res = await authenticatedFetch(`/api/v1/checklists/templates/${templateId}/items/`)
       if (!res.ok) throw new Error('Failed to fetch template items')
       return await res.json()
     } catch (e: any) {
@@ -144,14 +134,8 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      }
-      
-      const res = await fetch('/api/v1/checklists/active', {
+      const res = await authenticatedFetch('/api/v1/checklists/active/', {
         method: 'POST',
-        headers,
         body: JSON.stringify(data)
       })
       if (!res.ok) throw new Error('Failed to create active checklist')
@@ -169,8 +153,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const res = await fetch('/api/v1/checklists/active', { headers })
+      const res = await authenticatedFetch('/api/v1/checklists/active/')
       if (!res.ok) throw new Error('Failed to fetch active checklists')
       return await res.json()
     } catch (e: any) {
@@ -186,8 +169,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const res = await fetch(`/api/v1/checklists/active/${checklistId}/items`, { headers })
+      const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/items/`)
       if (!res.ok) throw new Error('Failed to fetch active checklist items')
       return await res.json()
     } catch (e: any) {
@@ -203,14 +185,8 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      }
-      
-      const res = await fetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}`, {
+      const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}/`, {
         method: 'PATCH',
-        headers,
         body: JSON.stringify(data)
       })
       if (!res.ok) throw new Error('Failed to update active checklist item')
@@ -231,11 +207,8 @@ export const useChecklistsStore = defineStore('checklists', () => {
       const formData = new FormData()
       formData.append('file', file)
       
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      
-      const res = await fetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}/evidence`, {
+      const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}/evidence/`, {
         method: 'POST',
-        headers,
         body: formData
       })
       if (!res.ok) throw new Error('Failed to upload evidence')
@@ -253,8 +226,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      const res = await fetch(`/api/v1/checklists/active/${checklistId}/completion`, { headers })
+      const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion/`)
       if (!res.ok) throw new Error('Failed to fetch checklist completion')
       return await res.json()
     } catch (e: any) {

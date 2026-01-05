@@ -71,17 +71,40 @@ export async function authenticatedFetch(
   
   const cleanUrl = finalUrl
   
-  // Prepare headers
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string> || {}),
+  // Validate and add token FIRST - ALWAYS check localStorage directly first
+  // WHY: authStore.token might not be initialized yet, but localStorage is always available
+  const tokenKeys = ['tapeout_token', 'token', 'authToken', 'access_token']
+  let token: string | null = null
+  
+  // First, try localStorage directly (most reliable)
+  for (const key of tokenKeys) {
+    const storedToken = localStorage.getItem(key)
+    if (storedToken && storedToken !== 'undefined' && storedToken !== 'null' && storedToken.trim() !== '') {
+      token = storedToken
+      console.log('🔑 authenticatedFetch - Token retrieved from localStorage:', key)
+      break
+    }
   }
   
-  // Validate and add token
-  const token = authStore.token
+  // Fallback to authStore if localStorage didn't have it
+  if (!token && authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null' && authStore.token.trim() !== '') {
+    token = authStore.token
+    console.log('🔑 authenticatedFetch - Token retrieved from authStore')
+  }
+  
+  // Debug: Log what we found
+  console.log('🔍 authenticatedFetch - Token search result:', {
+    foundToken: !!token,
+    tokenLength: token?.length || 0,
+    tokenPreview: token ? `${token.substring(0, 20)}...` : 'null',
+    localStorageKeys: tokenKeys.map(k => ({ key: k, exists: !!localStorage.getItem(k) })),
+    authStoreToken: !!authStore.token
+  })
   
   // Early check: if no token, don't make the request
   if (!token || token === 'undefined' || token === 'null' || token.trim() === '') {
     console.error('❌ authenticatedFetch - No valid token found, aborting request:', cleanUrl)
+    console.error('❌ Checked authStore.token and localStorage keys: tapeout_token, token, authToken, access_token')
     const errorResponse = new Response(
       JSON.stringify({ detail: 'No authentication token found. Please log in.' }),
       { status: 401, statusText: 'Unauthorized' }
@@ -99,33 +122,53 @@ export async function authenticatedFetch(
     url: cleanUrl
   })
   
-  if (token) {
-    // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
-    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token
-    const authToken = `Bearer ${cleanToken}`
-    
-    // Always add the token - let the backend validate it
-    // Frontend validation is just a warning, not a blocker
-    headers['Authorization'] = authToken
-    
-    // Validate token for logging purposes only
-    const validation = validateToken(cleanToken)
-    if (validation.valid) {
-      console.log('✅ authenticatedFetch - Authorization header added (token valid)')
-    } else {
-      console.warn('⚠️ authenticatedFetch - Token validation warning:', validation.reason, '- Still sending token to backend')
-    }
-    
-    // Log the actual header being sent (first 30 chars only for security)
-    console.log('📤 Authorization header:', `Bearer ${cleanToken.substring(0, 30)}...`)
-  } else {
-    console.warn('⚠️ authenticatedFetch - No token found, request will be unauthenticated')
-    console.warn('⚠️ This will likely result in a 401 error')
+  // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
+  const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token
+  const authToken = `Bearer ${cleanToken}`
+  
+  // Prepare headers - SET Authorization FIRST, then merge other headers
+  const headers: Record<string, string> = {
+    'Authorization': authToken, // CRITICAL: Set Authorization header first
   }
+  
+  // Merge any existing headers from options (but Authorization takes precedence - already set above)
+  const existingHeaders = (options.headers as Record<string, string>) || {}
+  for (const key in existingHeaders) {
+    if (key.toLowerCase() !== 'authorization') { // Skip Authorization to avoid overwriting
+      headers[key] = existingHeaders[key]
+    }
+  }
+  
+  // Validate token for logging purposes only
+  const validation = validateToken(cleanToken)
+  if (validation.valid) {
+    console.log('✅ authenticatedFetch - Authorization header added (token valid)')
+  } else {
+    console.warn('⚠️ authenticatedFetch - Token validation warning:', validation.reason, '- Still sending token to backend')
+  }
+  
+  // Log the actual header being sent (first 30 chars only for security)
+  console.log('📤 Authorization header:', `Bearer ${cleanToken.substring(0, 30)}...`)
   
   // Don't set Content-Type for FormData (browser will set it automatically)
   if (!(options.body instanceof FormData) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json'
+  }
+  
+  // CRITICAL: Double-check Authorization header is set
+  if (!headers['Authorization'] || !headers['Authorization'].startsWith('Bearer ')) {
+    console.error('❌ CRITICAL ERROR: Authorization header is missing or invalid!', {
+      hasHeader: !!headers['Authorization'],
+      headerValue: headers['Authorization'] || 'MISSING',
+      tokenExists: !!token
+    })
+    const errorResponse = new Response(
+      JSON.stringify({ detail: 'Authorization header is missing. Please log in again.' }),
+      { status: 401, statusText: 'Unauthorized' }
+    )
+    ;(errorResponse as any).errorDetail = 'Authorization header is missing. Please log in again.'
+    ;(errorResponse as any).isAuthError = true
+    return errorResponse
   }
   
   console.log('📤 authenticatedFetch - Request details:', {
@@ -133,14 +176,31 @@ export async function authenticatedFetch(
     cleanUrl: cleanUrl,
     method: options.method || 'GET',
     hasAuthHeader: !!headers['Authorization'],
-    headerKeys: Object.keys(headers)
+    authHeaderValue: headers['Authorization'] ? `${headers['Authorization'].substring(0, 30)}...` : 'MISSING',
+    authHeaderLength: headers['Authorization']?.length || 0,
+    headerKeys: Object.keys(headers),
+    allHeaders: Object.keys(headers).reduce((acc, key) => {
+      acc[key] = key === 'Authorization' ? `${headers[key].substring(0, 30)}...` : headers[key]
+      return acc
+    }, {} as Record<string, string>)
   })
   
   try {
+    // CRITICAL: Ensure headers object is properly formatted for fetch
+    // Fetch expects HeadersInit which can be a Record<string, string>
+    // Create a new object to ensure no prototype issues
+    const fetchHeaders: HeadersInit = { ...headers }
+    
+    // Final verification before sending
+    if (!fetchHeaders['Authorization']) {
+      console.error('❌ CRITICAL: Authorization header lost during header preparation!')
+      throw new Error('Authorization header is missing')
+    }
+    
     // Use 'follow' to automatically follow redirects (browser preserves headers)
     const response = await fetch(cleanUrl, {
       ...options,
-      headers,
+      headers: fetchHeaders, // Use the properly formatted headers
       redirect: 'follow' as RequestRedirect
     })
     

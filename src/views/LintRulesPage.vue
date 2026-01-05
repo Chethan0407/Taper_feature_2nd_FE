@@ -71,6 +71,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 interface LintRule {
   id?: string
@@ -90,7 +91,7 @@ const fetchRules = async () => {
   ruleLoading.value = true
   ruleError.value = ''
   try {
-    const res = await fetch('/api/v1/lint-results/speclint/rules')
+    const res = await authenticatedFetch('/api/v1/lint-results/speclint/rules/')
     if (!res.ok) throw new Error('Failed to fetch rules')
     let data = await res.json()
     if (Array.isArray(data)) {
@@ -112,9 +113,8 @@ const addRule = async () => {
   ruleError.value = ''
   ruleSuccess.value = ''
   try {
-    const res = await fetch('/api/v1/lint-results/speclint/rules', {
+    const res = await authenticatedFetch('/api/v1/lint-results/speclint/rules/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ruleType: ruleForm.value.ruleType,
         pattern: ruleForm.value.pattern,

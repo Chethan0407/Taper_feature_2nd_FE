@@ -240,11 +240,11 @@
           </div>
 
           <div>
-            <h4 class="text-white font-semibold mb-4">Product</h4>
-            <ul class="space-y-2 text-sm text-gray-400">
+            <h4 class="text-white font-bold mb-4">Product</h4>
+            <ul class="space-y-2 text-sm text-gray-300">
               <li><a href="/#features" class="hover:text-neon-blue transition-colors">Features</a></li>
               <li><a href="/#how-it-works" class="hover:text-neon-blue transition-colors">How It Works</a></li>
-              <li><a href="#" class="hover:text-neon-blue transition-colors">Documentation</a></li>
+              <li><router-link to="/documentation" class="hover:text-neon-blue transition-colors">Documentation</router-link></li>
             </ul>
           </div>
 

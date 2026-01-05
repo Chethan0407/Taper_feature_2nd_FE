@@ -178,6 +178,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChecklistsStore } from '@/stores/checklists'
 import CreateTemplateModal from '@/components/Checklist/CreateTemplateModal.vue'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 interface Checklist {
   id: string
@@ -236,9 +237,7 @@ const fetchActiveChecklists = async () => {
 const fetchChecklistCompletion = async (checklistId: string) => {
   checklistCompletion.value[checklistId] = { progress: 0, total: 0, percent: 0, loading: true }
   try {
-    const res = await fetch(`/api/v1/checklists/active/${checklistId}/completion`, {
-      headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-    })
+    const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion/`)
     if (!res.ok) throw new Error('Failed to fetch completion')
     const data = await res.json()
     const percent = data.total > 0 ? Math.round((data.progress / data.total) * 100) : 0
@@ -261,12 +260,8 @@ const handleTemplateCreated = async () => {
 
 const useTemplate = async (templateId: string | number) => {
   try {
-    const res = await fetch('/api/v1/checklists/active', {
+    const res = await authenticatedFetch('/api/v1/checklists/active/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      },
       body: JSON.stringify({ template_id: templateId })
     })
     if (!res.ok) throw new Error('Failed to create active checklist')
@@ -299,9 +294,8 @@ const getProgressClass = (progress: number, total: number) => {
 const approveChecklist = async (id: string) => {
   approving.value = id
   try {
-    const res = await fetch(`/api/v1/checklists/active/${id}/approve`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    const res = await authenticatedFetch(`/api/v1/checklists/active/${id}/approve/`, {
+      method: 'POST'
     })
     if (!res.ok) throw new Error('Approval failed')
     const updatedChecklist = await res.json()
