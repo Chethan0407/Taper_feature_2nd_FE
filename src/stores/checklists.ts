@@ -37,14 +37,18 @@ export const useChecklistsStore = defineStore('checklists', () => {
     error.value = ''
     try {
       const res = await authenticatedFetch('/api/v1/checklists/templates')
+      
+      // Clone the response to avoid consuming it multiple times
+      const responseClone = res.clone()
+      
       if (!res.ok) {
         // Try to get error message from response
         let errorMessage = 'Failed to fetch templates'
         try {
-          const errorData = await res.json()
+          const errorData = await responseClone.json()
           errorMessage = errorData.detail || errorData.message || errorMessage
         } catch {
-          const errorText = await res.text().catch(() => '')
+          const errorText = await responseClone.text().catch(() => '')
           if (errorText) errorMessage = errorText
         }
         
@@ -55,19 +59,131 @@ export const useChecklistsStore = defineStore('checklists', () => {
         
         throw new Error(errorMessage)
       }
+      
+      // Parse the response JSON
       const data = await res.json()
       console.log('📋 Templates API Response:', data)
-      // Handle both array and single object responses
-      // Also ensure templates have a name field (use id or default if missing)
-      const templates = Array.isArray(data) ? data : [data]
-      list.value = templates.map((t: any) => ({
-        ...t,
-        name: t.name || t.title || `Template ${t.id}` || 'Unnamed Template'
-      }))
-      console.log('✅ Processed templates:', list.value)
+      console.log('📋 Templates API Response Type:', typeof data, 'Is Array:', Array.isArray(data))
+      console.log('📋 Templates API Response Keys:', data ? Object.keys(data) : 'null/undefined')
+      
+      // Handle different response formats:
+      // 1. Direct array: [{...}, {...}]
+      // 2. Object with items array: {items: [...]} - items are checklist items, not templates
+      // 3. Single template object: {name: "...", id: ..., items: [...]}
+      // 4. Object with templates array: {templates: [...]} or {results: [...]}
+      let templates: any[] = []
+      
+      if (Array.isArray(data)) {
+        // Response is an array of templates (expected format after backend fix)
+        // Each template should have: {id, name, created_by, items: [...]}
+        templates = data
+        console.log('✅ Response is an array with', templates.length, 'templates')
+        
+        // Verify each template has the expected structure and items
+        templates.forEach((template, index) => {
+          if (template.items && Array.isArray(template.items)) {
+            console.log(`✅ Template ${index + 1} (${template.name || template.id}) has ${template.items.length} items`)
+          } else {
+            console.warn(`⚠️ Template ${index + 1} (${template.name || template.id}) has no items array`)
+          }
+        })
+      } else if (data && typeof data === 'object' && data !== null) {
+        // Check for common array properties
+        if (data.templates && Array.isArray(data.templates)) {
+          // Response has templates array
+          templates = data.templates
+          console.log('✅ Response has templates array with', templates.length, 'templates')
+        } else if (data.results && Array.isArray(data.results)) {
+          // Response has results array
+          templates = data.results
+          console.log('✅ Response has results array with', templates.length, 'templates')
+        } else if (data.items && Array.isArray(data.items)) {
+          // Check if this is a template object with items inside
+          if (data.id || data.name || data.created_by) {
+            // It's a single template object with items array inside
+            templates = [data]
+            console.log('✅ Response is a single template object with items array inside')
+          } else {
+            // Response only has items array - check if items might be templates
+            // If we're on the templates endpoint, items with title/order might actually be templates
+            // But typically templates have name, not title
+            const firstItem = data.items[0]
+            if (firstItem && (firstItem.name || firstItem.created_by)) {
+              // Items appear to be templates (have name or created_by)
+              templates = data.items
+              console.log('✅ Response has items array that are templates, count:', templates.length)
+          } else {
+            // Items have title/order - these are checklist items, not templates
+            // But if we're on the templates endpoint and only get items, 
+            // it might be a template response missing metadata
+            // Check if there are other properties that indicate it's a template
+            if (data.id && (data.name || data.created_by)) {
+              // It has template metadata, treat as template
+              templates = [data]
+              console.log('✅ Response is a template object with items (metadata found)')
+            } else if (data.items && data.items.length > 0) {
+              // Only items array - this is likely a template but missing wrapper
+              // Create a template wrapper from the items
+              // Use the first item's created_at or a generated ID
+              const firstItem = data.items[0]
+              templates = [{
+                id: data.id || firstItem?.id || Date.now(),
+                name: data.name || firstItem?.title || 'Template',
+                items: data.items,
+                created_by: data.created_by || null,
+                created_at: data.created_at || firstItem?.created_at || new Date().toISOString()
+              }]
+              console.log('⚠️ Response has items but no template metadata. Created template wrapper from items.')
+            } else {
+              console.warn('⚠️ Response has empty or missing items array. No templates found.')
+              templates = []
+            }
+          }
+          }
+        } else if (data.id || data.name || data.created_by) {
+          // It's a single template object, wrap it in array
+          templates = [data]
+          console.log('✅ Response is a single template object, wrapped in array')
+        } else {
+          // Unknown structure, log and use empty array
+          console.warn('⚠️ Unexpected response format:', data, 'Type:', typeof data, 'Keys:', Object.keys(data))
+          templates = []
+        }
+      } else {
+        // If it's something else, log and use empty array
+        console.warn('⚠️ Unexpected response format:', data, 'Type:', typeof data)
+        templates = []
+      }
+      
+      // Map templates to ensure they have required fields
+      const processedTemplates = templates
+        .filter(t => t != null) // Remove any null/undefined entries
+        .map((t: any) => ({
+          ...t,
+          name: t.name || t.title || `Template ${t.id}` || 'Unnamed Template',
+          id: t.id || t.template_id || `temp-${Date.now()}`
+        }))
+      
+      // Update the store
+      list.value = processedTemplates
+      
+      console.log('✅ Processed templates:', processedTemplates)
+      console.log('✅ Templates count:', processedTemplates.length)
+      console.log('✅ Store list.value length:', list.value.length)
+      
+      // Verify the store was updated
+      if (list.value.length === 0 && templates.length > 0) {
+        console.error('❌ CRITICAL: Templates were processed but store is empty!', {
+          processedCount: processedTemplates.length,
+          storeCount: list.value.length,
+          templates: templates
+        })
+      }
     } catch (e: any) {
       console.error('❌ Error fetching templates:', e)
       error.value = e.message || 'Failed to fetch templates'
+      // Clear the list on error to avoid showing stale data
+      list.value = []
     } finally {
       loading.value = false
     }

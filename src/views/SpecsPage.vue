@@ -851,24 +851,26 @@ async function handleCreateSpec() {
     formData.append('uploaded_by', authStore.user?.email || 'unknown');
     formData.append('assigned_to', createSpecForm.value.assigned_to);
     formData.append('status', 'Pending'); // Always set to Pending on create
-    let fetchOptions: RequestInit = {
-      method: 'POST',
-      body: formData,
-    };
-    if (authStore.token) {
-      fetchOptions.headers = { 'Authorization': `Bearer ${authStore.token}` };
-    }
-    const res = await fetch('/api/v1/specifications/upload-spec', fetchOptions);
-    if (!res.ok) {
-      let errMsg = await res.text();
-      try { errMsg = JSON.parse(errMsg).detail?.map((d: any) => d.msg).join(', ') || errMsg } catch {}
-      throw new Error(errMsg || 'Failed to upload specification');
-    }
+    
+    // Use the store's createSpecification method which handles cache invalidation and refresh
+    await specificationsStore.createSpecification(formData);
+    
     closeCreateModal();
-    await delayedLoadSpecs();
     showToast('Upload successful!');
   } catch (e: any) {
-    createSpecError.value = e.message || 'Failed to upload specification';
+    let errorMsg = e.message || 'Failed to upload specification';
+    // Try to parse error message if it's JSON
+    try {
+      if (typeof errorMsg === 'string' && errorMsg.includes('{')) {
+        const parsed = JSON.parse(errorMsg);
+        if (parsed.detail) {
+          errorMsg = Array.isArray(parsed.detail) 
+            ? parsed.detail.map((d: any) => d.msg || d).join(', ')
+            : parsed.detail;
+        }
+      }
+    } catch {}
+    createSpecError.value = errorMsg;
     showToast(createSpecError.value, true);
   } finally {
     creatingSpec.value = false;

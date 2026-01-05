@@ -58,9 +58,15 @@ export async function authenticatedFetch(
     finalUrl = finalUrl.slice(0, -1)
     console.log('🔧 authenticatedFetch - Removed trailing slash from checklist endpoint')
   }
+  // Remove trailing slash from SpecLint rules endpoint (backend requirement - no trailing slash)
+  else if (finalUrl.includes('/lint-results/speclint/rules') && finalUrl.endsWith('/')) {
+    finalUrl = finalUrl.slice(0, -1)
+    console.log('🔧 authenticatedFetch - Removed trailing slash from SpecLint rules endpoint')
+  }
   // Add trailing slash for specific list endpoints that need it (except if query params exist or it's a specific resource)
+  // NOTE: SpecLint rules endpoint is excluded (handled above)
   else if (
-    (finalUrl.includes('/lint-results') || 
+    ((finalUrl.includes('/lint-results') && !finalUrl.includes('/speclint/rules')) || 
      finalUrl.startsWith('/api/v1/settings/') ||
      finalUrl.includes('/specifications') ||
      finalUrl.includes('/specs/')) &&
@@ -155,10 +161,10 @@ export async function authenticatedFetch(
     url: cleanUrl
   })
   
-  // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
+    // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
   const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token.trim()
-  const authToken = `Bearer ${cleanToken}`
-  
+    const authToken = `Bearer ${cleanToken}`
+    
   console.log('🔐 authenticatedFetch - Preparing Authorization header:', {
     originalToken: token.substring(0, 20) + '...',
     cleanToken: cleanToken.substring(0, 20) + '...',
@@ -198,17 +204,17 @@ export async function authenticatedFetch(
       headers[key] = existingHeaders[key]
     }
   }
-  
-  // Validate token for logging purposes only
-  const validation = validateToken(cleanToken)
-  if (validation.valid) {
-    console.log('✅ authenticatedFetch - Authorization header added (token valid)')
-  } else {
-    console.warn('⚠️ authenticatedFetch - Token validation warning:', validation.reason, '- Still sending token to backend')
-  }
-  
-  // Log the actual header being sent (first 30 chars only for security)
-  console.log('📤 Authorization header:', `Bearer ${cleanToken.substring(0, 30)}...`)
+    
+    // Validate token for logging purposes only
+    const validation = validateToken(cleanToken)
+    if (validation.valid) {
+      console.log('✅ authenticatedFetch - Authorization header added (token valid)')
+    } else {
+      console.warn('⚠️ authenticatedFetch - Token validation warning:', validation.reason, '- Still sending token to backend')
+    }
+    
+    // Log the actual header being sent (first 30 chars only for security)
+    console.log('📤 Authorization header:', `Bearer ${cleanToken.substring(0, 30)}...`)
   
   // Don't set Content-Type for FormData (browser will set it automatically)
   if (!(options.body instanceof FormData) && !headers['Content-Type']) {
