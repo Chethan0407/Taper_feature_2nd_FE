@@ -114,7 +114,7 @@
             <h2 class="text-2xl font-bold text-white mb-4">10. Contact Information</h2>
             <p class="text-gray-300 leading-relaxed">
               For questions about these Terms of Service, please contact us at:
-              <a href="mailto:legal@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors">legal@tapeoutops.com</a>
+              <a href="mailto:support@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors">support@tapeoutops.com</a>
             </p>
           </section>
         </div>

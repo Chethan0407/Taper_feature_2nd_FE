@@ -53,6 +53,13 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      // Password reset page - public, no auth required
+      component: () => import('@/views/ResetPasswordPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/about',
       name: 'About',
       // About page - public, no auth required
@@ -189,7 +196,7 @@ router.beforeEach((to, from, next) => {
     
     // Always allow access to public pages (no checks)
     // WHY: These pages must always be accessible, even if user is logged out
-    const publicPaths = ['/login', '/verify-email', '/', '/about', '/privacy', '/terms', '/security']
+    const publicPaths = ['/login', '/verify-email', '/reset-password', '/', '/about', '/privacy', '/terms', '/security']
     if (publicPaths.includes(to.path)) {
       next()
       return

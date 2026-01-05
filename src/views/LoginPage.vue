@@ -33,6 +33,7 @@
               v-model="email"
               type="email"
               required
+              autocomplete="off"
               :class="[
                 'input-field w-full',
                 loginEmailError && email
@@ -121,6 +122,34 @@
           </p>
         </div>
 
+        <!-- Support Help Section -->
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-dark-700">
+          <div class="flex items-center justify-center gap-2 text-sm">
+            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-gray-600 dark:text-gray-400">Having issues?</span>
+            <a
+              href="mailto:support@tapeoutops.com"
+              class="text-neon-blue hover:text-neon-purple font-medium transition-colors"
+            >
+              support@tapeoutops.com
+            </a>
+          </div>
+        </div>
+
+          <!-- Success Message (from password reset) -->
+          <Transition name="fade">
+            <div v-if="successMessage" class="mt-4">
+              <div class="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>{{ successMessage }}</span>
+              </div>
+            </div>
+          </Transition>
+
           <!-- Login Error -->
           <Transition name="fade">
             <div v-if="loginError" class="mt-4">
@@ -202,6 +231,7 @@
                 v-model="signupEmail" 
                 type="email" 
                 required 
+                autocomplete="off"
                 :class="[
                   'input-field w-full',
                   signupEmailError && signupEmail 
@@ -209,7 +239,6 @@
                     : ''
                 ]"
                 placeholder="Enter your company email"
-                autocomplete="email"
               />
               <!-- Email Error Message -->
               <Transition name="fade">
@@ -462,14 +491,31 @@
         <form @submit.prevent="handleForgotPassword" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-            <input v-model="forgotEmail" type="email" required class="input-field w-full" placeholder="Enter your email" />
+            <input v-model="forgotEmail" type="email" required autocomplete="off" class="input-field w-full" placeholder="Enter your email" />
           </div>
           <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="forgotLoading">
             <span v-if="forgotLoading">Sending...</span>
             <span v-else>Send Reset Link</span>
           </button>
-          <div v-if="forgotError" class="text-red-500 text-center mt-2">{{ forgotError }}</div>
-          <div v-if="forgotSuccess" class="text-green-500 text-center mt-2">Reset link sent! Check your email.</div>
+          <Transition name="fade">
+            <div v-if="forgotError" class="flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mt-4">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>{{ forgotError }}</span>
+            </div>
+          </Transition>
+          <Transition name="fade">
+            <div v-if="forgotSuccess" class="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mt-4">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <div>
+                <p class="font-medium">If the email exists, a reset link will be sent.</p>
+                <p class="text-xs mt-1">Please check your email for the password reset link.</p>
+              </div>
+            </div>
+          </Transition>
         </form>
       </div>
     </div>
@@ -477,13 +523,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { validatePassword, getPasswordRequirements, type PasswordValidationResult } from '@/utils/passwordValidation'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+
+// Check for success message from password reset
+const successMessage = ref('')
+onMounted(() => {
+  const message = route.query.message as string
+  if (message) {
+    successMessage.value = message
+    // Clear query parameter from URL
+    router.replace({ query: {} })
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 5000)
+  }
+})
 
 const email = ref('')
 const password = ref('')
@@ -926,20 +988,41 @@ const handleSignUp = async () => {
 }
 
 const handleForgotPassword = async () => {
+  if (!forgotEmail.value || !forgotEmail.value.trim()) {
+    forgotError.value = 'Please enter your email address.'
+    return
+  }
+
   forgotLoading.value = true
   forgotError.value = ''
   forgotSuccess.value = false
+
   try {
     const res = await fetch('/api/v1/auth/forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: forgotEmail.value })
+      body: JSON.stringify({ email: forgotEmail.value.trim().toLowerCase() })
     })
-    if (!res.ok) throw new Error('Failed to send reset email')
-    forgotSuccess.value = true
-    setTimeout(() => { showForgotPassword.value = false }, 2000)
+
+    const data = await res.json()
+
+    if (res.ok) {
+      // Always show same message (security - backend returns same for all emails)
+      forgotSuccess.value = true
+      forgotError.value = ''
+      forgotEmail.value = '' // Clear form
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        showForgotPassword.value = false
+        forgotSuccess.value = false
+      }, 3000)
+    } else {
+      // Handle error response
+      forgotError.value = data.detail || data.message || 'Failed to send reset link. Please try again.'
+    }
   } catch (e: any) {
-    forgotError.value = e.message || 'Failed to send reset email'
+    forgotError.value = 'Failed to send reset link. Please try again.'
+    console.error('Forgot password error:', e)
   } finally {
     forgotLoading.value = false
   }

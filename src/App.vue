@@ -16,11 +16,14 @@
       </div>
     </div>
     <router-view v-else />
+    <!-- Suggestion Chat Widget -->
+    <SuggestionChat />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onErrorCaptured } from 'vue'
+import SuggestionChat from '@/components/Common/SuggestionChat.vue'
 
 const mounted = ref(false)
 const error = ref<string | null>(null)

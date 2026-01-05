@@ -110,7 +110,7 @@
             <h2 class="text-2xl font-bold text-white mb-4">7. Contact Us</h2>
             <p class="text-gray-300 leading-relaxed">
               If you have questions about this Privacy Policy, please contact us at:
-              <a href="mailto:privacy@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors">privacy@tapeoutops.com</a>
+              <a href="mailto:support@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors">support@tapeoutops.com</a>
             </p>
           </section>
         </div>
