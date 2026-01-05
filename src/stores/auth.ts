@@ -7,6 +7,7 @@ interface User {
   name: string
   role: 'admin' | 'lead' | 'engineer' | 'manager'
   avatar?: string
+  is_superuser?: boolean
 }
 
 // Use relative path to go through Vite proxy

@@ -494,8 +494,8 @@
             <input v-model="forgotEmail" type="email" required autocomplete="off" class="input-field w-full" placeholder="Enter your email" />
           </div>
           <button type="submit" class="btn-primary w-full py-3 text-lg font-semibold" :disabled="forgotLoading">
-            <span v-if="forgotLoading">Sending...</span>
-            <span v-else>Send Reset Link</span>
+            <span v-if="forgotLoading">Sending OTP...</span>
+            <span v-else>Send OTP</span>
           </button>
           <Transition name="fade">
             <div v-if="forgotError" class="flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mt-4">
@@ -511,8 +511,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <div>
-                <p class="font-medium">If the email exists, a reset link will be sent.</p>
-                <p class="text-xs mt-1">Please check your email for the password reset link.</p>
+                <p class="font-medium">If the email exists, an OTP will be sent to your email.</p>
+                <p class="text-xs mt-1">Please check your email for the 6-digit OTP code.</p>
               </div>
             </div>
           </Transition>
@@ -1010,15 +1010,17 @@ const handleForgotPassword = async () => {
       // Always show same message (security - backend returns same for all emails)
       forgotSuccess.value = true
       forgotError.value = ''
+      const emailToReset = forgotEmail.value.trim().toLowerCase()
       forgotEmail.value = '' // Clear form
-      // Auto-close after 3 seconds
+      // Redirect to reset password page with email after 2 seconds
       setTimeout(() => {
         showForgotPassword.value = false
         forgotSuccess.value = false
-      }, 3000)
+        router.push(`/reset-password?email=${encodeURIComponent(emailToReset)}`)
+      }, 2000)
     } else {
       // Handle error response
-      forgotError.value = data.detail || data.message || 'Failed to send reset link. Please try again.'
+      forgotError.value = data.detail || data.message || 'Failed to send OTP. Please try again.'
     }
   } catch (e: any) {
     forgotError.value = 'Failed to send reset link. Please try again.'

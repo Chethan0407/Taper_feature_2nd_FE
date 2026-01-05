@@ -197,7 +197,7 @@ const router = createRouter({
  * WHY: This guard checks authentication before allowing access to protected routes.
  * It's simplified to avoid blocking navigation, which could cause blank pages.
  */
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   try {
     const authStore = useAuthStore()
     
