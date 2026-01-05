@@ -36,10 +36,24 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const res = await authenticatedFetch('/api/v1/checklists/templates/')
+      const res = await authenticatedFetch('/api/v1/checklists/templates')
       if (!res.ok) {
-        const errorText = await res.text()
-        throw new Error(errorText || 'Failed to fetch templates')
+        // Try to get error message from response
+        let errorMessage = 'Failed to fetch templates'
+        try {
+          const errorData = await res.json()
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch {
+          const errorText = await res.text().catch(() => '')
+          if (errorText) errorMessage = errorText
+        }
+        
+        // Check if it's an authentication error
+        if (res.status === 401) {
+          errorMessage = 'Authentication required. Please log in again.'
+        }
+        
+        throw new Error(errorMessage)
       }
       const data = await res.json()
       console.log('📋 Templates API Response:', data)
@@ -73,7 +87,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const res = await authenticatedFetch('/api/v1/checklists/templates/', {
+      const res = await authenticatedFetch('/api/v1/checklists/templates', {
         method: 'POST',
         body: JSON.stringify(data)
       })
@@ -134,7 +148,7 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const res = await authenticatedFetch('/api/v1/checklists/active/', {
+      const res = await authenticatedFetch('/api/v1/checklists/active', {
         method: 'POST',
         body: JSON.stringify(data)
       })
@@ -153,8 +167,25 @@ export const useChecklistsStore = defineStore('checklists', () => {
     loading.value = true
     error.value = ''
     try {
-      const res = await authenticatedFetch('/api/v1/checklists/active/')
-      if (!res.ok) throw new Error('Failed to fetch active checklists')
+      const res = await authenticatedFetch('/api/v1/checklists/active')
+      if (!res.ok) {
+        // Try to get error message from response
+        let errorMessage = 'Failed to fetch active checklists'
+        try {
+          const errorData = await res.json()
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch {
+          const errorText = await res.text().catch(() => '')
+          if (errorText) errorMessage = errorText
+        }
+        
+        // Check if it's an authentication error
+        if (res.status === 401) {
+          errorMessage = 'Authentication required. Please log in again.'
+        }
+        
+        throw new Error(errorMessage)
+      }
       return await res.json()
     } catch (e: any) {
       error.value = e.message || 'Failed to fetch active checklists'

@@ -41,9 +41,10 @@ export async function authenticatedFetch(
 ): Promise<Response> {
   const authStore = useAuthStore()
   
-  // Smart URL normalization (same as apiClient):
+  // Smart URL normalization:
   // - Profile endpoint should NOT have trailing slash (causes network error)
-  // - List endpoints (lint-results, settings) NEED trailing slash (to avoid 307 redirects)
+  // - Checklist endpoints should NOT have trailing slash (backend requirement)
+  // - Some endpoints (lint-results, settings) NEED trailing slash (to avoid 307 redirects)
   // - Preserve query parameters
   let finalUrl = url
   
@@ -52,11 +53,15 @@ export async function authenticatedFetch(
     finalUrl = finalUrl.slice(0, -1)
     console.log('🔧 authenticatedFetch - Removed trailing slash from profile endpoint')
   }
-  // Add trailing slash for list endpoints (except if query params exist or it's a specific resource)
+  // Remove trailing slash from checklist endpoints (backend requirement)
+  else if (finalUrl.includes('/checklists') && finalUrl.endsWith('/')) {
+    finalUrl = finalUrl.slice(0, -1)
+    console.log('🔧 authenticatedFetch - Removed trailing slash from checklist endpoint')
+  }
+  // Add trailing slash for specific list endpoints that need it (except if query params exist or it's a specific resource)
   else if (
     (finalUrl.includes('/lint-results') || 
      finalUrl.startsWith('/api/v1/settings/') ||
-     finalUrl.includes('/checklists') ||
      finalUrl.includes('/specifications') ||
      finalUrl.includes('/specs/')) &&
     !finalUrl.includes('?') && 
@@ -69,27 +74,48 @@ export async function authenticatedFetch(
   }
   // For other endpoints, preserve as-is (don't auto-add or remove trailing slashes)
   
+  // Use the URL as-is (Vite proxy will handle /api/v1/* requests)
   const cleanUrl = finalUrl
   
-  // Validate and add token FIRST - ALWAYS check localStorage directly first
-  // WHY: authStore.token might not be initialized yet, but localStorage is always available
-  const tokenKeys = ['tapeout_token', 'token', 'authToken', 'access_token']
+  // Validate and add token FIRST - Check both authStore and localStorage
+  // IMPORTANT: Check all possible token storage keys (prioritize access_token as per backend)
+  const tokenKeys = ['access_token', 'tapeout_token', 'token', 'authToken', 'accessToken']
   let token: string | null = null
   
-  // First, try localStorage directly (most reliable)
-  for (const key of tokenKeys) {
-    const storedToken = localStorage.getItem(key)
-    if (storedToken && storedToken !== 'undefined' && storedToken !== 'null' && storedToken.trim() !== '') {
-      token = storedToken
-      console.log('🔑 authenticatedFetch - Token retrieved from localStorage:', key)
-      break
+  // First, try authStore.token (most up-to-date)
+  if (authStore && authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null' && authStore.token.trim() !== '') {
+    token = authStore.token
+    console.log('🔑 authenticatedFetch - Token retrieved from authStore:', token.substring(0, 20) + '...')
+  }
+  
+  // Fallback to localStorage if authStore didn't have it
+  // Check access_token FIRST (as per backend standard)
+  if (!token) {
+    for (const key of tokenKeys) {
+      try {
+        const storedToken = localStorage.getItem(key)
+        if (storedToken && storedToken !== 'undefined' && storedToken !== 'null' && storedToken.trim() !== '') {
+          token = storedToken
+          console.log('🔑 authenticatedFetch - Token retrieved from localStorage:', key, token.substring(0, 20) + '...')
+          // Also update authStore for future use
+          if (authStore) {
+            authStore.token = storedToken
+          }
+          break
+        }
+      } catch (e) {
+        console.warn('⚠️ Error reading localStorage key:', key, e)
+      }
     }
   }
   
-  // Fallback to authStore if localStorage didn't have it
-  if (!token && authStore.token && authStore.token !== 'undefined' && authStore.token !== 'null' && authStore.token.trim() !== '') {
-    token = authStore.token
-    console.log('🔑 authenticatedFetch - Token retrieved from authStore')
+  // If still no token, try to get it from authStore one more time (in case it was just updated)
+  if (!token && authStore && authStore.token) {
+    const storeToken = authStore.token
+    if (storeToken && storeToken !== 'undefined' && storeToken !== 'null' && storeToken.trim() !== '') {
+      token = storeToken
+      console.log('🔑 authenticatedFetch - Token retrieved from authStore (retry):', token.substring(0, 20) + '...')
+    }
   }
   
   // Debug: Log what we found
@@ -105,6 +131,13 @@ export async function authenticatedFetch(
   if (!token || token === 'undefined' || token === 'null' || token.trim() === '') {
     console.error('❌ authenticatedFetch - No valid token found, aborting request:', cleanUrl)
     console.error('❌ Checked authStore.token and localStorage keys: tapeout_token, token, authToken, access_token')
+    console.error('❌ localStorage values:', {
+      tapeout_token: localStorage.getItem('tapeout_token') ? 'EXISTS' : 'MISSING',
+      token: localStorage.getItem('token') ? 'EXISTS' : 'MISSING',
+      authToken: localStorage.getItem('authToken') ? 'EXISTS' : 'MISSING',
+      access_token: localStorage.getItem('access_token') ? 'EXISTS' : 'MISSING',
+      authStoreToken: authStore.token ? 'EXISTS' : 'MISSING'
+    })
     const errorResponse = new Response(
       JSON.stringify({ detail: 'No authentication token found. Please log in.' }),
       { status: 401, statusText: 'Unauthorized' }
@@ -123,13 +156,40 @@ export async function authenticatedFetch(
   })
   
   // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
-  const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token
+  const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token.trim()
   const authToken = `Bearer ${cleanToken}`
   
+  console.log('🔐 authenticatedFetch - Preparing Authorization header:', {
+    originalToken: token.substring(0, 20) + '...',
+    cleanToken: cleanToken.substring(0, 20) + '...',
+    authToken: authToken.substring(0, 30) + '...',
+    url: cleanUrl,
+    tokenLength: token.length,
+    cleanTokenLength: cleanToken.length
+  })
+  
   // Prepare headers - SET Authorization FIRST, then merge other headers
+  // CRITICAL: Use plain object (not Object.create(null)) for maximum fetch compatibility
   const headers: Record<string, string> = {
-    'Authorization': authToken, // CRITICAL: Set Authorization header first
+    'Authorization': authToken // CRITICAL: Set Authorization header first
   }
+  
+  // Verify Authorization header is set correctly
+  if (!headers['Authorization'] || !headers['Authorization'].startsWith('Bearer ')) {
+    console.error('❌ CRITICAL: Authorization header not set correctly!', {
+      hasHeader: !!headers['Authorization'],
+      headerValue: headers['Authorization'] || 'MISSING',
+      tokenExists: !!token,
+      headersObject: headers
+    })
+    throw new Error('Failed to set Authorization header')
+  }
+  
+  console.log('✅ Authorization header prepared:', {
+    headerKey: 'Authorization',
+    headerValue: headers['Authorization'].substring(0, 30) + '...',
+    headerLength: headers['Authorization'].length
+  })
   
   // Merge any existing headers from options (but Authorization takes precedence - already set above)
   const existingHeaders = (options.headers as Record<string, string>) || {}
@@ -186,23 +246,108 @@ export async function authenticatedFetch(
   })
   
   try {
-    // CRITICAL: Ensure headers object is properly formatted for fetch
-    // Fetch expects HeadersInit which can be a Record<string, string>
-    // Create a new object to ensure no prototype issues
-    const fetchHeaders: HeadersInit = { ...headers }
+    // Use the headers object we already created and verified above
+    // It already has Authorization header set and Content-Type added if needed
+    // Just ensure it's a plain object (not Headers instance) for maximum compatibility
     
-    // Final verification before sending
-    if (!fetchHeaders['Authorization']) {
-      console.error('❌ CRITICAL: Authorization header lost during header preparation!')
+    // Build fetch options - use the verified headers object directly
+    const fetchOptions: RequestInit = {
+      method: options.method || 'GET',
+      headers: headers, // Use the headers object we created and verified above
+      redirect: 'follow' as RequestRedirect,
+    }
+    
+    // Add optional properties
+    if (options.body) fetchOptions.body = options.body
+    if (options.signal) fetchOptions.signal = options.signal
+    if (options.cache) fetchOptions.cache = options.cache
+    if (options.credentials) fetchOptions.credentials = options.credentials
+    if (options.mode) fetchOptions.mode = options.mode
+    
+    // Final verification before sending - headers should still have Authorization
+    const finalCheckHeaders = fetchOptions.headers as Record<string, string>
+    if (!finalCheckHeaders || !finalCheckHeaders['Authorization']) {
+      console.error('❌ CRITICAL: Authorization header lost in fetchOptions!', {
+        hasHeaders: !!fetchOptions.headers,
+        headersType: typeof fetchOptions.headers,
+        isHeadersInstance: fetchOptions.headers instanceof Headers,
+        headerKeys: fetchOptions.headers ? Object.keys(finalCheckHeaders) : []
+      })
       throw new Error('Authorization header is missing')
     }
     
-    // Use 'follow' to automatically follow redirects (browser preserves headers)
-    const response = await fetch(cleanUrl, {
-      ...options,
-      headers: fetchHeaders, // Use the properly formatted headers
-      redirect: 'follow' as RequestRedirect
+    if (!finalCheckHeaders['Authorization'].startsWith('Bearer ')) {
+      console.error('❌ CRITICAL: Authorization header missing Bearer prefix in fetchOptions!')
+      throw new Error('Authorization header must start with "Bearer "')
+    }
+    
+    // CRITICAL: Verify headers one more time right before fetch
+    // Convert to plain object if it's a Headers instance (shouldn't be, but just in case)
+    let finalHeadersForFetch: Record<string, string>
+    if (fetchOptions.headers instanceof Headers) {
+      finalHeadersForFetch = {}
+      fetchOptions.headers.forEach((value, key) => {
+        finalHeadersForFetch[key] = value
+      })
+      fetchOptions.headers = finalHeadersForFetch
+    } else {
+      finalHeadersForFetch = fetchOptions.headers as Record<string, string>
+    }
+    
+    // Final verification - Authorization MUST be present
+    if (!finalHeadersForFetch || !finalHeadersForFetch['Authorization']) {
+      console.error('❌ CRITICAL: Authorization header missing right before fetch!', {
+        hasHeaders: !!fetchOptions.headers,
+        headersType: typeof fetchOptions.headers,
+        isHeadersInstance: fetchOptions.headers instanceof Headers,
+        headerKeys: fetchOptions.headers ? Object.keys(finalHeadersForFetch) : []
+      })
+      throw new Error('Authorization header is missing')
+    }
+    
+    if (!finalHeadersForFetch['Authorization'].startsWith('Bearer ')) {
+      console.error('❌ CRITICAL: Authorization header missing Bearer prefix right before fetch!')
+      throw new Error('Authorization header must start with "Bearer "')
+    }
+    
+    console.log('🚀 authenticatedFetch - Sending request:', {
+      url: cleanUrl,
+      method: fetchOptions.method,
+      hasAuthHeader: !!finalHeadersForFetch['Authorization'],
+      authHeaderValue: finalHeadersForFetch['Authorization']?.substring(0, 30) + '...',
+      authHeaderLength: finalHeadersForFetch['Authorization']?.length,
+      allHeaderKeys: Object.keys(finalHeadersForFetch),
+      headersType: typeof fetchOptions.headers,
+      isHeadersInstance: fetchOptions.headers instanceof Headers,
+      fullAuthHeader: finalHeadersForFetch['Authorization'] // Log full header for debugging (first 50 chars)
     })
+    
+    // Make the fetch request directly with fetchOptions
+    // Don't use Request object - pass fetchOptions directly to ensure headers are preserved
+    // The Vite proxy should forward all headers correctly
+    
+    // Final log before fetch - verify Authorization header format
+    const authHeader = finalHeadersForFetch['Authorization']
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ CRITICAL: Authorization header format is incorrect!', {
+        headerValue: authHeader || 'MISSING',
+        expectedFormat: 'Bearer <token>'
+      })
+      throw new Error('Authorization header must be in format: Bearer <token>')
+    }
+    
+    console.log('🚀 Final fetch call:', {
+      url: cleanUrl,
+      method: fetchOptions.method,
+      headers: Object.keys(finalHeadersForFetch),
+      hasAuthorization: !!authHeader,
+      authHeaderFormat: authHeader.startsWith('Bearer ') ? 'CORRECT' : 'INCORRECT',
+      authHeaderPreview: authHeader.substring(0, 40) + '...',
+      authHeaderLength: authHeader.length
+    })
+    
+    // Make the fetch request - headers should be properly formatted
+    const response = await fetch(cleanUrl, fetchOptions)
     
     console.log('📥 authenticatedFetch - Response:', {
       url: cleanUrl,
@@ -257,6 +402,8 @@ export async function authenticatedFetch(
           // Components should handle these errors gracefully
           console.warn('⚠️ 401 error on data endpoint - not redirecting, not clearing tokens, letting component handle:', cleanUrl, errorDetail)
           // DO NOT clear tokens or redirect - just return the error response
+          // This prevents auto-logout when clicking on pages like Checklists
+          return response
         } else if (isAuthEndpoint && isTokenInvalid) {
           // Only for auth endpoints with invalid token - clear tokens and redirect
           console.warn('⚠️ 401 on auth endpoint with invalid token - clearing tokens and redirecting')

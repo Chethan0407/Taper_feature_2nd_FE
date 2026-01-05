@@ -131,9 +131,11 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
       // Store token first (without Bearer prefix)
+      // Store in both tapeout_token (for backward compatibility) and access_token (as per backend standard)
       token.value = receivedToken
       localStorage.setItem('tapeout_token', receivedToken)
-      console.log('✅ Token stored after login (without Bearer prefix)')
+      localStorage.setItem('access_token', receivedToken) // Also store as access_token for standard compatibility
+      console.log('✅ Token stored after login (without Bearer prefix) - stored in both tapeout_token and access_token')
       
       // Then fetch user profile
       const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }

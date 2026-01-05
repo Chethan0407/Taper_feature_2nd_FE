@@ -175,10 +175,13 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChecklistsStore } from '@/stores/checklists'
 import CreateTemplateModal from '@/components/Checklist/CreateTemplateModal.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
+
+const router = useRouter()
 
 interface Checklist {
   id: string
@@ -214,7 +217,13 @@ const averageCompletion = computed(() => {
 })
 
 const fetchTemplates = async () => {
-  await checklistsStore.fetchTemplates()
+  try {
+    await checklistsStore.fetchTemplates()
+  } catch (e: any) {
+    // Don't auto-logout - just show the error
+    // The user can manually refresh or try again
+    console.error('Error fetching templates:', e)
+  }
 }
 
 const fetchActiveChecklists = async () => {
@@ -229,6 +238,9 @@ const fetchActiveChecklists = async () => {
     }
   } catch (e: any) {
     activeChecklistsError.value = e.message || 'Failed to fetch active checklists'
+    // Don't auto-logout - just show the error
+    // The user can manually refresh or try again
+    console.error('Error fetching active checklists:', e)
   } finally {
     activeChecklistsLoading.value = false
   }
@@ -260,7 +272,7 @@ const handleTemplateCreated = async () => {
 
 const useTemplate = async (templateId: string | number) => {
   try {
-    const res = await authenticatedFetch('/api/v1/checklists/active/', {
+    const res = await authenticatedFetch('/api/v1/checklists/active', {
       method: 'POST',
       body: JSON.stringify({ template_id: templateId })
     })
@@ -278,6 +290,25 @@ const useTemplate = async (templateId: string | number) => {
 }
 
 onMounted(async () => {
+  // Ensure user is authenticated before fetching
+  const authStore = useAuthStore()
+  
+  // Always check auth first to ensure token is loaded
+  const authResult = await authStore.checkAuth()
+  if (!authResult) {
+    console.warn('⚠️ Authentication check failed. User may need to log in again.')
+    // Don't auto-logout, just show error
+    return
+  }
+  
+  // Verify token exists before making requests
+  if (!authStore.token) {
+    console.error('❌ No token available after auth check')
+    return
+  }
+  
+  console.log('✅ Authentication verified, token available:', !!authStore.token)
+  
   await Promise.all([
     fetchTemplates(),
     fetchActiveChecklists()
