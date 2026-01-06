@@ -66,7 +66,7 @@
                 <div class="w-2 h-2 bg-neon-blue rounded-full mt-2"></div>
                 <div class="flex-1">
                   <p class="text-sm text-gray-900 dark:text-white">{{ activity.action }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ new Date(activity.timestamp).toLocaleString() }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ formatActivityDate(activity.timestamp) }}</p>
                 </div>
               </div>
             </div>
@@ -473,6 +473,54 @@ const getStatusClass = (status: string) => {
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
     default:
       return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+  }
+}
+
+// Format activity date safely - handles various timestamp formats from API
+const formatActivityDate = (timestamp: string) => {
+  if (!timestamp) return 'Unknown date'
+  
+  try {
+    let cleanTimestamp = timestamp.trim()
+    
+    // Handle malformed timestamps like "2026-01-06T16:25:27.499454+00:00Z" (has both offset and Z)
+    // Remove trailing Z if it exists after timezone offset
+    if (cleanTimestamp.endsWith('Z') && (cleanTimestamp.includes('+') || cleanTimestamp.includes('-'))) {
+      // Check if there's a timezone offset before the Z
+      const offsetMatch = cleanTimestamp.match(/[+-]\d{2}:\d{2}Z$/)
+      if (offsetMatch) {
+        cleanTimestamp = cleanTimestamp.slice(0, -1) // Remove the trailing Z
+      }
+    }
+    
+    // Try to parse the date
+    let date = new Date(cleanTimestamp)
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      // If parsing fails, try removing microseconds and timezone, then add Z for UTC
+      const withoutMicroseconds = cleanTimestamp.replace(/\.\d+/, '') // Remove microseconds
+      const withoutTimezone = withoutMicroseconds.split(/[+-]/)[0] // Remove timezone offset
+      
+      if (withoutTimezone) {
+        date = new Date(withoutTimezone + 'Z')
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleString()
+        }
+      }
+      
+      // Last resort: try parsing as-is without any modifications
+      date = new Date(timestamp)
+      if (isNaN(date.getTime())) {
+        console.warn('Unable to parse timestamp:', timestamp)
+        return 'Invalid date'
+      }
+    }
+    
+    return date.toLocaleString()
+  } catch (error) {
+    console.error('Error formatting date:', timestamp, error)
+    return 'Invalid date'
   }
 }
 
