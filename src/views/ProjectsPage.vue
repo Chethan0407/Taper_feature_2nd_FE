@@ -73,7 +73,17 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            <span>Project created successfully!</span>
+            <span>{{ successMessage }}</span>
+          </div>
+        </div>
+
+        <!-- Error Toast -->
+        <div v-if="showErrorToast" class="fixed bottom-4 right-4 bg-red-500/90 backdrop-blur-sm text-white px-6 py-3 rounded-xl shadow-2xl z-50">
+          <div class="flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>{{ errorMessage }}</span>
           </div>
         </div>
 
@@ -101,6 +111,9 @@ import { useProjectsStore, type Project } from '@/stores/projects'
 const router = useRouter()
 const projectsStore = useProjectsStore()
 const showSuccessToast = ref(false)
+const successMessage = ref('Project created successfully!')
+const showErrorToast = ref(false)
+const errorMessage = ref('')
 const showEditModal = ref(false)
 const editingProject = ref<Project | null>(null)
 const showCreateForm = ref(false)
@@ -121,6 +134,7 @@ const handleCloseCreate = () => {
 }
 const handleProjectCreated = async (project: Project) => {
   showCreateForm.value = false
+  successMessage.value = 'Project created successfully!'
   showSuccessToast.value = true;
   await projectsStore.loadProjects();
   setTimeout(() => {
@@ -171,13 +185,22 @@ const handleProjectDelete = async (project: Project) => {
   if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
     try {
       await projectsStore.deleteProject(project.id)
-      // Show success toast
+      // Reload projects list
+      await projectsStore.loadProjects()
+      // Show success toast with correct message
+      successMessage.value = 'Project deleted successfully!'
       showSuccessToast.value = true
       setTimeout(() => {
         showSuccessToast.value = false
       }, 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete project:', error)
+      // Show error toast
+      errorMessage.value = error.message || 'Failed to delete project'
+      showErrorToast.value = true
+      setTimeout(() => {
+        showErrorToast.value = false
+      }, 3000)
     }
   }
 }
@@ -191,6 +214,7 @@ const handleProjectUpdated = async () => {
   showEditModal.value = false;
   editingProject.value = null;
   await projectsStore.loadProjects();
+  successMessage.value = 'Project updated successfully!'
   showSuccessToast.value = true;
   setTimeout(() => { showSuccessToast.value = false; }, 3000);
 }
