@@ -26,7 +26,7 @@ export const useProjectsStore = defineStore('projects', () => {
   const error = ref<string | null>(null)
   const authStore = useAuthStore()
 
-  const API_BASE = '/api/v1/projects/'
+  const API_BASE = '/api/v1/projects'
 
   // Load all projects
   const loadProjects = async () => {
@@ -36,6 +36,7 @@ export const useProjectsStore = defineStore('projects', () => {
       const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
       console.log('🔍 DEBUG - Projects API: Authorization header:', headers)
       console.log('🔍 DEBUG - Loading projects from:', API_BASE)
+      // Remove trailing slash - backend doesn't accept trailing slashes
       const response = await fetch(API_BASE, {
         headers
       })
@@ -77,6 +78,7 @@ export const useProjectsStore = defineStore('projects', () => {
         ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
       }
       console.log('Projects API: Authorization header (create):', headers)
+      // Remove trailing slash - backend doesn't accept trailing slashes
       const response = await fetch(API_BASE, {
         method: 'POST',
         headers,
@@ -109,7 +111,8 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
       console.log('Projects API: Authorization header (get):', headers)
-      const response = await fetch(`${API_BASE}${id}/`, {
+      // Remove trailing slash - backend doesn't accept trailing slashes
+      const response = await fetch(`${API_BASE}/${id}`, {
         headers
       })
       
@@ -146,7 +149,8 @@ export const useProjectsStore = defineStore('projects', () => {
         ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
       }
       console.log('Projects API: Authorization header (update):', headers)
-      const response = await fetch(`${API_BASE}${id}/`, {
+      // Remove trailing slash - backend doesn't accept trailing slashes
+      const response = await fetch(`${API_BASE}/${id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(payload)
@@ -185,22 +189,42 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
     try {
       const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      console.log('Projects API: Authorization header (delete):', headers)
-      const response = await fetch(`${API_BASE}${id}/`, {
+      console.log('🗑️ Deleting project:', {
+        id,
+        url: `${API_BASE}${id}`,
+        method: 'DELETE'
+      })
+      
+      // Remove trailing slash - backend doesn't accept trailing slashes for action endpoints
+      const response = await fetch(`${API_BASE}${id}`, {
         method: 'DELETE',
         headers
       })
       
-      // Remove from local list regardless of backend response
-      projects.value = projects.value.filter(p => p.id !== id)
+      console.log('📥 Delete project response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      })
       
       if (!response.ok && response.status !== 404) {
-        throw new Error('Failed to delete project')
+        const errorText = await response.text()
+        let errorMsg = 'Failed to delete project'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        throw new Error(errorMsg)
       }
+      
+      // Remove from local list only if deletion was successful
+      projects.value = projects.value.filter(p => p.id !== id)
+      console.log('✅ Project deleted successfully, removed from local list')
     } catch (err: any) {
       error.value = err.message || 'Failed to delete project'
-      // Still remove from local list on error
-      projects.value = projects.value.filter(p => p.id !== id)
+      console.error('❌ Error deleting project:', err)
       throw err
     } finally {
       loading.value = false

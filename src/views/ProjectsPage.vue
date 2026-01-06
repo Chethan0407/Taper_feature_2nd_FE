@@ -185,7 +185,7 @@ const handleProjectDelete = async (project: Project) => {
   if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
     try {
       await projectsStore.deleteProject(project.id)
-      // Reload projects list
+      // Reload projects list to ensure we have the latest data from backend
       await projectsStore.loadProjects()
       // Show success toast with correct message
       successMessage.value = 'Project deleted successfully!'
@@ -195,6 +195,8 @@ const handleProjectDelete = async (project: Project) => {
       }, 3000)
     } catch (error: any) {
       console.error('Failed to delete project:', error)
+      // Reload projects list even on error to sync with backend
+      await projectsStore.loadProjects()
       // Show error toast
       errorMessage.value = error.message || 'Failed to delete project'
       showErrorToast.value = true
