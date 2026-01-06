@@ -153,13 +153,46 @@ const getDaysAgo = (dateString: string | undefined) => {
   const now = new Date();
   const created = new Date(dateString);
   if (isNaN(created.getTime())) return '—';
+  
   const diffTime = Math.abs(now.getTime() - created.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffSeconds = Math.floor(diffTime / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  // Handle very recent items (less than 1 minute)
+  if (diffSeconds < 60) return 'Just now';
+  
+  // Handle items created in the last hour
+  if (diffMinutes < 60) {
+    if (diffMinutes === 1) return '1 minute ago';
+    return `${diffMinutes} minutes ago`;
+  }
+  
+  // Handle items created today (less than 24 hours)
+  if (diffHours < 24) {
+    if (diffHours === 1) return '1 hour ago';
+    return `${diffHours} hours ago`;
+  }
+  
+  // Handle days
   if (diffDays === 1) return '1 day ago';
   if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-  return `${Math.floor(diffDays / 365)} years ago`;
+  
+  // Handle weeks
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks === 1) return '1 week ago';
+  if (diffDays < 30) return `${diffWeeks} weeks ago`;
+  
+  // Handle months
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths === 1) return '1 month ago';
+  if (diffDays < 365) return `${diffMonths} months ago`;
+  
+  // Handle years
+  const diffYears = Math.floor(diffDays / 365);
+  if (diffYears === 1) return '1 year ago';
+  return `${diffYears} years ago`;
 }
 </script>
 
