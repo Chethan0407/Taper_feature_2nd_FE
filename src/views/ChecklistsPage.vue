@@ -78,7 +78,7 @@
                         {{ checklistCompletion[checklist.id]?.progress }}/{{ checklistCompletion[checklist.id]?.total }} completed
                       </template>
                     </span>
-                    <span :class="getProgressClass(checklistCompletion[checklist.id]?.percent || 0, 100)" class="px-2 py-1 rounded text-xs">
+                    <span :class="getProgressClassFromPercent(checklistCompletion[checklist.id]?.percent ?? 0)" class="px-2 py-1 rounded text-xs font-semibold">
                       <template v-if="checklistCompletion[checklist.id]?.loading">
                         ...
                       </template>
@@ -257,17 +257,23 @@ const fetchActiveChecklists = async () => {
 const fetchChecklistCompletion = async (checklistId: string) => {
   checklistCompletion.value[checklistId] = { progress: 0, total: 0, percent: 0, loading: true }
   try {
-    const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion/`)
-    if (!res.ok) throw new Error('Failed to fetch completion')
+    // Remove trailing slash - backend doesn't accept trailing slashes
+    const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion`)
+    if (!res.ok) {
+      console.error(`Failed to fetch completion for checklist ${checklistId}:`, res.status, res.statusText)
+      throw new Error('Failed to fetch completion')
+    }
     const data = await res.json()
+    console.log(`Completion data for checklist ${checklistId}:`, data)
     const percent = data.total > 0 ? Math.round((data.progress / data.total) * 100) : 0
     checklistCompletion.value[checklistId] = {
-      progress: data.progress,
-      total: data.total,
+      progress: data.progress || 0,
+      total: data.total || 0,
       percent,
       loading: false
     }
-  } catch (e) {
+  } catch (e: any) {
+    console.error(`Error fetching completion for checklist ${checklistId}:`, e)
     checklistCompletion.value[checklistId] = { progress: 0, total: 0, percent: 0, loading: false }
   }
 }
@@ -330,11 +336,19 @@ onMounted(async () => {
   ])
 })
 
-const getProgressClass = (progress: number, total: number) => {
-  const percentage = (progress / total) * 100
+// Get progress class based on percentage (0-100)
+const getProgressClassFromPercent = (percentage: number) => {
   if (percentage >= 80) return 'bg-green-500/20 text-green-400'
   if (percentage >= 50) return 'bg-yellow-500/20 text-yellow-400'
-  return 'bg-red-500/20 text-red-400'
+  if (percentage > 0) return 'bg-orange-500/20 text-orange-400'
+  // 0% - show in gray to indicate "not started" rather than error
+  return 'bg-gray-500/20 text-gray-400'
+}
+
+// Legacy function for backward compatibility (if used elsewhere)
+const getProgressClass = (progress: number, total: number) => {
+  const percentage = total > 0 ? (progress / total) * 100 : 0
+  return getProgressClassFromPercent(percentage)
 }
 
 const approveChecklist = async (id: string) => {
