@@ -404,26 +404,48 @@ const handleSubmit = async () => {
       formDataToSend.append('files', file)
     })
 
-    // Get auth token
-    const token = authStore.token
-    if (!token) {
-      throw new Error('Authentication required. Please log in.')
-    }
-
-    // Prepare headers (don't set Content-Type - browser will set it with boundary for FormData)
-    const headers: HeadersInit = {
-      'Authorization': `Bearer ${token}`
-    }
-
-    const response = await fetch('/api/v1/suggestions', {
+    // Use authenticatedFetch for consistent error handling
+    // Note: authenticatedFetch handles FormData automatically
+    const response = await authenticatedFetch('/api/v1/suggestions', {
       method: 'POST',
-      headers: headers,
       body: formDataToSend
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.detail || errorData.message || 'Failed to send message. Please try again.')
+      let errorMessage = 'Failed to send message. Please try again.'
+      try {
+        const errorText = await response.text()
+        try {
+          const errorData = JSON.parse(errorText)
+          // Handle different error response formats
+          if (errorData.detail) {
+            // If detail is an array (validation errors), format it
+            if (Array.isArray(errorData.detail)) {
+              errorMessage = errorData.detail.map((err: any) => {
+                if (typeof err === 'string') return err
+                if (err.msg) return err.msg
+                if (err.loc && err.msg) return `${err.loc.join('.')}: ${err.msg}`
+                return JSON.stringify(err)
+              }).join(', ')
+            } else if (typeof errorData.detail === 'string') {
+              errorMessage = errorData.detail
+            } else {
+              errorMessage = JSON.stringify(errorData.detail)
+            }
+          } else if (errorData.message) {
+            errorMessage = typeof errorData.message === 'string' ? errorData.message : JSON.stringify(errorData.message)
+          } else if (errorText) {
+            errorMessage = errorText
+          }
+        } catch {
+          // If JSON parsing fails, use the text as error message
+          errorMessage = errorText || errorMessage
+        }
+      } catch (e) {
+        console.error('Failed to read error response:', e)
+        errorMessage = `Request failed with status ${response.status}. Please try again.`
+      }
+      throw new Error(errorMessage)
     }
 
     // Success
@@ -440,7 +462,17 @@ const handleSubmit = async () => {
       closeChat()
     }, 3000)
   } catch (err: any) {
-    error.value = err.message || 'Failed to send message. Please try again.'
+    // Ensure error is always a string, never an object
+    if (err instanceof Error) {
+      error.value = err.message
+    } else if (typeof err === 'string') {
+      error.value = err
+    } else if (err && typeof err === 'object') {
+      // If error is an object, try to extract a meaningful message
+      error.value = err.message || err.detail || err.error || JSON.stringify(err)
+    } else {
+      error.value = 'Failed to send message. Please try again.'
+    }
     console.error('Error sending suggestion:', err)
   } finally {
     isSubmitting.value = false
