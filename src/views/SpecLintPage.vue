@@ -717,7 +717,8 @@ const router = useRouter()
 const lintResults = ref<LintResult[]>([])
 const rules = ref<LintRule[]>([])
 const ruleForm = ref<LintRule>({ ruleType: '', pattern: '', severity: 'error' })
-const ruleLoading = ref(false)
+const ruleLoading = ref(false) // For adding/updating/deleting rules
+const fetchingRules = ref(false) // For fetching the list of rules
 const showLoader = ref(false)
 let loaderTimeout: ReturnType<typeof setTimeout> | null = null
 const ruleError = ref('')
@@ -828,12 +829,12 @@ const formatSpecDisplayName = (spec: any) => {
 
 const fetchRules = async () => {
   console.log('🔵 fetchRules: Starting to fetch rules...')
-  ruleLoading.value = true
+  fetchingRules.value = true // Use separate loading state for fetching
   ruleError.value = ''
   if (loaderTimeout) clearTimeout(loaderTimeout)
   showLoader.value = false
   loaderTimeout = setTimeout(() => {
-    if (ruleLoading.value) showLoader.value = true
+    if (fetchingRules.value) showLoader.value = true
   }, 300)
   try {
     const params = new URLSearchParams()
@@ -861,7 +862,7 @@ const fetchRules = async () => {
     console.error('❌ fetchRules: Error:', e)
     ruleError.value = e.message || 'Failed to fetch rules'
   } finally {
-    ruleLoading.value = false
+    fetchingRules.value = false // Use separate loading state for fetching
     if (loaderTimeout) clearTimeout(loaderTimeout)
     setTimeout(() => { showLoader.value = false }, 100) // hide loader after render
   }
