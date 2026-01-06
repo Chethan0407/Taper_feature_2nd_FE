@@ -146,11 +146,15 @@
                 id="status" 
                 v-model="vendorForm.status" 
                 class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all"
+                required
+                :class="{ 'border-red-500': formErrors.status }"
               >
+                <option value="">Select status</option>
                 <option value="active">Active</option>
                 <option value="pending">Pending</option>
                 <option value="inactive">Inactive</option>
               </select>
+              <p v-if="formErrors.status" class="text-red-400 text-sm mt-1">{{ formErrors.status }}</p>
             </div>
 
             <!-- Linked Specs - Improved with search and chips -->
@@ -328,7 +332,7 @@ const activitiesLoading = ref(false)
 const activitiesError = ref('')
 const showVendorModal = ref(false)
 const editingVendor = ref<Vendor | null>(null)
-const vendorForm = ref({ name: '', type: '', status: 'active' as 'active' | 'pending' | 'inactive', linkedSpecs: [] as (string | number)[], linkedChecklists: [] as (string | number)[] })
+const vendorForm = ref({ name: '', type: '', status: '' as '' | 'active' | 'pending' | 'inactive', linkedSpecs: [] as (string | number)[], linkedChecklists: [] as (string | number)[] })
 const deleting = ref<string | null>(null)
 const uploadingNDA = ref<string | null>(null)
 const acknowledging = ref<string | null>(null)
@@ -341,7 +345,7 @@ const allSpecs = ref<any[]>([])
 const allChecklists = ref<any[]>([])
 
 // Form validation and search states
-const formErrors = ref<{ name?: string; type?: string }>({})
+const formErrors = ref<{ name?: string; type?: string; status?: string }>({})
 const specSearch = ref('')
 const checklistSearch = ref('')
 const showSpecDropdown = ref(false)
@@ -349,7 +353,9 @@ const showChecklistDropdown = ref(false)
 
 // Form validation
 const isFormValid = computed(() => {
-  return vendorForm.value.name.trim() !== '' && vendorForm.value.type.trim() !== ''
+  return vendorForm.value.name.trim() !== '' && 
+         vendorForm.value.type.trim() !== '' && 
+         vendorForm.value.status.trim() !== ''
 })
 
 // Filtered specs and checklists for search
@@ -485,13 +491,29 @@ const validateForm = () => {
     isValid = false
   }
 
+  if (!vendorForm.value.status || vendorForm.value.status.trim() === '') {
+    formErrors.value.status = 'Status is required'
+    isValid = false
+  }
+
   return isValid
 }
 
 // Call fetchActivities after vendor CRUD
-const handleSubmit = async () => {
+const handleSubmit = async (e?: Event) => {
+  // Prevent default form submission
+  if (e) {
+    e.preventDefault()
+  }
+  
   // Validate form
   if (!validateForm()) {
+    // Scroll to first error field
+    const firstErrorField = document.querySelector('.border-red-500')
+    if (firstErrorField) {
+      firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      ;(firstErrorField as HTMLElement).focus()
+    }
     return
   }
 
@@ -505,7 +527,7 @@ const handleSubmit = async () => {
     // Only close if successful
     if (!vendorsStore.error) {
       closeModal()
-      vendorForm.value = { name: '', type: '', status: 'active', linkedSpecs: [], linkedChecklists: [] }
+      vendorForm.value = { name: '', type: '', status: '', linkedSpecs: [], linkedChecklists: [] }
       editingVendor.value = null
       await fetchActivities()
     }
