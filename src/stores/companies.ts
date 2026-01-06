@@ -39,10 +39,19 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiClient(`${API_BASE}/`)
+      // Remove trailing slash - backend doesn't accept trailing slashes
+      const response = await apiClient(`${API_BASE}`)
       
       if (!response.ok) {
-        throw new Error('Failed to load companies')
+        const errorText = await response.text()
+        let errorMsg = 'Failed to load companies'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        throw new Error(errorMsg)
       }
       
       const rawCompanies = await response.json()
@@ -66,9 +75,20 @@ export const useCompaniesStore = defineStore('companies', () => {
       const params = new URLSearchParams()
       if (query) params.append('search', query)
       if (status) params.append('status', status)
-      const response = await apiClient(`${API_BASE}/?${params.toString()}`)
+      // Remove trailing slash - backend doesn't accept trailing slashes
+      const queryString = params.toString()
+      const url = queryString ? `${API_BASE}?${queryString}` : `${API_BASE}`
+      const response = await apiClient(url)
       if (!response.ok) {
-        throw new Error('Failed to search companies')
+        const errorText = await response.text()
+        let errorMsg = 'Failed to search companies'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        throw new Error(errorMsg)
       }
       const rawCompanies = await response.json()
       return rawCompanies.map((c: any) => ({
@@ -114,14 +134,22 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiClient(`${API_BASE}/`, {
+      // Remove trailing slash - backend doesn't accept trailing slashes
+      const response = await apiClient(`${API_BASE}`, {
         method: 'POST',
         body: JSON.stringify(companyData)
       })
       
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(errorText || 'Failed to create company')
+        let errorMsg = 'Failed to create company'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        throw new Error(errorMsg)
       }
       
       const newCompanyRaw = await response.json()
@@ -129,10 +157,12 @@ export const useCompaniesStore = defineStore('companies', () => {
         ...newCompanyRaw,
         createdBy: newCompanyRaw.created_by || newCompanyRaw.createdBy
       }
-      companies.value.push(newCompany)
+      // Reload companies to ensure we have the latest data
+      await loadCompanies()
       return newCompany
     } catch (err: any) {
       error.value = err.message || 'Failed to create company'
+      console.error('Error creating company:', err)
       throw err
     } finally {
       loading.value = false
@@ -144,14 +174,22 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiClient(`${API_BASE}/${id}/`, {
+      // Remove trailing slash - backend doesn't accept trailing slashes for action endpoints
+      const response = await apiClient(`${API_BASE}/${id}`, {
         method: 'PUT',
         body: JSON.stringify(companyData)
       })
       
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(errorText || 'Failed to update company')
+        let errorMsg = 'Failed to update company'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        throw new Error(errorMsg)
       }
       
       const updatedCompanyRaw = await response.json()
@@ -163,9 +201,12 @@ export const useCompaniesStore = defineStore('companies', () => {
       if (index !== -1) {
         companies.value[index] = updatedCompany
       }
+      // Reload companies to ensure we have the latest data
+      await loadCompanies()
       return updatedCompany
     } catch (err: any) {
       error.value = err.message || 'Failed to update company'
+      console.error('Error updating company:', err)
       throw err
     } finally {
       loading.value = false
@@ -177,17 +218,30 @@ export const useCompaniesStore = defineStore('companies', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiClient(`${API_BASE}/${id}/`, {
+      // Remove trailing slash - backend doesn't accept trailing slashes for action endpoints
+      const response = await apiClient(`${API_BASE}/${id}`, {
         method: 'DELETE'
       })
       
-      if (!response.ok) {
-        throw new Error('Failed to delete company')
+      if (!response.ok && response.status !== 404) {
+        const errorText = await response.text()
+        let errorMsg = 'Failed to delete company'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = errorText || errorMsg
+        }
+        throw new Error(errorMsg)
       }
       
+      // Remove from local list
       companies.value = companies.value.filter(c => c.id !== id)
+      // Reload companies to ensure we have the latest data
+      await loadCompanies()
     } catch (err: any) {
       error.value = err.message || 'Failed to delete company'
+      console.error('Error deleting company:', err)
       throw err
     } finally {
       loading.value = false
