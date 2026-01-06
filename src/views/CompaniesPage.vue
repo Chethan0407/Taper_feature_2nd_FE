@@ -116,17 +116,17 @@
                 >
                   <td class="p-6">
                     <div class="flex items-center space-x-3">
-                      <div class="w-10 h-10 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
+                      <div class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
                         <span class="text-white font-semibold text-sm">{{ company.name.charAt(0) }}</span>
                       </div>
-                      <div>
-                        <h3 class="font-semibold text-gray-900 dark:text-white">{{ company.name }}</h3>
+                      <div class="min-w-0 flex-1">
+                        <h3 class="font-semibold text-gray-900 dark:text-white truncate" :title="company.name">{{ truncateText(company.name, 30) }}</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">ID: {{ company.id }}</p>
                       </div>
                     </div>
                   </td>
                   <td class="p-6">
-                    <p class="text-gray-700 dark:text-gray-300 max-w-xs truncate">{{ company.description || 'No description' }}</p>
+                    <p class="text-gray-700 dark:text-gray-300 max-w-xs truncate" :title="company.description || 'No description'">{{ truncateText(company.description || 'No description', 50) }}</p>
                   </td>
                   <td class="p-6">
                     <p class="text-gray-700 dark:text-gray-300">{{ company.createdBy || (company as any).created_by || 'Unknown' }}</p>
@@ -244,24 +244,34 @@
         
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div>
-            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">COMPANY NAME *</label>
+            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">
+              COMPANY NAME * 
+              <span class="text-xs text-gray-500">(max 100 characters)</span>
+            </label>
             <input 
               v-model="form.name"
               type="text"
               placeholder="Enter company name"
+              maxlength="100"
               class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors text-gray-900 dark:text-gray-100"
               required
             />
+            <p class="text-xs text-gray-500 mt-1">{{ form.name.length }}/100 characters</p>
           </div>
 
           <div>
-            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">DESCRIPTION</label>
+            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">
+              DESCRIPTION 
+              <span class="text-xs text-gray-500">(max 500 characters)</span>
+            </label>
             <textarea 
               v-model="form.description"
               placeholder="Company description (optional)"
               rows="3"
+              maxlength="500"
               class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:border-blue-500 dark:focus:border-neon-blue transition-colors resize-none text-gray-900 dark:text-gray-100"
             ></textarea>
+            <p class="text-xs text-gray-500 mt-1">{{ form.description.length }}/500 characters</p>
           </div>
 
           <div v-if="isEditing">
@@ -504,6 +514,13 @@ const formatDate = (dateString: string) => {
   });
 }
 
+// Truncate text with ellipsis
+const truncateText = (text: string, maxLength: number) => {
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+}
+
 const showToast = (message: string, isError = false) => {
   if (isError) {
     errorMessage.value = message
@@ -627,21 +644,31 @@ const resetForm = () => {
 
 // Form submission
 const handleSubmit = async () => {
+  // Validate character limits
+  if (form.name.length > 100) {
+    showToast('Company name cannot exceed 100 characters', true)
+    return
+  }
+  if (form.description.length > 500) {
+    showToast('Description cannot exceed 500 characters', true)
+    return
+  }
+  
   submitting.value = true
   
   try {
     if (isEditing.value && selectedCompany.value) {
       const updateData: UpdateCompanyData = {
-        name: form.name,
-        description: form.description,
+        name: form.name.trim(),
+        description: form.description.trim(),
         status: form.status
       }
       await companiesStore.updateCompany(selectedCompany.value.id, updateData)
       showToast('Company updated successfully!')
     } else {
       const createData: CreateCompanyData = {
-        name: form.name,
-        description: form.description
+        name: form.name.trim(),
+        description: form.description.trim()
       }
       await companiesStore.createCompany(createData)
       showToast('Company created successfully!')
