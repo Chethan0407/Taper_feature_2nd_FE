@@ -62,7 +62,7 @@
             <div v-else-if="activitiesError" class="text-center text-red-400 py-4">Activity feed unavailable</div>
             <div v-else-if="activities.length === 0" class="text-center text-gray-400 py-4">No recent activity.</div>
             <div v-else class="space-y-4">
-              <div v-for="activity in activities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
+              <div v-for="activity in recentActivities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
                 <div class="w-2 h-2 bg-neon-blue rounded-full mt-2"></div>
                 <div class="flex-1">
                   <p class="text-sm text-gray-900 dark:text-white">{{ activity.action }}</p>
@@ -428,12 +428,50 @@ const closeModal = () => {
   showChecklistDropdown.value = false
 }
 
+// Limit for recent activities display
+const MAX_RECENT_ACTIVITIES = 15
+
+// Helper function to safely parse timestamp for sorting
+const parseTimestampForSort = (timestamp: string): number => {
+  if (!timestamp) return 0
+  try {
+    let cleanTimestamp = timestamp.trim()
+    // Remove trailing Z if it exists after timezone offset
+    if (cleanTimestamp.endsWith('Z') && (cleanTimestamp.includes('+') || cleanTimestamp.includes('-'))) {
+      cleanTimestamp = cleanTimestamp.slice(0, -1)
+    }
+    const date = new Date(cleanTimestamp)
+    if (isNaN(date.getTime())) {
+      // Fallback: try without timezone
+      const withoutTimezone = cleanTimestamp.split(/[+-]/)[0]
+      const utcDate = new Date(withoutTimezone + 'Z')
+      return isNaN(utcDate.getTime()) ? 0 : utcDate.getTime()
+    }
+    return date.getTime()
+  } catch {
+    return 0
+  }
+}
+
+// Computed property to show only recent activities
+const recentActivities = computed(() => {
+  // Sort by timestamp (newest first) and limit to MAX_RECENT_ACTIVITIES
+  return [...activities.value]
+    .sort((a, b) => {
+      const dateA = parseTimestampForSort(a.timestamp)
+      const dateB = parseTimestampForSort(b.timestamp)
+      return dateB - dateA // Descending order (newest first)
+    })
+    .slice(0, MAX_RECENT_ACTIVITIES)
+})
+
 // Fetch recent activity from API
 const fetchActivities = async () => {
   activitiesLoading.value = true
   activitiesError.value = ''
   try {
     const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+    // Fetch activities - limit is handled client-side by recentActivities computed property
     const res = await fetch('/api/v1/activity/', { headers })
     if (!res.ok) {
       if (res.status === 401) {
@@ -443,7 +481,9 @@ const fetchActivities = async () => {
       }
       throw new Error('Failed to fetch activity')
     }
-    activities.value = await res.json()
+    const data = await res.json()
+    // Store all activities, but display will be limited to MAX_RECENT_ACTIVITIES by recentActivities computed property
+    activities.value = Array.isArray(data) ? data : []
   } catch (e: any) {
     activitiesError.value = e.message || 'Failed to fetch activity'
     activities.value = []
