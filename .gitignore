@@ -165,7 +165,8 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public directory should be tracked (contains static assets like favicon)
+# public
 
 # Storybook build outputs
 .out
