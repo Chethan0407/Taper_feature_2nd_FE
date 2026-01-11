@@ -56,17 +56,19 @@
           </div>
 
           <!-- Communication Timeline -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Recent Activity</h2>
-            <div v-if="activitiesLoading" class="text-center text-gray-400 py-4">Loading...</div>
-            <div v-else-if="activitiesError" class="text-center text-red-400 py-4">Activity feed unavailable</div>
-            <div v-else-if="activities.length === 0" class="text-center text-gray-400 py-4">No recent activity.</div>
-            <div v-else class="space-y-4">
-              <div v-for="activity in recentActivities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
-                <div class="w-2 h-2 bg-neon-blue rounded-full mt-2"></div>
-                <div class="flex-1">
-                  <p class="text-sm text-gray-900 dark:text-white">{{ activity.action }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ formatActivityDate(activity.timestamp) }}</p>
+          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl flex flex-col" style="max-height: 600px;">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6 px-6 pt-6 flex-shrink-0">Recent Activity</h2>
+            <div class="flex-1 overflow-y-auto px-6 pb-6 custom-scrollbar">
+              <div v-if="activitiesLoading" class="text-center text-gray-400 py-4">Loading...</div>
+              <div v-else-if="activitiesError" class="text-center text-red-400 py-4">Activity feed unavailable</div>
+              <div v-else-if="activities.length === 0" class="text-center text-gray-400 py-4">No recent activity.</div>
+              <div v-else class="space-y-4">
+                <div v-for="activity in recentActivities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
+                  <div class="w-2 h-2 bg-neon-blue rounded-full mt-2 flex-shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm text-gray-900 dark:text-white break-words">{{ activity.action }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ formatActivityDate(activity.timestamp) }}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -482,8 +484,17 @@ const fetchActivities = async () => {
       throw new Error('Failed to fetch activity')
     }
     const data = await res.json()
-    // Store all activities, but display will be limited to MAX_RECENT_ACTIVITIES by recentActivities computed property
-    activities.value = Array.isArray(data) ? data : []
+    // Store only the most recent activities to prevent memory issues
+    const allActivities = Array.isArray(data) ? data : []
+    // Sort by timestamp (newest first) and limit what we store
+    const sortedActivities = [...allActivities]
+      .sort((a, b) => {
+        const dateA = parseTimestampForSort(a.timestamp)
+        const dateB = parseTimestampForSort(b.timestamp)
+        return dateB - dateA // Descending order (newest first)
+      })
+      .slice(0, MAX_RECENT_ACTIVITIES)
+    activities.value = sortedActivities
   } catch (e: any) {
     activitiesError.value = e.message || 'Failed to fetch activity'
     activities.value = []
@@ -724,5 +735,29 @@ const acknowledge = async () => {
 .modal-leave-to .bg-dark-900 {
   transform: scale(0.95);
   opacity: 0;
+}
+
+/* Custom scrollbar for activity feed */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 </style> 

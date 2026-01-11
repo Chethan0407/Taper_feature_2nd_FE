@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useAuthStore } from './auth'
+import { authenticatedFetch } from '@/utils/auth-requests'
 import { getLinkedContent, type LinkedContentResponse } from '@/utils/spec-linking-api'
 
 export interface Project {
@@ -24,7 +24,6 @@ export const useProjectsStore = defineStore('projects', () => {
   const projects = ref<Project[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const authStore = useAuthStore()
 
   const API_BASE = '/api/v1/projects'
 
@@ -33,20 +32,17 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      console.log('🔍 DEBUG - Projects API: Authorization header:', headers)
-      console.log('🔍 DEBUG - Loading projects from:', API_BASE)
-      // Remove trailing slash - backend doesn't accept trailing slashes
-      const response = await fetch(API_BASE, {
-        headers
-      })
+      const response = await authenticatedFetch(API_BASE)
       
       if (!response.ok) {
-        throw new Error('Failed to load projects')
+        if (response.status === 401) {
+          throw new Error('Not authenticated')
+        }
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to load projects')
       }
       
       const data = await response.json();
-      console.log('🔍 DEBUG - Raw projects data from backend:', data)
       projects.value = Array.isArray(data)
         ? data.map((p: any) => ({
             ...p,
@@ -54,7 +50,6 @@ export const useProjectsStore = defineStore('projects', () => {
             updatedAt: p.updated_at
           }))
         : [];
-      console.log('🔍 DEBUG - Processed projects:', projects.value);
     } catch (err: any) {
       error.value = err.message || 'Failed to load projects'
       console.error('🔍 DEBUG - Error loading projects:', err)
@@ -73,19 +68,19 @@ export const useProjectsStore = defineStore('projects', () => {
         ...projectData,
         ...(pd.createdAt ? { created_at: pd.createdAt } : {})
       };
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      }
-      console.log('Projects API: Authorization header (create):', headers)
-      // Remove trailing slash - backend doesn't accept trailing slashes
-      const response = await fetch(API_BASE, {
+      
+      const response = await authenticatedFetch(API_BASE, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
       })
       
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Not authenticated')
+        }
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to create project')
       }
@@ -109,15 +104,14 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      console.log('Projects API: Authorization header (get):', headers)
-      // Remove trailing slash - backend doesn't accept trailing slashes
-      const response = await fetch(`${API_BASE}/${id}`, {
-        headers
-      })
+      const response = await authenticatedFetch(`${API_BASE}/${id}`)
       
       if (!response.ok) {
-        throw new Error('Failed to load project')
+        if (response.status === 401) {
+          throw new Error('Not authenticated')
+        }
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to load project')
       }
       
       const p = await response.json()
@@ -144,19 +138,19 @@ export const useProjectsStore = defineStore('projects', () => {
         ...projectData,
         ...(pd.createdAt ? { created_at: pd.createdAt } : {})
       };
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
-      }
-      console.log('Projects API: Authorization header (update):', headers)
-      // Remove trailing slash - backend doesn't accept trailing slashes
-      const response = await fetch(`${API_BASE}/${id}`, {
+      
+      const response = await authenticatedFetch(`${API_BASE}/${id}`, {
         method: 'PUT',
-        headers,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
       })
       
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Not authenticated')
+        }
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to update project')
       }
@@ -188,26 +182,19 @@ export const useProjectsStore = defineStore('projects', () => {
     loading.value = true
     error.value = null
     try {
-      const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-      console.log('🗑️ Deleting project:', {
-        id,
-        url: `${API_BASE}${id}`,
+      const response = await authenticatedFetch(`${API_BASE}/${id}`, {
         method: 'DELETE'
       })
       
-      // Remove trailing slash - backend doesn't accept trailing slashes for action endpoints
-      const response = await fetch(`${API_BASE}${id}`, {
-        method: 'DELETE',
-        headers
-      })
-      
-      console.log('📥 Delete project response:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText
-      })
-      
-      if (!response.ok && response.status !== 404) {
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Not authenticated')
+        }
+        if (response.status === 404) {
+          // Project already deleted or doesn't exist - remove from local list anyway
+          projects.value = projects.value.filter(p => p.id !== id)
+          return
+        }
         const errorText = await response.text()
         let errorMsg = 'Failed to delete project'
         try {
@@ -221,7 +208,6 @@ export const useProjectsStore = defineStore('projects', () => {
       
       // Remove from local list only if deletion was successful
       projects.value = projects.value.filter(p => p.id !== id)
-      console.log('✅ Project deleted successfully, removed from local list')
     } catch (err: any) {
       error.value = err.message || 'Failed to delete project'
       console.error('❌ Error deleting project:', err)

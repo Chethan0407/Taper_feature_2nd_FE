@@ -2520,7 +2520,7 @@ const loadAvailableLintResults = async () => {
     lintResultError.value = ''
     
     console.log('📋 Loading available lint results...')
-    const res = await authenticatedFetch('/api/v1/lint-results/')
+    const res = await authenticatedFetch('/api/v1/lint-results')
     
     console.log('📋 Lint results response:', {
       status: res.status,
