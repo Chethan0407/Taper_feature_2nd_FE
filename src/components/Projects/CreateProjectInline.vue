@@ -38,27 +38,27 @@
             <!-- Platform -->
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">PLATFORM</label>
-              <select v-model="form.platform" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" :disabled="metadataStore.loading" required>
+              <select v-model="form.platform" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" required>
                 <option value="">Select Platform</option>
-                <option v-for="p in metadataStore.platforms" :key="p" :value="p">{{ p }}</option>
+                <option v-for="p in (metadataStore.platforms.length > 0 ? metadataStore.platforms : ['ASIC', 'FPGA', 'SoC'])" :key="p" :value="p">{{ p }}</option>
               </select>
             </div>
 
             <!-- EDA Tool -->
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">EDA TOOL</label>
-              <select v-model="form.edaTool" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" :disabled="metadataStore.loading" required>
+              <select v-model="form.edaTool" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" required>
                 <option value="">Select EDA Tool</option>
-                <option v-for="e in metadataStore.edaTools" :key="e" :value="e">{{ e }}</option>
+                <option v-for="e in (metadataStore.edaTools.length > 0 ? metadataStore.edaTools : ['Synopsys', 'Cadence', 'Mentor'])" :key="e" :value="e">{{ e }}</option>
               </select>
             </div>
 
             <!-- Type -->
             <div>
               <label class="block text-gray-300 text-sm font-medium mb-2">TYPE</label>
-              <select v-model="form.type" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" :disabled="metadataStore.loading" required>
+              <select v-model="form.type" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" required>
                 <option value="">Select Type</option>
-                <option v-for="t in metadataStore.types" :key="t" :value="t">{{ t }}</option>
+                <option v-for="t in (metadataStore.types.length > 0 ? metadataStore.types : ['TapeOut', 'LintOnly'])" :key="t" :value="t">{{ t }}</option>
               </select>
             </div>
           </div>
@@ -70,30 +70,6 @@
               label="COMPANY"
               required
             />
-          </div>
-
-          <!-- Linked Specs -->
-          <div>
-            <label class="block text-gray-300 text-sm font-medium mb-2">LINKED SPECS</label>
-            <select 
-              v-model="form.linkedSpecs"
-              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
-              multiple
-            >
-              <option v-for="spec in allSpecs" :value="spec.id">{{ spec.name }}</option>
-            </select>
-          </div>
-
-          <!-- Linked Checklists -->
-          <div>
-            <label class="block text-gray-300 text-sm font-medium mb-2">LINKED CHECKLISTS</label>
-            <select 
-              v-model="form.linkedChecklists"
-              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
-              multiple
-            >
-              <option v-for="checklist in allChecklists" :value="checklist.id">{{ checklist.name }}</option>
-            </select>
           </div>
 
           <!-- Submit Button -->
@@ -146,39 +122,12 @@ const form = reactive({
   platform: '' as 'ASIC' | 'FPGA' | 'SoC',
   edaTool: '' as 'Synopsys' | 'Cadence' | 'Mentor',
   type: '' as 'TapeOut' | 'LintOnly',
-  companyId: '' as string,
-  linkedSpecs: [] as number[],
-  linkedChecklists: [] as number[]
+  companyId: '' as string
 })
-
-const allSpecs = ref<{ id: number; name: string }[]>([])
-const allChecklists = ref<{ id: number; name: string }[]>([])
-const loadingSpecs = ref(false)
-const loadingChecklists = ref(false)
 
 const emit = defineEmits(['project-created', 'cancel'])
 
 onMounted(async () => {
-  loadingSpecs.value = true
-  loadingChecklists.value = true
-  try {
-    // Fetch specs
-    const specsRes = await fetch('/api/v1/specs/')
-    if (specsRes.ok) {
-      allSpecs.value = await specsRes.json()
-    }
-    // Fetch checklists
-    const checklistsRes = await fetch('/api/v1/checklists/')
-    if (checklistsRes.ok) {
-      allChecklists.value = await checklistsRes.json()
-    }
-  } catch (e) {
-    // ignore for now
-  } finally {
-    loadingSpecs.value = false
-    loadingChecklists.value = false
-  }
-
   if (!metadataStore.platforms.length) metadataStore.fetchMetadata()
 })
 
@@ -197,8 +146,6 @@ const resetForm = () => {
   form.edaTool = '' as 'Synopsys' | 'Cadence' | 'Mentor'
   form.type = '' as 'TapeOut' | 'LintOnly'
   form.companyId = '' as string
-  form.linkedSpecs = []
-  form.linkedChecklists = []
 }
 
 const handleSubmit = async () => {
@@ -218,8 +165,6 @@ const handleSubmit = async () => {
       type: form.type,
       status: 'active' as const,
       company_id: parseInt(form.companyId),
-      spec_ids: form.linkedSpecs,
-      checklist_ids: form.linkedChecklists,
       created_at: '',
       updated_at: ''
     }

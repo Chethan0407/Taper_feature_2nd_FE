@@ -253,7 +253,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import Header from '@/components/Layout/Header.vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import { useAuthStore } from '@/stores/auth'
-import { authenticatedFetch } from '@/utils/auth-requests'
+import { apiClient } from '@/utils/api-client'
 import { useBrandingStore } from '@/stores/branding'
 
 interface BrandingSettings {
@@ -318,9 +318,13 @@ const fetchBrandingSettings = async () => {
   error.value = ''
   
   try {
-    const response = await authenticatedFetch('/api/v1/settings/branding/')
+    const response = await apiClient('/settings/branding/')
     
     if (!response.ok) {
+      if (response.status === 401 && (response as any).isAuthError) {
+        error.value = 'Authentication failed. Please refresh the page or log in again.'
+        return
+      }
       const errorText = await response.text()
       let errorMsg = 'Failed to load branding settings'
       try {
@@ -370,7 +374,7 @@ const saveBranding = async () => {
         const formData = new FormData()
         formData.append('file', selectedLogoFile.value)
         
-        const logoResponse = await authenticatedFetch('/api/v1/settings/branding/logo', {
+        const logoResponse = await apiClient('/settings/branding/logo', {
           method: 'POST',
           body: formData
         })
@@ -415,11 +419,8 @@ const saveBranding = async () => {
       updateData.logo_url = logoUrl
     }
     
-    const response = await authenticatedFetch('/api/v1/settings/branding/', {
+    const response = await apiClient('/settings/branding/', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(updateData)
     })
     

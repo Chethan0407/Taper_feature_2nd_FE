@@ -3,40 +3,58 @@
     <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-lg relative">
       <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="$emit('close')">&times;</button>
       <h2 class="text-3xl font-bold text-white mb-8">Edit Project</h2>
-      <form @submit.prevent="handleSubmit" class="space-y-6">
+      <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
-          <label class="block text-gray-300 text-sm font-medium mb-2">PROJECT NAME *</label>
-          <input v-model="form.name" type="text" class="input-field w-full" required />
+          <label class="block text-gray-300 text-sm font-medium mb-2">PROJECT NAME</label>
+          <input 
+            v-model="form.name" 
+            type="text" 
+            placeholder="Enter project name"
+            class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" 
+            required 
+          />
         </div>
         <div>
-          <label class="block text-gray-300 text-sm font-medium mb-2">DESCRIPTION</label>
-          <textarea v-model="form.description" class="input-field w-full" rows="3"></textarea>
+          <label class="block text-gray-300 text-sm font-medium mb-2">DESCRIPTION (OPTIONAL)</label>
+          <textarea 
+            v-model="form.description" 
+            placeholder="Project description"
+            class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors resize-none" 
+            rows="3"
+          ></textarea>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-gray-300 text-sm font-medium mb-2">PLATFORM</label>
-            <select v-model="form.platform" class="input-field w-full" required>
+            <select 
+              v-model="form.platform" 
+              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" 
+              required
+            >
               <option value="">Select Platform</option>
-              <option value="ASIC">ASIC</option>
-              <option value="FPGA">FPGA</option>
-              <option value="SoC">SoC</option>
+              <option v-for="p in (metadataStore.platforms.length > 0 ? metadataStore.platforms : ['ASIC', 'FPGA', 'SoC'])" :key="p" :value="p">{{ p }}</option>
             </select>
           </div>
           <div>
             <label class="block text-gray-300 text-sm font-medium mb-2">EDA TOOL</label>
-            <select v-model="form.edaTool" class="input-field w-full" required>
+            <select 
+              v-model="form.edaTool" 
+              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" 
+              required
+            >
               <option value="">Select EDA Tool</option>
-              <option value="Synopsys">Synopsys</option>
-              <option value="Cadence">Cadence</option>
-              <option value="Mentor">Mentor</option>
+              <option v-for="e in (metadataStore.edaTools.length > 0 ? metadataStore.edaTools : ['Synopsys', 'Cadence', 'Mentor'])" :key="e" :value="e">{{ e }}</option>
             </select>
           </div>
           <div>
             <label class="block text-gray-300 text-sm font-medium mb-2">TYPE</label>
-            <select v-model="form.type" class="input-field w-full" required>
+            <select 
+              v-model="form.type" 
+              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" 
+              required
+            >
               <option value="">Select Type</option>
-              <option value="TapeOut">TapeOut</option>
-              <option value="LintOnly">Lint Only</option>
+              <option v-for="t in (metadataStore.types.length > 0 ? metadataStore.types : ['TapeOut', 'LintOnly'])" :key="t" :value="t">{{ t }}</option>
             </select>
           </div>
         </div>
@@ -56,13 +74,15 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useProjectsStore, type Project } from '@/stores/projects'
 import CompanySelector from '@/components/Common/CompanySelector.vue'
+import { useMetadataStore } from '@/stores/metadata'
 
 const props = defineProps<{ project: Project }>()
 const emit = defineEmits(['close', 'updated'])
 const projectsStore = useProjectsStore()
+const metadataStore = useMetadataStore()
 const submitting = ref(false)
 const error = ref('')
 const form = reactive({
@@ -84,6 +104,10 @@ watch(() => props.project, (p) => {
     form.companyId = p.company_id ? String(p.company_id) : ''
   }
 }, { immediate: true })
+
+onMounted(() => {
+  if (!metadataStore.platforms.length) metadataStore.fetchMetadata()
+})
 
 const handleSubmit = async () => {
   submitting.value = true

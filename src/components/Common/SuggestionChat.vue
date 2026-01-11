@@ -399,10 +399,14 @@ const handleSubmit = async () => {
     formDataToSend.append('user_email', userEmail)
     formDataToSend.append('user_name', userName)
 
-    // Append files
-    selectedFiles.value.forEach((file) => {
-      formDataToSend.append('files', file)
-    })
+    // Append files (only if there are files)
+    // FastAPI expects files to be sent as multipart/form-data with multiple entries
+    // Using the same key name 'files' allows FastAPI to collect them into a List[UploadFile]
+    if (selectedFiles.value.length > 0) {
+      selectedFiles.value.forEach((file) => {
+        formDataToSend.append('files', file, file.name)
+      })
+    }
 
     // Use authenticatedFetch for consistent error handling
     // Note: authenticatedFetch handles FormData automatically
