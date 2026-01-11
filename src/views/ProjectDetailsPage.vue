@@ -2212,7 +2212,7 @@ async function onUnlinkChecklist(checklist: any) {
   })
 }
 
-// Approve checklist by creating a comment with "approve" in the content
+// Approve checklist using the checklist approval endpoint
 async function onApproveChecklist(checklist: any) {
   console.log('✅ onApproveChecklist called with checklist:', checklist)
   
@@ -2229,37 +2229,26 @@ async function onApproveChecklist(checklist: any) {
   try {
     approvingChecklistId.value = checklistId
     
-    // Create a comment with "approve" in the content to trigger approval
-    console.log('📝 Creating approval comment for checklist:', checklistId)
-    const commentResponse = await authenticatedFetch('/api/v1/comments/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_type: 'checklist',
-        entity_id: checklistId,
-        content: 'Approved by reviewer' // Must contain "approve" (case-insensitive)
-      })
+    // Use the checklist approval endpoint
+    console.log('📝 Approving checklist:', checklistId)
+    const approvalResponse = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/approve`, {
+      method: 'POST'
     })
     
-    if (!commentResponse.ok) {
-      if (commentResponse.status === 401) {
-        const errorText = await commentResponse.text()
+    if (!approvalResponse.ok) {
+      if (approvalResponse.status === 401) {
+        const errorText = await approvalResponse.text()
         console.error('❌ 401 Unauthorized:', errorText)
         showToast('Authentication failed. Please log in again.', true)
         router.push('/login')
         return
       }
-      const errorText = await commentResponse.text()
+      const errorText = await approvalResponse.text()
       throw new Error(errorText || 'Failed to approve checklist')
     }
     
-    const commentData = await commentResponse.json()
-    console.log('✅ Approval comment created:', commentData)
-    
-    // Wait a bit for backend to process the approval
-    await new Promise(resolve => setTimeout(resolve, 500))
+    const updatedChecklist = await approvalResponse.json()
+    console.log('✅ Checklist approved:', updatedChecklist)
     
     // Refresh linked content to get updated checklist status
     await loadLinkedContent()
@@ -2295,7 +2284,7 @@ async function onRejectChecklist(checklist: any) {
     
     // Create a comment with "reject" in the content to trigger rejection
     console.log('📝 Creating rejection comment for checklist:', checklistId)
-    const commentResponse = await authenticatedFetch('/api/v1/comments/', {
+    const commentResponse = await authenticatedFetch('/api/v1/comments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -2609,10 +2598,18 @@ const loadAvailableLintResults = async () => {
 }
 
 const filteredLintResults = computed(() => {
-  if (!lintResultSearch.value) return lintResults.value
+  // Get IDs of already linked lint results
+  const linkedLintIds = new Set(linkedSpecLints.value.map(lint => lint.id))
   
+  // Filter out already linked lint results
+  const availableLints = lintResults.value.filter(lint => !linkedLintIds.has(lint.id))
+  
+  // If no search term, return all available (non-linked) lint results
+  if (!lintResultSearch.value) return availableLints
+  
+  // Filter by search term
   const search = lintResultSearch.value.toLowerCase()
-  return lintResults.value.filter(lint => 
+  return availableLints.filter(lint => 
     lint.id.toString().includes(search) ||
     lint.summary?.toLowerCase().includes(search) ||
     lint.spec_id?.toString().includes(search)
@@ -2830,7 +2827,7 @@ const submitComment = async () => {
   commentSubmitting.value = true
   
   try {
-    const response = await authenticatedFetch('/api/v1/comments/', {
+    const response = await authenticatedFetch('/api/v1/comments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
