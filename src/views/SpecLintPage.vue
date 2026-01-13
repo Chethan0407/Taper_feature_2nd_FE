@@ -843,9 +843,7 @@ const fetchRules = async () => {
     if (ruleFilters.value.search) params.append('search', ruleFilters.value.search)
     if (ruleFilters.value.rule_type) params.append('type', ruleFilters.value.rule_type)
     if (ruleFilters.value.severity) params.append('severity', ruleFilters.value.severity)
-    if (ruleFilters.value.created_from) params.append('created_from', ruleFilters.value.created_from)
-    if (ruleFilters.value.created_to) params.append('created_to', ruleFilters.value.created_to)
-    const url = `/api/v1/lint-results/speclint/rules?${params.toString()}`
+    const url = `/api/v1/speclint/rules?${params.toString()}`
     console.log('🔵 fetchRules: Calling API:', url)
     const res = await authenticatedFetch(url)
     console.log('🔵 fetchRules: Response status:', res.status, 'ok:', res.ok)
@@ -857,7 +855,7 @@ const fetchRules = async () => {
     const data = await res.json()
     console.log('✅ fetchRules: Success! Loaded', (data.results || []).length, 'rules')
     rules.value = data.results || []
-    totalResults.value = data.pagination?.total_results || 0
+    totalResults.value = data.pagination?.total || data.pagination?.total_results || 0
   } catch (e: any) {
     console.error('❌ fetchRules: Error:', e)
     ruleError.value = e.message || 'Failed to fetch rules'
@@ -955,19 +953,21 @@ const addRule = async () => {
   ruleError.value = ''
   ruleSuccess.value = ''
   try {
-    const res = await authenticatedFetch('/api/v1/lint-results/speclint/rules', {
+    const res = await authenticatedFetch('/api/v1/speclint/rules', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        rule_type: ruleForm.value.ruleType, // snake_case for backend
-        ruleType: ruleForm.value.ruleType,  // camelCase for backend workaround
+        ruleType: ruleForm.value.ruleType,
         pattern: ruleForm.value.pattern,
         severity: ruleForm.value.severity
       })
     })
-    if (!res.ok) throw new Error('Failed to add rule')
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(errorData.detail || 'Failed to add rule')
+    }
     ruleSuccess.value = 'Rule added!'
     ruleForm.value = { ruleType: '', pattern: '', severity: 'error' }
     await fetchRules()
@@ -994,30 +994,46 @@ const runLinter = async () => {
   try {
     console.log('🧪 Running linter for spec:', specId.value)
     
-    // ✅ Use the fixed endpoint that supports both UUID and integer spec IDs
-    const res = await apiClient(`/specs/${specId.value}/lint`, {
+    // ✅ Use the correct endpoint according to API guide: POST /api/v1/speclint/lint
+    const res = await authenticatedFetch('/api/v1/speclint/lint', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        specId: specId.value
+      })
     })
     
     console.log('🧪 Linter response:', {
       status: res.status,
-      ok: res.ok,
-      isAuthError: (res as any).isAuthError
+      ok: res.ok
     })
     
-    // Handle 401 authentication errors specifically
-    if (res.status === 401 || (res as any).isAuthError) {
-      const errorDetail = (res as any).errorDetail || 'Authentication failed'
-      lintError.value = 'Authentication failed. Please refresh the page and log in again.'
-      console.error('❌ Authentication failed:', errorDetail)
-      return
-    }
-    
+    // Handle error responses according to API guide
     if (!res.ok) {
-      const errorMessage = await parseApiError(res, 'Failed to run linter')
+      let errorMessage = 'Failed to run linter'
+      try {
+        const errorData = await res.json()
+        errorMessage = errorData.detail || errorData.message || errorMessage
+      } catch {
+        const errorText = await res.text().catch(() => 'Unknown error')
+        errorMessage = errorText || errorMessage
+      }
+      
+      // Specific error messages based on status codes
+      if (res.status === 400) {
+        errorMessage = errorMessage || 'Invalid spec ID format or file error'
+      } else if (res.status === 403) {
+        errorMessage = errorMessage || "You don't have access to this specification"
+      } else if (res.status === 404) {
+        errorMessage = errorMessage || 'Specification not found'
+      } else if (res.status === 422) {
+        errorMessage = errorMessage || 'Validation error. Please check the request format.'
+      } else if (res.status === 401) {
+        errorMessage = 'Authentication failed. Please refresh the page and log in again.'
+      }
+      
       lintError.value = errorMessage
       console.error('❌ Linter failed:', errorMessage, 'Status:', res.status)
       return
@@ -1026,74 +1042,14 @@ const runLinter = async () => {
     const data = await res.json()
     console.log('🧪 Linter data received (full response):', JSON.stringify(data, null, 2))
     
-    // Determine response format: LintResult (integer spec, saved) vs LintResultResponse (UUID spec, not saved)
-    const isLintResult = 'id' in data && 'spec_id' in data // Integer spec format (saved to DB)
-    const isLintResultResponse = 'specId' in data && 'issues' in data // UUID spec format (not saved)
+    // According to API guide, response format is: { specId: string, issues: [...] }
+    const specIdFromResponse = data.specId
+    const issues = data.issues || []
     
-    console.log('📋 Response format detection:', {
-      isLintResult,
-      isLintResultResponse,
-      hasId: 'id' in data,
-      hasSpecId: 'specId' in data
+    console.log('✅ Linter response processed:', {
+      specId: specIdFromResponse,
+      issuesCount: issues.length
     })
-    
-    // Extract lint result ID and issues based on format
-    let lintResultId: string | number | null = null
-    let issues: any[] = []
-    
-    if (isLintResult) {
-      // Integer spec: LintResult format (auto-saved to DB)
-      lintResultId = data.id
-      issues = data.issues || []
-      console.log('✅ Integer spec detected - Lint result saved with ID:', lintResultId)
-    } else if (isLintResultResponse) {
-      // UUID spec: LintResultResponse format (not saved to DB)
-      lintResultId = null // No ID because it's not saved
-      issues = data.issues || []
-      console.log('✅ UUID spec detected - Lint result NOT saved (use Save Results button)')
-    } else {
-      // Fallback: try to extract issues from any format
-      issues = data.issues || (Array.isArray(data) ? data : [])
-      console.warn('⚠️ Unknown response format, attempting to extract issues')
-    }
-    
-    // Store lint result ID if available
-    if (lintResultId) {
-      createdLintResultId.value = lintResultId
-      console.log('📝 Created lint result ID:', createdLintResultId.value)
-      
-      // If we have a project ID, automatically link the lint result
-      if (projectId.value) {
-        // Set linking status before attempting to link
-        linkingToProject.value = true
-        linkingError.value = ''
-        
-        try {
-          console.log('🔗 Attempting to link lint result', lintResultId, 'to project', projectId.value)
-          await linkLintResultToProject(createdLintResultId.value as string | number)
-          console.log('✅ Linking completed successfully')
-        } catch (linkError: any) {
-          console.error('❌ Failed to auto-link lint result to project:', linkError)
-          linkingError.value = `Failed to automatically link to ${projectName.value}: ${linkError.message || 'Unknown error'}. You can link it manually from the project page.`
-        } finally {
-          linkingToProject.value = false
-        }
-      } else {
-        console.log('ℹ️ No project ID in route, skipping auto-link')
-      }
-    } else if (isLintResultResponse) {
-      // UUID spec - results not saved, show message to save
-      console.log('ℹ️ UUID spec - lint results not saved. User can save using Save Results button.')
-      if (projectId.value) {
-        lintSuccess.value = `Lint completed! Found ${issues.length} issue${issues.length !== 1 ? 's' : ''}. Save results to link to project.`
-      }
-    } else {
-      console.warn('⚠️ No lint result ID found in response')
-      console.warn('⚠️ Response data:', data)
-      if (projectId.value) {
-        linkingError.value = 'Could not find lint result ID. The lint result may need to be saved manually.'
-      }
-    }
     
     // Process issues from response
     lintResults.value = issues.map((issue: any) => ({
@@ -1104,10 +1060,14 @@ const runLinter = async () => {
       severity: issue.severity || 'warning'
     }))
     
+    // Note: This endpoint returns results but doesn't save them to DB
+    // If user wants to save, they need to use Save Results button
+    createdLintResultId.value = null
+    
     if (lintResults.value.length === 0) {
-      lintSuccess.value = 'No issues found!'
+      lintSuccess.value = 'No issues found! Spec is valid.'
     } else {
-      lintSuccess.value = `Lint completed! Found ${lintResults.value.length} issue${lintResults.value.length !== 1 ? 's' : ''}.`
+      lintSuccess.value = `Found ${lintResults.value.length} issue${lintResults.value.length !== 1 ? 's' : ''}.`
     }
     
     console.log('✅ Linter completed successfully:', lintResults.value.length, 'issues found')
@@ -1870,18 +1830,21 @@ const updateRule = async () => {
   ruleError.value = ''
   ruleSuccess.value = ''
   try {
-    const res = await authenticatedFetch(`/api/v1/lint-results/speclint/rules/${editingRule.value.id}`, {
+    const res = await authenticatedFetch(`/api/v1/speclint/rules/${editingRule.value.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        rule_type: ruleForm.value.ruleType,
+        ruleType: ruleForm.value.ruleType,
         pattern: ruleForm.value.pattern,
         severity: ruleForm.value.severity
       })
     })
-    if (!res.ok) throw new Error('Failed to update rule')
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(errorData.detail || 'Failed to update rule')
+    }
     ruleSuccess.value = 'Rule updated!'
     showEditModal.value = false
     editingRule.value = null
@@ -1901,10 +1864,13 @@ const deleteRule = async (ruleId: string) => {
   
   deletingRuleId.value = ruleId
   try {
-    const res = await authenticatedFetch(`/api/v1/lint-results/speclint/rules/${ruleId}`, {
+    const res = await authenticatedFetch(`/api/v1/speclint/rules/${ruleId}`, {
       method: 'DELETE'
     })
-    if (!res.ok) throw new Error('Failed to delete rule')
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(errorData.detail || 'Failed to delete rule')
+    }
     await fetchRules()
     ruleSuccess.value = 'Rule deleted!'
     setTimeout(() => { ruleSuccess.value = '' }, 2000)

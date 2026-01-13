@@ -94,9 +94,12 @@
             <div class="flex flex-col md:flex-row items-center md:items-start gap-8">
               <!-- Founder Avatar -->
               <div class="flex-shrink-0">
-                <div class="w-32 h-32 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-neon-blue/50">
-                  C
-                </div>
+                <img 
+                  src="/founder-photo.jpg" 
+                  alt="Chethan - Founder of TapeOutOps"
+                  class="w-32 h-32 rounded-full object-cover border-4 border-neon-blue/50 shadow-2xl shadow-neon-blue/50"
+                  style="object-position: center 10%;"
+                />
               </div>
 
               <!-- Founder Info -->

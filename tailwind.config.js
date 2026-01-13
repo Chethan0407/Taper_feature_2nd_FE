@@ -49,6 +49,10 @@ export default {
           blue: '#00d4ff',
           green: '#00ff88',
           purple: '#8b5cf6',
+          teal: '#14b8a6',
+          amber: '#f59e0b',
+          indigo: '#6366f1',
+          pink: '#ec4899',
         }
       },
       fontFamily: {

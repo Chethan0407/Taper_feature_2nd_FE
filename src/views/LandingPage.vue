@@ -393,9 +393,12 @@
           <!-- Founder Story -->
           <div class="glass-effect rounded-2xl p-8 border border-dark-700">
             <div class="flex items-center mb-6">
-              <div class="w-20 h-20 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full flex items-center justify-center text-2xl font-bold text-white mr-4">
-                C
-              </div>
+              <img 
+                src="/founder-photo.jpg" 
+                alt="Chethan - Founder of TapeOutOps"
+                class="w-20 h-20 rounded-full object-cover border-2 border-neon-blue/50 shadow-lg mr-4"
+                style="object-position: center 10%;"
+              />
               <div>
                 <h3 class="text-2xl font-bold text-white">Chethan</h3>
                 <p class="text-neon-blue">Founder</p>
