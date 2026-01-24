@@ -20,6 +20,9 @@
               class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
               required
             />
+            <p v-if="nameError" class="mt-1 text-xs text-red-400">
+              {{ nameError }}
+            </p>
           </div>
 
           <!-- Description -->
@@ -113,6 +116,7 @@ const props = defineProps<Props>()
 const projectsStore = useProjectsStore()
 const showForm = ref(true)
 const submitting = ref(false)
+const nameError = ref('')
 
 const metadataStore = useMetadataStore()
 
@@ -146,19 +150,37 @@ const resetForm = () => {
   form.edaTool = '' as 'Synopsys' | 'Cadence' | 'Mentor'
   form.type = '' as 'TapeOut' | 'LintOnly'
   form.companyId = '' as string
+  nameError.value = ''
 }
 
 const handleSubmit = async () => {
   submitting.value = true
+  nameError.value = ''
   
   try {
+    const trimmedName = form.name.trim()
+
+    if (!trimmedName) {
+      throw new Error('Project name is required')
+    }
+
+    // Enforce unique project names (case-insensitive) so cards stay distinct
+    const existing = projectsStore.projects?.some(
+      (p) => p.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    )
+    if (existing) {
+      nameError.value = 'A project with this name already exists. Please choose a different name.'
+      submitting.value = false
+      return
+    }
+
     // Validate company_id is selected
     if (!form.companyId || !parseInt(form.companyId)) {
       throw new Error('Please select a company')
     }
     
     const projectData = {
-      name: form.name,
+      name: trimmedName,
       description: form.description,
       platform: form.platform,
       edaTool: form.edaTool,
