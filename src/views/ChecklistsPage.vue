@@ -310,14 +310,12 @@ const fetchActiveChecklists = async () => {
       }
     })
 
-    // Recompute completion after any refresh of active checklists
-    for (const checklist of activeChecklists.value) {
-      await fetchChecklistCompletion(checklist.id)
-    }
-    // Fetch completion for each checklist
-    for (const checklist of activeChecklists.value) {
-      fetchChecklistCompletion(checklist.id)
-    }
+    // Recompute completion after any refresh of active checklists.
+    // Fire these requests in parallel so we don't block the UI.
+    const ids = activeChecklists.value.map((checklist) => checklist.id)
+    ids.forEach((id) => {
+      fetchChecklistCompletion(id)
+    })
   } catch (e: any) {
     activeChecklistsError.value = e.message || 'Failed to fetch active checklists'
     // Don't auto-logout - just show the error
@@ -480,7 +478,7 @@ const approveChecklist = async (id: string) => {
       'approved'
     const normalizedStatus = String(rawStatus).toLowerCase()
 
-    // Update the checklist in local state
+    // Update the checklist in local state immediately for a snappy UX
     const idx = activeChecklists.value.findIndex(c => c.id === id)
     if (idx !== -1) {
       activeChecklists.value[idx] = {
@@ -489,11 +487,14 @@ const approveChecklist = async (id: string) => {
         status: normalizedStatus
       }
     }
-    // Re-fetch active checklists and statistics after approval so UI & metrics stay in sync
-    await Promise.all([
-      fetchActiveChecklists(),
-      checklistsStore.fetchStats()
-    ])
+    // Kick off background refresh of active checklists and statistics
+    // without blocking the button/UI.
+    fetchActiveChecklists().catch((err) => {
+      console.error('Background refresh of active checklists failed:', err)
+    })
+    checklistsStore.fetchStats().catch((err: any) => {
+      console.error('Background refresh of checklist stats failed:', err)
+    })
 
     // Let the notifications bell know there may be a new notification
     try {

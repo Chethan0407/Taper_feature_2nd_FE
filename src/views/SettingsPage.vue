@@ -188,8 +188,9 @@
                 <input 
                   v-model="branding.company_name" 
                   type="text"
-                  class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100"
-                  placeholder="Enter company name"
+                  class="input-field w-full bg-gray-200 dark:bg-dark-800 border border-gray-300 dark:border-dark-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  placeholder="Company name is managed in Companies"
+                  readonly
                 />
               </div>
               
@@ -1055,7 +1056,8 @@ const saveBranding = async () => {
     }
 
     const body: any = {}
-    if (branding.value.company_name) body.company_name = branding.value.company_name
+    // NOTE: company_name is immutable once the company is created and is managed
+    // via the Companies module, so we intentionally do NOT send it from here.
     if (branding.value.logo_url) body.logo_url = branding.value.logo_url
     if (branding.value.primary_color) body.primary_color = branding.value.primary_color
     if (branding.value.secondary_color) body.secondary_color = branding.value.secondary_color
