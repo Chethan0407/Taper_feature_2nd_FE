@@ -881,16 +881,49 @@ const loadNotifications = async () => {
   }
 }
 
-const toggleNotification = (type: string, event: Event) => {
+const toggleNotification = async (type: string, event: Event) => {
   const target = event.target as HTMLInputElement
   const enabled = target.checked
 
-  // Local-only optimistic update; persisted when user clicks "Save Preferences"
-  const pref = notificationPreferences.value.find(p => p.notification_type === type)
-  if (pref) {
-    pref.is_enabled = enabled
+  // Optimistically update local state
+  const existing = notificationPreferences.value.find(p => p.notification_type === type)
+  let previousValue: boolean | undefined
+
+  if (existing) {
+    previousValue = existing.is_enabled
+    existing.is_enabled = enabled
   } else {
     notificationPreferences.value.push({ notification_type: type, is_enabled: enabled })
+  }
+
+  try {
+    savingNotifications.value = true
+    notificationsError.value = ''
+    notificationsSuccess.value = false
+
+    // Always send full preferences array on each toggle
+    const res = await apiClient('/settings/notifications', {
+      method: 'PUT',
+      body: JSON.stringify(notificationPreferences.value)
+    })
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, 'Failed to update notification preferences')
+      throw new Error(errorMessage)
+    }
+
+    notificationsSuccess.value = true
+    setTimeout(() => { notificationsSuccess.value = false }, 1500)
+  } catch (e: any) {
+    // Revert optimistic change on error
+    if (existing && previousValue !== undefined) {
+      existing.is_enabled = previousValue
+    }
+    notificationsError.value = e.message || 'Failed to update notification preferences'
+    // Also revert the checkbox UI
+    target.checked = !enabled
+  } finally {
+    savingNotifications.value = false
   }
 }
 

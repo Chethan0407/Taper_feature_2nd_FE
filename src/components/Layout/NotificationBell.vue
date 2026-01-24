@@ -224,18 +224,37 @@ const handleNotificationClick = async (notification: Notification) => {
 
 // Navigate to entity based on type
 const navigateToEntity = (notification: Notification) => {
-  const routes: Record<string, string> = {
-    spec: `/specs/${notification.entity_id}`,
-    project: `/projects/${notification.entity_id}`,
-    lint_result: `/speclint?project=${notification.entity_id}`,
-    checklist: `/checklists/${notification.entity_id}`,
-    company: `/companies/${notification.entity_id}`
+  // Map known entity types to existing routes in the app
+  const entityType = notification.entity_type
+
+  if (entityType === 'spec') {
+    router.push(`/specs/${notification.entity_id}`)
+    return
   }
 
-  const route = routes[notification.entity_type]
-  if (route) {
-    router.push(route)
+  if (entityType === 'project') {
+    router.push(`/projects/${notification.entity_id}`)
+    return
   }
+
+  if (entityType === 'lint_result') {
+    router.push({ path: '/speclint', query: { project: String(notification.entity_id) } })
+    return
+  }
+
+  if (entityType === 'checklist') {
+    // We don't have a checklist-details route; send user to Checklists overview
+    router.push('/checklists')
+    return
+  }
+
+  if (entityType === 'company') {
+    router.push(`/companies/${notification.entity_id}`)
+    return
+  }
+
+  // Fallback: go to dashboard so we never leave the user on a blank page
+  router.push('/dashboard')
 }
 
 // Toggle dropdown
