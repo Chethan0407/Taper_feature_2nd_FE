@@ -62,7 +62,11 @@
                   </option>
                 </select>
               </div>
-            <button class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95 mb-2" @click="runLinter" :disabled="runningLint || !specId">
+            <button
+              class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95 mb-2"
+              @click="runLinter"
+              :disabled="runningLint || !specId || selectedSpecFileMissing"
+            >
               <span>🧪</span> <span>{{ runningLint ? 'Running...' : 'Run Linter' }}</span>
             </button>
             <transition name="fade">
@@ -773,6 +777,10 @@ const availableSpecs = computed(() => specificationsStore.specifications)
 
 // Fetch specs from both endpoints
 const allAvailableSpecs = ref<any[]>([])
+const selectedSpec = computed(() =>
+  allAvailableSpecs.value.find(s => String(s.id) === String(specId.value))
+)
+const selectedSpecFileMissing = computed(() => !!selectedSpec.value?.file_missing)
 const loadingSpecs = ref(false)
 const deletingRuleId = ref<string | null>(null)
 const editingRule = ref<LintRule | null>(null)
@@ -824,7 +832,8 @@ const formatSpecDisplayName = (spec: any) => {
   const name = spec.name || spec.file_name || 'Unnamed Spec'
   const id = spec.id
   const idDisplay = typeof id === 'string' && id.length > 8 ? `ID: ${id.slice(0, 8)}...` : `ID: ${id}`
-  return `${name} (${idDisplay})`
+  const missingSuffix = spec.file_missing ? ' — file missing on server' : ''
+  return `${name} (${idDisplay})${missingSuffix}`
 }
 
 const fetchRules = async () => {
@@ -1007,17 +1016,36 @@ const runLinter = async () => {
     // Handle error responses according to API guide
     if (!res.ok) {
       let errorMessage = 'Failed to run linter'
+      let detail = ''
       try {
         const errorData = await res.json()
-        errorMessage = errorData.detail || errorData.message || errorMessage
+        detail = errorData.detail || errorData.message || ''
+        errorMessage = detail || errorMessage
       } catch {
         const errorText = await res.text().catch(() => 'Unknown error')
+        detail = errorText
         errorMessage = errorText || errorMessage
       }
       
       // Specific error messages based on status codes
       if (res.status === 400) {
-        errorMessage = errorMessage || 'Invalid spec ID format or file error'
+        // Special-case: spec file is missing on disk
+        if (detail?.includes('Spec file not found on disk')) {
+          errorMessage = "This spec's file is missing on the server. Please re-upload the spec and try again."
+          
+          // Mark this spec as "file_missing" so UI can disable linting for it
+          const idx = allAvailableSpecs.value.findIndex(
+            (s: any) => String(s.id) === String(specId.value)
+          )
+          if (idx !== -1) {
+            allAvailableSpecs.value[idx] = {
+              ...allAvailableSpecs.value[idx],
+              file_missing: true
+            }
+          }
+        } else {
+          errorMessage = errorMessage || 'Invalid spec ID format or file error'
+        }
       } else if (res.status === 403) {
         errorMessage = errorMessage || "You don't have access to this specification"
       } else if (res.status === 404) {

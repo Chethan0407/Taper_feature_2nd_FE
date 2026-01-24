@@ -939,6 +939,7 @@ import { useAuthStore } from '@/stores/auth'
 import LinkModal from '@/components/LinkModal.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { fetchProjectDashboard, authenticatedFetch } from '@/utils/auth-requests'
+import { apiClient, parseApiError } from '@/utils/api-client'
 import { getLinkedContent, type LinkedSpecification } from '@/utils/spec-linking-api'
 import { validateToken, isTokenExpired } from '@/utils/token-utils'
 
@@ -1508,12 +1509,27 @@ const loadLinkedContent = async () => {
     }
     
     // Merge checklists from linked-content with status/active IDs from with-status endpoint
-    // Create a map of checklist-by-template-id so we can grab both status and active checklist ID
+    // Create a flexible map so we can match either by template ID or active checklist ID.
     const statusMap = new Map<number | string, any>()
     checklistsWithStatus.forEach((checklist: any) => {
-      // Expect backend to send something like:
-      // { id: <template_checklist_id>, name, status, active_checklist_id, ... }
-      statusMap.set(checklist.id, checklist)
+      // Backend may send different identifier fields; index by all of them.
+      // Common shapes:
+      // - { id: <template_checklist_id>, ... }
+      // - { template_id: <template_checklist_id>, ... }
+      // - { checklist_template_id: <template_checklist_id>, ... }
+      // - { active_checklist_id: <active_instance_id>, ... }
+      if (checklist.id !== undefined) {
+        statusMap.set(checklist.id, checklist)
+      }
+      if (checklist.template_id !== undefined) {
+        statusMap.set(checklist.template_id, checklist)
+      }
+      if (checklist.checklist_template_id !== undefined) {
+        statusMap.set(checklist.checklist_template_id, checklist)
+      }
+      if (checklist.active_checklist_id !== undefined) {
+        statusMap.set(checklist.active_checklist_id, checklist)
+      }
     })
     
     // Merge status into checklists from linked-content
@@ -2853,7 +2869,16 @@ const loadLintDetail = async (lintResultId: string | number) => {
       throw new Error('Failed to load lint details')
     }
     
-    lintDetailData.value = await response.json()
+    const data = await response.json()
+    lintDetailData.value = data
+
+    // Keep the lightweight list item and the detailed payload in sync
+    if (selectedLintResult.value && String(selectedLintResult.value.id) === String(data.id ?? lintResultId)) {
+      selectedLintResult.value = {
+        ...selectedLintResult.value,
+        ...data
+      }
+    }
   } catch (err: any) {
     console.error('Error loading lint detail:', err)
     showToast(`Failed to load lint details: ${err.message}`, true)
@@ -2941,7 +2966,8 @@ const submitComment = async () => {
   commentSubmitting.value = true
   
   try {
-    const response = await authenticatedFetch('/api/v1/comments', {
+    // Use the shared comments API (same as SpecLint page)
+    const response = await apiClient('/comments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -2950,12 +2976,13 @@ const submitComment = async () => {
         // Backend expects exactly: { content, entity_type, entity_id }
         content: newComment.value.trim(),
         entity_type: 'lint_result',
-        entity_id: Number(selectedLintResult.value.id)
+        entity_id: selectedLintResult.value.id
       })
     })
     
     if (!response.ok) {
-      throw new Error('Failed to submit comment')
+      const errorMessage = await parseApiError(response, 'Failed to submit comment')
+      throw new Error(errorMessage)
     }
     
     showToast('Comment added successfully', false)
