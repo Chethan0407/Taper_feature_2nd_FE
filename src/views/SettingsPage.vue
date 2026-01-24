@@ -404,9 +404,11 @@ import Header from '@/components/Layout/Header.vue'
 import { onMounted, onActivated, ref, watch, nextTick } from 'vue'
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandingStore } from '@/stores/branding'
 import { useRouter, useRoute } from 'vue-router'
 
 const authStore = useAuthStore()
+const brandingStore = useBrandingStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -446,7 +448,7 @@ const notificationsError = ref('')
 const notificationsSuccess = ref(false)
 const savingNotifications = ref(false)
 
-// Branding
+// Branding (local edit state mirrors global branding store)
 const branding = ref({
   company_name: '',
   logo_url: '',
@@ -967,17 +969,14 @@ const loadBranding = async () => {
   try {
     brandingLoading.value = true
     brandingError.value = ''
-    const res = await apiClient('/settings/branding/')
-    if (!res.ok) {
-      // Handle 401 - don't redirect immediately, just show error
-      if (res.status === 401 && (res as any).isAuthError) {
-        brandingError.value = 'Authentication failed. Please refresh the page or log in again.'
-        return
-      }
-      const errorMessage = await parseApiError(res, 'Failed to load branding')
-      throw new Error(errorMessage)
+    // Prefer using the shared branding store so Header & other views stay in sync
+    await brandingStore.fetchBranding()
+    const data = {
+      company_name: brandingStore.company_name,
+      logo_url: brandingStore.logo_url,
+      primary_color: brandingStore.primary_color,
+      secondary_color: brandingStore.secondary_color
     }
-    const data = await res.json()
     branding.value = {
       company_name: data.company_name || '',
       logo_url: data.logo_url || '',
@@ -1046,9 +1045,9 @@ const uploadLogo = async () => {
 
 const saveBranding = async () => {
   try {
-  brandingLoading.value = true
-  brandingError.value = ''
-  brandingSuccess.value = false
+    brandingLoading.value = true
+    brandingError.value = ''
+    brandingSuccess.value = false
 
     // If logo file is selected but not uploaded, upload it first
     if (logoFile.value) {
@@ -1061,16 +1060,10 @@ const saveBranding = async () => {
     if (branding.value.primary_color) body.primary_color = branding.value.primary_color
     if (branding.value.secondary_color) body.secondary_color = branding.value.secondary_color
 
-    const res = await apiClient('/settings/branding/', {
-      method: 'PUT',
-      body: JSON.stringify(body)
-    })
+    // Use the shared branding store update so global state (Header, etc.) updates immediately
+    await brandingStore.updateBranding(body)
 
-    if (!res.ok) {
-      const errorMessage = await parseApiError(res, 'Failed to save branding')
-      throw new Error(errorMessage)
-    }
-
+    // Refresh local edit state from store
     await loadBranding()
     brandingSuccess.value = true
     setTimeout(() => { brandingSuccess.value = false }, 3000)
