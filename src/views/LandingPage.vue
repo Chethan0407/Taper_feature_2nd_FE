@@ -491,7 +491,14 @@
             <ul class="space-y-2 text-sm text-gray-400">
               <li><a href="#about" class="hover:text-neon-blue transition-colors">About</a></li>
               <li><a href="/about" class="hover:text-neon-blue transition-colors">About Page</a></li>
-              <li><a href="#" class="hover:text-neon-blue transition-colors">Contact</a></li>
+              <li>
+                <a
+                  href="mailto:support@tapeoutops.com"
+                  class="hover:text-neon-blue transition-colors"
+                >
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
 
