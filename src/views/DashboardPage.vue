@@ -236,23 +236,33 @@
         <!-- Quick Stats -->
         <div v-else class="mt-12 grid grid-cols-1 md:grid-cols-5 gap-6">
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-blue mb-2">{{ loadingStats ? '--' : stats.approved_specs ?? '--' }}</div>
+            <div class="text-3xl font-bold text-neon-blue mb-2">
+              {{ loadingStats ? '0' : (stats.approved_specs ?? 0) }}
+            </div>
             <div class="text-gray-600 dark:text-gray-400">Approved Specs</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-green mb-2">{{ loadingStats ? '--' : stats.pending_specs ?? '--' }}</div>
+            <div class="text-3xl font-bold text-neon-green mb-2">
+              {{ loadingStats ? '0' : (stats.pending_specs ?? 0) }}
+            </div>
             <div class="text-gray-600 dark:text-gray-400">Pending Specs</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-red-500 mb-2">{{ loadingStats ? '--' : stats.rejected_specs ?? '--' }}</div>
+            <div class="text-3xl font-bold text-red-500 mb-2">
+              {{ loadingStats ? '0' : (stats.rejected_specs ?? 0) }}
+            </div>
             <div class="text-gray-600 dark:text-gray-400">Rejected Specs</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-purple mb-2">{{ loadingStats ? '--' : stats.vendor_partners ?? '--' }}</div>
+            <div class="text-3xl font-bold text-neon-purple mb-2">
+              {{ loadingStats ? '0' : (stats.vendor_partners ?? 0) }}
+            </div>
             <div class="text-gray-600 dark:text-gray-400">Vendor Partners</div>
           </div>
           <div class="card text-center">
-            <div class="text-3xl font-bold text-yellow-400 mb-2">{{ loadingStats ? '--' : (stats.quality_score !== undefined ? stats.quality_score + '%' : '--') }}</div>
+            <div class="text-3xl font-bold text-yellow-400 mb-2">
+              {{ loadingStats ? '0%' : ((stats.quality_score ?? 0) + '%') }}
+            </div>
             <div class="text-gray-600 dark:text-gray-400">Quality Score</div>
           </div>
         </div>

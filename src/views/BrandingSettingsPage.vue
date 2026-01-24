@@ -20,22 +20,20 @@
             <div>
               <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Company Information</h2>
               
-              <!-- Company Name -->
+              <!-- Company Name (read-only - managed by Companies) -->
               <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Company Name *
+                  Company Name
                 </label>
                 <input
                   v-model="form.company_name"
                   type="text"
-                  required
-                  maxlength="100"
-                  :disabled="loading"
-                  class="input-field w-full rounded-xl px-4 py-3 text-lg"
-                  placeholder="Enter your company name"
+                  readonly
+                  class="input-field w-full rounded-xl px-4 py-3 text-lg bg-gray-100 dark:bg-dark-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                  placeholder="Company name is managed in Companies"
                 />
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  This name will appear throughout the application
+                  Company name is managed in the Companies module and cannot be changed here.
                 </p>
               </div>
 
@@ -299,7 +297,6 @@ const currentLogo = ref('')
 const hasChanges = computed(() => {
   if (!originalValues.value) return false
   return (
-    form.value.company_name !== originalValues.value.company_name ||
     form.value.primary_color !== originalValues.value.primary_color ||
     form.value.secondary_color !== originalValues.value.secondary_color ||
     selectedLogoFile.value !== null // Logo file selected but not saved
@@ -409,7 +406,8 @@ const saveBranding = async () => {
     
     // Step 2: Update branding settings with all fields
     const updateData: any = {
-      company_name: form.value.company_name,
+      // NOTE: company_name is immutable once created and is managed by Companies,
+      // so we intentionally do NOT send it from this page.
       primary_color: form.value.primary_color,
       secondary_color: form.value.secondary_color
     }
@@ -440,7 +438,7 @@ const saveBranding = async () => {
     
     // Step 3: Update form with response data
     form.value = {
-      company_name: updatedData.company_name || form.value.company_name,
+      company_name: form.value.company_name,
       logo_url: updatedData.logo_url || form.value.logo_url,
       primary_color: updatedData.primary_color || form.value.primary_color,
       secondary_color: updatedData.secondary_color || form.value.secondary_color
@@ -597,7 +595,7 @@ const resetForm = () => {
   }
 }
 
-// Auto-save functionality
+// Auto-save functionality (only for colors/logo, not company_name)
 const triggerAutoSave = () => {
   if (autoSaveTimeout) {
     clearTimeout(autoSaveTimeout)
@@ -616,7 +614,6 @@ const triggerAutoSave = () => {
 }
 
 // Watchers
-watch(() => form.value.company_name, triggerAutoSave)
 watch(() => form.value.primary_color, triggerAutoSave)
 watch(() => form.value.secondary_color, triggerAutoSave)
 
