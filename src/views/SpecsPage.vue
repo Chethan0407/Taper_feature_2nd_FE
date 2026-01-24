@@ -169,30 +169,72 @@
                   </td>
                   <td class="py-3 px-4">{{ spec.assigned_to || '—' }}</td>
                   <td class="py-3 px-4 text-center">
-                    <div class="flex items-center justify-center gap-2">
-                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400" @click="updateSpecStatus(spec, 'approved')" :disabled="spec.status === 'Approved'" title="Approve">
+                    <!-- If spec is linked, show full action set (user can re-approve / re-reject) -->
+                    <div
+                      v-if="isSpecAlreadyLinked(spec.id)"
+                      class="flex items-center justify-center gap-2"
+                    >
+                      <button
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400"
+                        @click="updateSpecStatus(spec, 'approved')"
+                        :title="spec.status === 'Approved' ? 'Approve again' : 'Approve'"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </button>
-                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500" @click="updateSpecStatus(spec, 'rejected')" :disabled="spec.status === 'Rejected'" title="Reject">
-                        <!-- Red X SVG for Reject -->
+                      <button
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500"
+                        @click="updateSpecStatus(spec, 'rejected')"
+                        :title="spec.status === 'Rejected' ? 'Reject again' : 'Reject'"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" />
                           <line x1="6" y1="18" x2="18" y2="6" stroke="currentColor" stroke-width="2" />
                         </svg>
                       </button>
-                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400" @click="handleDownload(spec.id)" title="Download">
+                      <button
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400"
+                        @click="handleDownload(spec.id)"
+                        title="Download"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 4v12" />
                         </svg>
                       </button>
-                      <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500" @click="() => confirmAndDelete(spec.id)" title="Delete">
-                        <!-- Trash/bin SVG for Delete -->
+                      <button
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500"
+                        @click="() => confirmAndDelete(spec.id)"
+                        title="Delete"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
                         </svg>
                       </button>
+                    </div>
+
+                    <!-- If spec is NOT linked, show disabled state with clear guidance -->
+                    <div
+                      v-else
+                      class="flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                      title="Link this spec to a project to enable approve / reject"
+                    >
+                      <div class="flex items-center gap-2">
+                        <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 border border-gray-600" disabled>
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 border border-gray-600" disabled>
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" />
+                            <line x1="6" y1="18" x2="18" y2="6" stroke="currentColor" stroke-width="2" />
+                          </svg>
+                        </button>
+                      </div>
+                      <span class="text-[11px] text-gray-400 mt-0.5">
+                        Link to a project to approve / reject
+                      </span>
                     </div>
                   </td>
                   <td class="py-3 px-4">

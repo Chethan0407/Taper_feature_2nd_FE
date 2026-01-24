@@ -847,7 +847,8 @@ const loadNotifications = async () => {
   try {
     notificationsLoading.value = true
     notificationsError.value = ''
-    const res = await apiClient('/settings/notifications/')
+    // Backend: GET /api/v1/settings/notifications -> { "preferences": [ ... ] }
+    const res = await apiClient('/settings/notifications')
     if (!res.ok) {
       // Handle 401 - don't redirect immediately, just show error
       if (res.status === 401 && (res as any).isAuthError) {
@@ -858,7 +859,21 @@ const loadNotifications = async () => {
       throw new Error(errorMessage)
     }
     const data = await res.json()
-    notificationPreferences.value = data.preferences || []
+    const prefs = Array.isArray(data.preferences) ? data.preferences : []
+
+    // Ensure we always have the 3 core notification types
+    const defaultTypes: Array<{ notification_type: string; is_enabled: boolean }> = [
+      { notification_type: 'comment', is_enabled: true },
+      { notification_type: 'update', is_enabled: true },
+      { notification_type: 'mention', is_enabled: true }
+    ]
+
+    const merged: Array<{ notification_type: string; is_enabled: boolean }> = defaultTypes.map(def => {
+      const existing = prefs.find((p: any) => p.notification_type === def.notification_type)
+      return existing ? { notification_type: existing.notification_type, is_enabled: !!existing.is_enabled } : def
+    })
+
+    notificationPreferences.value = merged
   } catch (e: any) {
     notificationsError.value = e.message || 'Failed to load notifications'
   } finally {
@@ -866,36 +881,16 @@ const loadNotifications = async () => {
   }
 }
 
-const toggleNotification = async (type: string, event: Event) => {
+const toggleNotification = (type: string, event: Event) => {
   const target = event.target as HTMLInputElement
   const enabled = target.checked
 
-  // Optimistic update
+  // Local-only optimistic update; persisted when user clicks "Save Preferences"
   const pref = notificationPreferences.value.find(p => p.notification_type === type)
   if (pref) {
     pref.is_enabled = enabled
-  }
-
-  try {
-    // PATCH to update single preference
-    const res = await apiClient('/settings/notifications/', {
-      method: 'PATCH',
-      body: JSON.stringify([{
-        notification_type: type,
-        is_enabled: enabled
-      }])
-    })
-
-    if (!res.ok) {
-      // Revert on error
-      if (pref) pref.is_enabled = !enabled
-      const errorMessage = await parseApiError(res, 'Failed to update notification')
-      throw new Error(errorMessage)
-    }
-  } catch (e: any) {
-    // Revert on error
-    if (pref) pref.is_enabled = !enabled
-    alert(`Failed to update notification: ${e.message}`)
+  } else {
+    notificationPreferences.value.push({ notification_type: type, is_enabled: enabled })
   }
 }
 
@@ -905,7 +900,8 @@ const saveNotificationPreferences = async () => {
     notificationsError.value = ''
     notificationsSuccess.value = false
 
-    const res = await apiClient('/settings/notifications/', {
+    // Backend: PUT /api/v1/settings/notifications with full array of preferences
+    const res = await apiClient('/settings/notifications', {
       method: 'PUT',
       body: JSON.stringify(notificationPreferences.value)
     })

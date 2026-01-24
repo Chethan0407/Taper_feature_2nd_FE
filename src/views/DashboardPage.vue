@@ -199,6 +199,12 @@
           </div>
         </div>
 
+        <!-- Active filter summary -->
+        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+          Showing specs for
+          <span class="font-medium text-gray-900 dark:text-white">{{ activeFilterSummary }}</span>
+        </p>
+
         <!-- Loading state for tapeouts or metadata -->
         <div v-if="metadataStore.loading || showTapeoutsLoading" class="flex justify-center items-center py-12">
           <div class="text-center">
@@ -293,14 +299,47 @@ const selectedFilters = ref({
   status: ''
 })
 
+const activeFilterSummary = computed(() => {
+  const parts: string[] = []
+  if (selectedFilters.value.platform) parts.push(selectedFilters.value.platform)
+  if (selectedFilters.value.edaTool) parts.push(selectedFilters.value.edaTool)
+  if (selectedFilters.value.type) parts.push(selectedFilters.value.type)
+  if (selectedFilters.value.status) parts.push(selectedFilters.value.status)
+  return parts.length ? parts.join(' • ') : 'All specs'
+})
+
 const fetchStats = async () => {
   loadingStats.value = true
   statsError.value = ''
   try {
+    // Build query params from selected filters
+    const params = new URLSearchParams()
+    if (selectedFilters.value.platform) params.append('platform', selectedFilters.value.platform)
+    if (selectedFilters.value.edaTool) params.append('eda_tool', selectedFilters.value.edaTool)
+    if (selectedFilters.value.type) params.append('type', selectedFilters.value.type)
+    if (selectedFilters.value.status) params.append('status', selectedFilters.value.status)
+
+    const queryString = params.toString()
+    const url = queryString ? `/api/v1/dashboard?${queryString}` : '/api/v1/dashboard'
+
     // Use authenticatedFetch which automatically includes Authorization header and handles URL normalization
-    const res = await authenticatedFetch('/api/v1/dashboard/stats')
+    const res = await authenticatedFetch(url)
     
     if (!res.ok) {
+      // If backend returns 404 for "no data" with current filters, treat as empty stats instead of a hard error
+      if (res.status === 404) {
+        console.warn('📊 Dashboard stats 404 for current filters - treating as empty stats')
+        stats.value = {
+          approved_specs: 0,
+          pending_specs: 0,
+          rejected_specs: 0,
+          vendor_partners: 0,
+          quality_score: undefined
+        }
+        statsError.value = ''
+        return
+      }
+
       const errorText = await res.text()
       let errorMsg = 'Unable to load dashboard stats.'
       try {
@@ -350,14 +389,22 @@ const fetchTapeouts = async () => {
     tapeouts.value = specificationsStore.specifications || []
   } catch (e: any) {
     const errorMessage = e.message || 'Failed to fetch specifications'
-    tapeoutsError.value = errorMessage
-    
-    // Check if it's an authentication error
-    if (errorMessage.includes('Not authenticated') || errorMessage.includes('Authentication')) {
-      console.warn('⚠️ Authentication error in fetchTapeouts, but not redirecting to allow graceful error display')
+
+    // If backend treats "no specs for these filters" as 404, show empty list instead of a hard error
+    if (errorMessage.includes('404') || errorMessage.toLowerCase().includes('not found')) {
+      console.warn('📄 Specifications 404 for current filters - showing empty list')
+      tapeouts.value = []
+      tapeoutsError.value = ''
+    } else {
+      tapeoutsError.value = errorMessage
+
+      // Check if it's an authentication error
+      if (errorMessage.includes('Not authenticated') || errorMessage.includes('Authentication')) {
+        console.warn('⚠️ Authentication error in fetchTapeouts, but not redirecting to allow graceful error display')
+      }
+
+      console.error('Error fetching tapeouts:', e)
     }
-    
-    console.error('Error fetching tapeouts:', e)
   } finally {
     tapeoutsLoading.value = false
     if (tapeoutsLoadingDelay) clearTimeout(tapeoutsLoadingDelay)
@@ -403,7 +450,10 @@ onUnmounted(() => {
 })
 
 const handleFilter = (key: keyof typeof selectedFilters.value, value: string) => {
-  selectedFilters.value[key] = value
+  // Toggle behavior: clicking the same chip again clears that filter
+  selectedFilters.value[key] = selectedFilters.value[key] === value ? '' : value
+  // When filters change, refresh both stats and spec list so they stay in sync
+  fetchStats()
   fetchTapeouts()
 }
 

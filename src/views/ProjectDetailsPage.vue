@@ -153,7 +153,8 @@
             <div v-else-if="filteredSpecsList.length === 0" class="text-center py-8">
               <p class="text-gray-400">No specifications match your search.</p>
             </div>
-            <div v-else class="space-y-4">
+            <!-- Specs list with internal scroll so page height doesn't keep growing -->
+            <div v-else class="max-h-[420px] overflow-y-auto pr-1 space-y-4">
               <div v-for="spec in filteredSpecsList" :key="spec.id" class="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
@@ -235,10 +236,10 @@
               >
                 Add First Checklist
                 </button>
-          </div>
+            </div>
 
-            <!-- Checklist Cards -->
-            <div v-else class="space-y-4">
+            <!-- Checklist list with internal scroll so page height doesn't keep growing -->
+            <div v-else class="max-h-[420px] overflow-y-auto pr-1 space-y-4">
               <div 
                 v-for="checklist in filteredLinkedChecklists" 
                 :key="checklist.id" 
@@ -296,7 +297,7 @@
                       v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'approved'"
                       @click="onApproveChecklist(checklist)"
                       class="px-3 py-1 text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center space-x-1"
-                      :disabled="approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      :disabled="approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) || rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
                       title="Approve checklist"
                     >
                       <svg v-if="approvingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,17 +314,17 @@
                       v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'declined' && checklist.status !== 'approved'"
                       @click="onRejectChecklist(checklist)"
                       class="px-3 py-1 text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex items-center space-x-1"
-                      :disabled="approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      :disabled="rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) || approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
                       title="Reject checklist"
                     >
-                      <svg v-if="approvingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg v-if="rejectingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                       <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>{{ approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Rejecting...' : 'Reject' }}</span>
+                      <span>{{ rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Rejecting...' : 'Reject' }}</span>
                     </button>
                     <!-- Unlink Button -->
                     <button 
@@ -399,8 +400,8 @@
               </button>
             </div>
             
-            <!-- Lint Results List -->
-            <div v-else class="space-y-4">
+            <!-- Lint Results List with internal scroll so page height doesn't keep growing -->
+            <div v-else class="max-h-[420px] overflow-y-auto pr-1 space-y-4">
               <div 
                 v-for="lint in linkedSpecLints" 
                 :key="lint.id" 
@@ -1027,6 +1028,7 @@ const removingSpecId = ref<string | number | null>(null)
 const removingChecklistId = ref<string | number | null>(null)
 const removingLintId = ref<string | number | null>(null)
 const approvingChecklistId = ref<string | number | null>(null)
+const rejectingChecklistId = ref<string | number | null>(null)
 
 // Link Lint Result Modal
 const showLinkLintModal = ref(false)
@@ -1505,20 +1507,43 @@ const loadLinkedContent = async () => {
       console.error('❌ Error fetching checklists with status:', err)
     }
     
-    // Merge checklists from linked-content with status from with-status endpoint
-    // Create a map of checklist status by ID
-    const statusMap = new Map<number | string, string>()
+    // Merge checklists from linked-content with status/active IDs from with-status endpoint
+    // Create a map of checklist-by-template-id so we can grab both status and active checklist ID
+    const statusMap = new Map<number | string, any>()
     checklistsWithStatus.forEach((checklist: any) => {
-      statusMap.set(checklist.id, checklist.status || 'pending')
+      // Expect backend to send something like:
+      // { id: <template_checklist_id>, name, status, active_checklist_id, ... }
+      statusMap.set(checklist.id, checklist)
     })
     
     // Merge status into checklists from linked-content
     const mergedChecklists = checklistsArray.map((checklist: any) => {
       const checklistId = checklist.id
-      const status = statusMap.get(checklistId) || checklist.status || 'pending'
+      const statusEntry = statusMap.get(checklistId) || {}
+      // Backend might expose status or an approved flag under different keys; prefer explicit ones first
+      const approvedFlag =
+        statusEntry.is_approved ??
+        statusEntry.approved ??
+        checklist.is_approved ??
+        checklist.approved
+      const rawStatus =
+        (approvedFlag === true ? 'approved' : undefined) ??
+        statusEntry.status ??
+        statusEntry.approval_status ??
+        statusEntry.review_status ??
+        checklist.status ??
+        'pending'
+      // Normalize to lowercase so UI checks like status === 'approved' work reliably
+      const status = String(rawStatus).toLowerCase()
+      const activeChecklistId =
+        statusEntry.active_checklist_id !== undefined
+          ? statusEntry.active_checklist_id
+          : checklist.active_checklist_id
+
       return {
         ...checklist,
-        status: status // Use status from with-status endpoint, fallback to linked-content status, then 'pending'
+        status,                  // Use status from with-status endpoint, fallback to linked-content status, then 'pending'
+        active_checklist_id: activeChecklistId
       }
     })
     
@@ -2155,6 +2180,11 @@ async function onUnlinkChecklist(checklist: any) {
   
   console.log('✅ Project ID:', projectId)
   const checklistId = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
+  // IMPORTANT: approval must use the ACTIVE checklist ID, not the template/linked ID
+  const activeChecklistId =
+    typeof checklist === 'object' && checklist !== null
+      ? (checklist.active_checklist_id ?? checklist.id)
+      : checklist
   const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
   
   console.log('🔗 Showing confirmation modal for checklist:', checklistId, checklistName)
@@ -2225,26 +2255,93 @@ async function onApproveChecklist(checklist: any) {
   
   const checklistId = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
   const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
+  // IMPORTANT: Approval must use the ACTIVE checklist ID, not the template/linked ID
+  // If we don't yet have an active checklist instance, we will create one first.
+  let activeChecklistId: string | number | null =
+    typeof checklist === 'object' && checklist !== null
+      ? (checklist.active_checklist_id ?? null)
+      : null
   
   try {
     approvingChecklistId.value = checklistId
     
-    // Use the checklist approval endpoint
-    console.log('📝 Approving checklist:', checklistId)
-    const approvalResponse = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/approve`, {
+    // 1) Ensure we have an active checklist instance
+    if (!activeChecklistId) {
+      console.log('🧩 No active checklist ID found for template checklist; creating active checklist instance first')
+      const createBody: any = { template_id: checklistId }
+      // Pass project_id context so backend can associate correctly
+      createBody.project_id = projectId
+      
+      const createRes = await authenticatedFetch('/api/v1/checklists/active', {
+        method: 'POST',
+        body: JSON.stringify(createBody)
+      })
+      
+      if (!createRes.ok) {
+        const createText = await createRes.text().catch(() => '')
+        throw new Error(createText || 'Failed to create active checklist before approval')
+      }
+      
+      const createdActiveChecklist = await createRes.json()
+      activeChecklistId = createdActiveChecklist.id
+      console.log('✅ Created active checklist instance:', createdActiveChecklist)
+      
+      // Update local checklist object so subsequent actions reuse this ID
+      if (typeof checklist === 'object' && checklist !== null) {
+        checklist.active_checklist_id = activeChecklistId
+      }
+    }
+    
+    if (!activeChecklistId) {
+      throw new Error('Active checklist ID is missing; cannot approve')
+    }
+    
+    // 2) Use the checklist approval endpoint with ACTIVE checklist ID
+    console.log('📝 Approving checklist with active ID:', activeChecklistId)
+    const approvalResponse = await authenticatedFetch(`/api/v1/checklists/active/${activeChecklistId}/approve`, {
       method: 'POST'
     })
     
     if (!approvalResponse.ok) {
+      const rawErrorText = await approvalResponse.text()
+      let errorMessage = rawErrorText || 'Failed to approve checklist'
+
+      // Try to parse JSON error: { "detail": "..." }
+      try {
+        const parsed = JSON.parse(rawErrorText)
+        if (parsed?.detail) {
+          errorMessage = parsed.detail
+        }
+      } catch {
+        // not JSON, keep raw text
+      }
+
+      const lowerMsg = errorMessage.toLowerCase()
+
+      // If backend says it's already approved/completed, treat as success
+      if (lowerMsg.includes('already approved')) {
+        console.warn('ℹ️ Checklist already approved/completed:', errorMessage)
+        await loadLinkedContent()
+        await loadQualityScore(projectId)
+        showToast(`"${checklistName}" is already approved.`, false)
+        return
+      }
+
+      // If backend says active checklist not found, show friendly message
+      if (approvalResponse.status === 404 || lowerMsg.includes('active checklist not found')) {
+        console.warn('ℹ️ Active checklist not found for approval:', errorMessage)
+        showToast(`Could not approve "${checklistName}" because its active checklist was not found. Please refresh the page or re-link the checklist.`, true)
+        return
+      }
+
       if (approvalResponse.status === 401) {
-        const errorText = await approvalResponse.text()
-        console.error('❌ 401 Unauthorized:', errorText)
+        console.error('❌ 401 Unauthorized:', errorMessage)
         showToast('Authentication failed. Please log in again.', true)
         router.push('/login')
         return
       }
-      const errorText = await approvalResponse.text()
-      throw new Error(errorText || 'Failed to approve checklist')
+
+      throw new Error(errorMessage)
     }
     
     const updatedChecklist = await approvalResponse.json()
@@ -2280,7 +2377,7 @@ async function onRejectChecklist(checklist: any) {
   const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
   
   try {
-    approvingChecklistId.value = checklistId
+    rejectingChecklistId.value = checklistId
     
     // Create a comment with "reject" in the content to trigger rejection
     console.log('📝 Creating rejection comment for checklist:', checklistId)
@@ -2325,7 +2422,7 @@ async function onRejectChecklist(checklist: any) {
     console.error('❌ Error rejecting checklist:', e)
     showToast(`Failed to reject checklist: ${e.message || e}`, true)
   } finally {
-    approvingChecklistId.value = null
+    rejectingChecklistId.value = null
   }
 }
 
@@ -2804,7 +2901,24 @@ const reRunLint = async (specId: string | number) => {
           return
         }
       }
-      throw new Error('Failed to trigger lint')
+      
+      // Try to surface backend error message (e.g. "You do not have access to this specification")
+      let errorMessage = 'Failed to trigger lint'
+      try {
+        const errorText = await response.text()
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+      } catch (e) {
+        console.error('Failed to read lint error response:', e)
+      }
+      
+      throw new Error(errorMessage)
     }
     
     showToast('Linting triggered successfully. Results will appear shortly.', false)
@@ -2833,10 +2947,10 @@ const submitComment = async () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        // Backend expects exactly: { content, entity_type, entity_id }
         content: newComment.value.trim(),
-        entity_type: 'LINT_RESULT',
-        entity_id: selectedLintResult.value.id,
-        project_id: project.value.id
+        entity_type: 'lint_result',
+        entity_id: Number(selectedLintResult.value.id)
       })
     })
     
@@ -2912,22 +3026,22 @@ const filteredUnlinkedChecklists = computed(() => {
   if (project.value?.checklists) {
     project.value.checklists.forEach((c: any) => {
       const id = typeof c === 'object' && c !== null ? c.id : c
-      linkedIds.add(id)
+      linkedIds.add(String(id))
     })
   }
   if (project.value?.checklist_ids) {
-    project.value.checklist_ids.forEach((id: any) => linkedIds.add(id))
+    project.value.checklist_ids.forEach((id: any) => linkedIds.add(String(id)))
   }
   
   // From linkedChecklists (from linked-content API)
   linkedChecklists.value.forEach((checklist: any) => {
     const id = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
-    linkedIds.add(id)
+    linkedIds.add(String(id))
   })
   
   // Filter out linked checklists and apply search
   return allChecklists.value.filter(checklist => {
-    const isNotLinked = !linkedIds.has(checklist.id)
+    const isNotLinked = !linkedIds.has(String(checklist.id))
     const matchesSearch = !checklistSearch.value || 
       checklist.name?.toLowerCase().includes(checklistSearch.value.toLowerCase()) || 
       String(checklist.id).includes(checklistSearch.value)

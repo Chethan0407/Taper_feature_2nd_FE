@@ -59,6 +59,14 @@
             @click="handleNotificationClick(notification)"
           >
             <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide"
+                  :class="getTypeBadgeClass(notification.type)"
+                >
+                  {{ formatType(notification.type) }}
+                </span>
+              </div>
               <p class="text-sm text-white mb-1">{{ notification.message }}</p>
               <span class="text-xs text-gray-400">{{ formatTime(notification.created_at) }}</span>
             </div>
@@ -115,28 +123,56 @@ const displayedNotifications = computed(() => {
   return notifications.value.slice(0, 10)
 })
 
-// Load notifications
+// Load notifications (unread only)
 const loadNotifications = async () => {
   try {
     loading.value = true
     error.value = ''
-    const res = await authenticatedFetch('/api/v1/notifications/?is_read=false')
-    if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(errorText || 'Failed to load notifications')
+    // Primary endpoint from spec: GET /api/v1/notifications?is_read=false
+    let res = await authenticatedFetch('/api/v1/notifications?is_read=false')
+
+    // Some backends are mounted with a trailing slash before query params (e.g. /notifications/?...)
+    if (res.status === 404) {
+      console.warn('Notifications endpoint /api/v1/notifications?is_read=false returned 404, trying /api/v1/notifications/?is_read=false fallback')
+      res = await authenticatedFetch('/api/v1/notifications/?is_read=false')
     }
+
+    if (!res.ok) {
+      let message = 'Failed to load notifications'
+      try {
+        const text = await res.text()
+        if (text) {
+          try {
+            const parsed = JSON.parse(text)
+            message = parsed.detail || parsed.message || message
+          } catch {
+            message = text
+          }
+        }
+      } catch {
+        // ignore, keep default message
+      }
+      throw new Error(message)
+    }
+
     const data = await res.json()
     notifications.value = Array.isArray(data) ? data : (data.results || [])
   } catch (e: any) {
-    error.value = e.message || 'Failed to load notifications'
+    error.value = e?.message || 'Failed to load notifications'
     console.error('Failed to load notifications:', e)
   } finally {
     loading.value = false
   }
 }
 
-// Mark notification as read
+// Mark notification as read (optimistic: remove from unread list immediately)
 const markAsRead = async (notificationId: number) => {
+  // Optimistically remove from local unread list so badge + list update immediately
+  const index = notifications.value.findIndex(n => n.id === notificationId)
+  if (index === -1) return
+
+  const [removed] = notifications.value.splice(index, 1)
+
   try {
     const res = await authenticatedFetch(`/api/v1/notifications/${notificationId}`, {
       method: 'PATCH',
@@ -146,14 +182,12 @@ const markAsRead = async (notificationId: number) => {
     if (!res.ok) {
       throw new Error('Failed to mark as read')
     }
-
-    // Update local state
-    const notification = notifications.value.find(n => n.id === notificationId)
-    if (notification) {
-      notification.is_read = true
-    }
   } catch (e: any) {
     console.error('Failed to mark as read:', e)
+    // Revert optimistic update on error
+    if (removed) {
+      notifications.value.splice(index, 0, removed)
+    }
   }
 }
 
@@ -212,6 +246,34 @@ const toggleDropdown = () => {
   }
 }
 
+// Helper: human-readable notification type
+const formatType = (type: Notification['type']) => {
+  switch (type) {
+    case 'comment':
+      return 'Comment'
+    case 'update':
+      return 'Update'
+    case 'mention':
+      return 'Mention'
+    default:
+      return type
+  }
+}
+
+// Helper: badge color per type
+const getTypeBadgeClass = (type: Notification['type']) => {
+  switch (type) {
+    case 'comment':
+      return 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+    case 'update':
+      return 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+    case 'mention':
+      return 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+    default:
+      return 'bg-gray-500/20 text-gray-300 border border-gray-500/40'
+  }
+}
+
 // Format time
 const formatTime = (dateString: string) => {
   const date = new Date(dateString)
@@ -235,12 +297,18 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
+// Refresh handler for global "notifications:refresh" events (e.g., checklist approval)
+const handleExternalRefresh = () => {
+  loadNotifications()
+}
+
 // Setup polling
 onMounted(() => {
   loadNotifications()
   // Poll every 30 seconds
   pollInterval = window.setInterval(loadNotifications, 30000)
   document.addEventListener('mousedown', handleClickOutside)
+  window.addEventListener('notifications:refresh', handleExternalRefresh)
 })
 
 onUnmounted(() => {
@@ -248,6 +316,7 @@ onUnmounted(() => {
     clearInterval(pollInterval)
   }
   document.removeEventListener('mousedown', handleClickOutside)
+  window.removeEventListener('notifications:refresh', handleExternalRefresh)
 })
 
 // Watch for route changes to refresh notifications

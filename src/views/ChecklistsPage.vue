@@ -67,8 +67,21 @@
                 <div class="text-gray-500 dark:text-gray-400">No active checklists found.</div>
               </div>
               <div v-else class="space-y-4">
-                <div v-for="checklist in activeChecklists" :key="checklist.id" class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                  <h3 class="font-medium text-gray-900 dark:text-white mb-2">{{ checklist.name }}</h3>
+                <div
+                  v-for="checklist in activeChecklists"
+                  :key="checklist.id"
+                  class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                >
+                  <!-- Show the template name that this active checklist was created from -->
+                  <h3 class="font-medium text-gray-900 dark:text-white mb-2">
+                    {{
+                      checklist.template_name ||
+                      checklist.template?.name ||
+                      checklist.name ||
+                      checklist.title ||
+                      `Checklist ${checklist.id}`
+                    }}
+                  </h3>
                   <div class="flex items-center justify-between text-sm">
                     <span class="text-gray-500 dark:text-gray-400">
                       <template v-if="checklistCompletion[checklist.id]?.loading">
@@ -91,11 +104,11 @@
                     <button 
                       class="btn-secondary" 
                       @click="approveChecklist(checklist.id)"
-                      :disabled="approving === checklist.id || checklist.status === 'approved'"
+                      :disabled="approving === checklist.id || isChecklistApproved(checklist)"
                     >
-                      {{ checklist.status === 'approved' ? 'Approved' : (approving === checklist.id ? 'Approving...' : 'Approve') }}
+                      {{ isChecklistApproved(checklist) ? 'Approved' : (approving === checklist.id ? 'Approving...' : 'Approve') }}
                     </button>
-                    <span v-if="checklist.status === 'approved'" class="bg-green-500/20 text-green-500 px-3 py-1 rounded text-xs font-semibold ml-2">Approved</span>
+                    <span v-if="isChecklistApproved(checklist)" class="bg-green-500/20 text-green-500 px-3 py-1 rounded text-xs font-semibold ml-2">Approved</span>
                   </div>
                 </div>
               </div>
@@ -193,10 +206,20 @@ const router = useRouter()
 
 interface Checklist {
   id: string
-  name: string
+  // Template name used to create this active checklist (preferred label)
+  template_name?: string
+  // Reference to the originating template
+  template_id?: string | number
+  // Fallbacks if backend sends different fields
+  name?: string
+  title?: string
+  template?: { name?: string }
   progress: number
   total: number
   status?: string
+  // Some backends expose explicit approval flags
+  is_approved?: boolean
+  approved?: boolean
 }
 
 const checklistsStore = useChecklistsStore()
@@ -213,8 +236,16 @@ const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
 const checklistCompletion = ref<Record<string, { progress: number; total: number; percent: number; loading: boolean }>>({})
 
 // Computed properties for statistics
+// Helper: determine if a checklist should be treated as approved in the UI
+const isChecklistApproved = (checklist: Checklist) => {
+  const status = checklist.status?.toLowerCase()
+  const completion = checklistCompletion.value[checklist.id]
+  const percent = completion?.percent ?? 0
+  return status === 'approved' || status === 'done' || percent === 100
+}
+
 const approvedCount = computed(() => {
-  return activeChecklists.value.filter(c => c.status === 'approved').length
+  return activeChecklists.value.filter(c => isChecklistApproved(c)).length
 })
 
 const averageCompletion = computed(() => {
@@ -239,7 +270,50 @@ const fetchActiveChecklists = async () => {
   activeChecklistsError.value = ''
   try {
     const data = await checklistsStore.fetchActiveChecklists()
-    activeChecklists.value = data || []
+    // Normalize active checklist data, especially status casing/field name
+    activeChecklists.value = (data || []).map((checklist: any) => {
+      // If backend exposes a boolean approved flag, treat that as source of truth
+      const approvedFlag = checklist.is_approved ?? checklist.approved
+      const rawStatus =
+        (approvedFlag === true ? 'approved' : undefined) ??
+        checklist.status ??
+        checklist.approval_status ??
+        checklist.review_status ??
+        'pending'
+      const status = String(rawStatus).toLowerCase()
+
+      // Try to determine the originating template ID
+      const templateId =
+        checklist.template_id ??
+        checklist.template?.id ??
+        checklist.template?.template_id
+
+      // If we know the template ID, look it up from the templates list in the store
+      const templateFromStore = templateId
+        ? checklistsStore.list.find((t: any) => String(t.id) === String(templateId))
+        : undefined
+
+      // Derive a stable display name for the card, preferring the TEMPLATE name
+      const templateName =
+        checklist.template_name ||
+        checklist.template?.name ||
+        templateFromStore?.name ||
+        checklist.name ||
+        checklist.title ||
+        (templateId ? `Checklist from template ${templateId}` : undefined)
+
+      return {
+        ...checklist,
+        status,
+        template_name: templateName,
+        template_id: templateId
+      }
+    })
+
+    // Recompute completion after any refresh of active checklists
+    for (const checklist of activeChecklists.value) {
+      await fetchChecklistCompletion(checklist.id)
+    }
     // Fetch completion for each checklist
     for (const checklist of activeChecklists.value) {
       fetchChecklistCompletion(checklist.id)
@@ -354,21 +428,83 @@ const getProgressClass = (progress: number, total: number) => {
 const approveChecklist = async (id: string) => {
   approving.value = id
   try {
-    const res = await authenticatedFetch(`/api/v1/checklists/active/${id}/approve/`, {
+    // IMPORTANT: Backend expects the active checklist ID here, with NO trailing slash
+    const res = await authenticatedFetch(`/api/v1/checklists/active/${id}/approve`, {
       method: 'POST'
     })
-    if (!res.ok) throw new Error('Approval failed')
+    if (!res.ok) {
+      // Handle 401 / token expiry explicitly so user gets a clear message
+      if (res.status === 401) {
+        let errorText = ''
+        try {
+          errorText = await res.text()
+        } catch {
+          // ignore
+        }
+        const msg = errorText || 'Token has expired. Please login again.'
+        toast.value = { message: msg, type: 'error' }
+        // Redirect to login after short delay
+        setTimeout(() => {
+          toast.value = null
+          router.push('/login')
+        }, 2000)
+        return
+      }
+
+      // For other errors, try to surface backend detail
+      let fallback = 'Approval failed'
+      try {
+        const text = await res.text()
+        if (text) {
+          try {
+            const data = JSON.parse(text)
+            fallback = data.detail || data.message || fallback
+          } catch {
+            fallback = text
+          }
+        }
+      } catch {
+        // ignore, keep fallback
+      }
+      throw new Error(fallback)
+    }
     const updatedChecklist = await res.json()
+    // Normalize status from response (status / approval_status / review_status / is_approved)
+    const approvedFlag = updatedChecklist.is_approved ?? updatedChecklist.approved
+    const rawStatus =
+      (approvedFlag === true ? 'approved' : undefined) ??
+      updatedChecklist.status ??
+      updatedChecklist.approval_status ??
+      updatedChecklist.review_status ??
+      activeChecklists.value.find(c => c.id === id)?.status ??
+      'approved'
+    const normalizedStatus = String(rawStatus).toLowerCase()
+
     // Update the checklist in local state
     const idx = activeChecklists.value.findIndex(c => c.id === id)
     if (idx !== -1) {
-      activeChecklists.value[idx] = { ...activeChecklists.value[idx], ...updatedChecklist }
+      activeChecklists.value[idx] = {
+        ...activeChecklists.value[idx],
+        ...updatedChecklist,
+        status: normalizedStatus
+      }
     }
-    // Refresh statistics after approval
-    await checklistsStore.fetchStats()
+    // Re-fetch active checklists and statistics after approval so UI & metrics stay in sync
+    await Promise.all([
+      fetchActiveChecklists(),
+      checklistsStore.fetchStats()
+    ])
+
+    // Let the notifications bell know there may be a new notification
+    try {
+      window.dispatchEvent(new CustomEvent('notifications:refresh'))
+    } catch (e) {
+      console.error('Failed to dispatch notifications refresh event:', e)
+    }
+
     toast.value = { message: 'Checklist approved!', type: 'success' }
-  } catch (e) {
-    toast.value = { message: 'Approval failed', type: 'error' }
+  } catch (e: any) {
+    toast.value = { message: e.message || 'Approval failed', type: 'error' }
   } finally {
     approving.value = null
     setTimeout(() => { toast.value = null }, 2000)

@@ -18,7 +18,7 @@
             v-model="searchQuery"
             type="text"
             class="input-field w-full pl-10 pr-4"
-            placeholder="Search companies by name, description, or creator..."
+            placeholder="Search companies by name..."
             @focus="showDropdown = !!searchResults.length"
             @blur="handleSearchBlur"
             @keydown="handleKeydown"
@@ -54,10 +54,15 @@
         <!-- Notifications -->
         <NotificationBell />
 
-        <!-- AI Assistant -->
-        <button class="p-2 text-gray-500 dark:text-gray-400 hover:text-neon-blue transition-colors" title="AI Assistant">
+        <!-- Smart Suggestions (Light-bulb) -->
+        <button
+          class="p-2 text-gray-500 dark:text-gray-400 hover:text-neon-blue transition-colors relative"
+          title="Smart Suggestions"
+          @click.stop="toggleSmartSuggestions"
+        >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 3a1 1 0 011-1 9 9 0 019 9 9.003 9.003 0 01-7 8.717V21a1 1 0 01-1 1h-2a1 1 0 01-1-1v-1.283A9.003 9.003 0 013 11a9 9 0 018-9z" />
           </svg>
         </button>
 
@@ -132,6 +137,11 @@
     </div>
   </header>
 
+  <!-- Smart Suggestions Panel -->
+  <SmartSuggestionsPanel
+    :is-open="showSmartSuggestions"
+    @close="showSmartSuggestions = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -142,6 +152,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCompaniesStore } from '@/stores/companies'
 import NotificationBell from './NotificationBell.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import SmartSuggestionsPanel from '@/components/Common/SmartSuggestionsPanel.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -162,6 +173,9 @@ let searchTimeout: any = null
 // User profile state
 const userProfile = ref<{ full_name?: string; email?: string; role?: string } | null>(null)
 const showProfileDropdown = ref(false)
+
+// Smart Suggestions
+const showSmartSuggestions = ref(false)
 
 // Optionally, you can add a status filter for global search
 // const statusFilter = ref('')
@@ -187,7 +201,19 @@ async function doCompanySearch(query: string) {
     // If you want to support status filter, pass it as the second argument
     // const companies = await companiesStore.searchCompanies(query, statusFilter.value)
     const companies = await companiesStore.searchCompanies(query)
-    searchResults.value = companies
+
+    // Extra client-side guard: only show results whose NAME (or domain) visibly matches the query
+    const normalized = query.trim().toLowerCase()
+    const filtered = companies.filter((c: any) => {
+      const name = (c.name || c.company_name || '').toLowerCase()
+      const domain = (c.domain || c.website || '').toLowerCase()
+      return (
+        (name && name.includes(normalized)) ||
+        (domain && domain.includes(normalized))
+      )
+    })
+
+    searchResults.value = filtered
   } catch (e) {
     searchError.value = 'Failed to search'
     searchResults.value = []
@@ -262,6 +288,10 @@ const handleClickOutside = (event: MouseEvent) => {
   if (profileDropdownRef.value && !profileDropdownRef.value.contains(event.target as Node)) {
     showProfileDropdown.value = false
   }
+}
+
+const toggleSmartSuggestions = () => {
+  showSmartSuggestions.value = !showSmartSuggestions.value
 }
 
 // Handle logout

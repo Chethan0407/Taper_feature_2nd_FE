@@ -994,15 +994,9 @@ const runLinter = async () => {
   try {
     console.log('🧪 Running linter for spec:', specId.value)
     
-    // ✅ Use the correct endpoint according to API guide: POST /api/v1/speclint/lint
-    const res = await authenticatedFetch('/api/v1/speclint/lint', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        specId: specId.value
-      })
+    // ✅ Use the correct endpoint according to API guide: POST /api/v1/specs/{spec_id}/lint
+    const res = await authenticatedFetch(`/api/v1/specs/${specId.value}/lint`, {
+      method: 'POST'
     })
     
     console.log('🧪 Linter response:', {
