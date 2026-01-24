@@ -46,6 +46,8 @@ export const useProjectsStore = defineStore('projects', () => {
       projects.value = Array.isArray(data)
         ? data.map((p: any) => ({
             ...p,
+            // Normalize backend field eda_tool → edaTool for the UI
+            edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
             createdAt: p.created_at,
             updatedAt: p.updated_at
           }))
@@ -88,6 +90,7 @@ export const useProjectsStore = defineStore('projects', () => {
       const newProject = await response.json()
       return {
         ...newProject,
+        edaTool: newProject.edaTool || newProject.eda_tool || newProject.eda_tool_name || '',
         createdAt: newProject.created_at,
         updatedAt: newProject.updated_at
       }
@@ -117,6 +120,7 @@ export const useProjectsStore = defineStore('projects', () => {
       const p = await response.json()
       return {
         ...p,
+        edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
         createdAt: p.created_at,
         updatedAt: p.updated_at
       }
@@ -160,12 +164,14 @@ export const useProjectsStore = defineStore('projects', () => {
       if (index !== -1) {
         projects.value[index] = {
           ...updatedProject,
+          edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || '',
           createdAt: updatedProject.created_at,
           updatedAt: updatedProject.updated_at
         }
       }
       return {
         ...updatedProject,
+        edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || '',
         createdAt: updatedProject.created_at,
         updatedAt: updatedProject.updated_at
       }
