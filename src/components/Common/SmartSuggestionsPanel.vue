@@ -349,6 +349,20 @@ const loadSuggestions = async () => {
   }
 }
 
+const handleSuggestionClick = (suggestion: SuggestionCard) => {
+  // Navigate using the route info attached to the suggestion
+  const target = suggestion.route || {}
+
+  if (target.path) {
+    router.push({ path: target.path, query: target.query || {} })
+  } else if (target.name) {
+    router.push({ name: target.name as any, query: target.query || {} })
+  }
+
+  // Close the panel after navigation so the user sees the page
+  close()
+}
+
 watch(
   () => props.isOpen,
   (open) => {
