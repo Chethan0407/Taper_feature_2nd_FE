@@ -21,8 +21,8 @@
           <p class="text-gray-600 dark:text-gray-400 mt-2">Semiconductor Tapeout Workflow Management</p>
         </div>
 
-        <!-- Login Form -->
-        <form @submit.prevent="handleLogin" class="space-y-6">
+        <!-- Login Form (prevent native submit to avoid any full-page reload while typing) -->
+        <form class="space-y-6" @submit="onLoginSubmit">
           <!-- Email Input -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -532,15 +532,13 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-// Check for success message from password reset
+// Check for success message from password reset (do not replace URL here - it remounts the component and clears the form)
 const successMessage = ref('')
 onMounted(() => {
   const message = route.query.message as string
   if (message) {
     successMessage.value = message
-    // Clear query parameter from URL
-    router.replace({ query: {} })
-    // Auto-hide after 5 seconds
+    // Auto-hide after 5 seconds (do not router.replace - that causes component remount and breaks typing in email)
     setTimeout(() => {
       successMessage.value = ''
     }, 5000)
@@ -752,6 +750,12 @@ const closeSignUpModal = () => {
     showPasswordRequirements.value = false
   }
   showSignUp.value = false
+}
+
+const onLoginSubmit = (e: Event) => {
+  e.preventDefault()
+  e.stopPropagation()
+  handleLogin()
 }
 
 const handleLogin = async () => {

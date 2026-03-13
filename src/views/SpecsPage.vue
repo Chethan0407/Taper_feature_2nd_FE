@@ -761,6 +761,16 @@ const handleStatusChange = (e: Event) => {
   fetchSpecs()
 }
 
+/** Parse filename from Content-Disposition header (e.g. attachment; filename="doc.pdf") */
+function getDownloadFilename(res: Response, fallback: string): string {
+  const disp = res.headers.get('Content-Disposition')
+  if (disp) {
+    const match = disp.match(/filename\*?=(?:UTF-8'')?["']?([^"'\s;]+)["']?/i) || disp.match(/filename=(["']?)([^"'\s;]+)\1/)
+    if (match) return (match[2] || match[1] || '').trim() || fallback
+  }
+  return fallback
+}
+
 const handleDownload = async (id: string) => {
   console.log('📥 handleDownload called:', id)
   try {
@@ -770,15 +780,25 @@ const handleDownload = async (id: string) => {
       console.error('❌ Download failed:', res.status, errorText)
       throw new Error(errorText || 'Failed to download file')
     }
+    const contentType = res.headers.get('Content-Type') || ''
+    if (contentType.includes('application/json')) {
+      const err = await res.json().catch(() => ({}))
+      const msg = (err as any).detail || (err as any).message || 'Server returned an error instead of a file'
+      throw new Error(msg)
+    }
     const blob = await res.blob()
+    const spec = specificationsStore.specifications.find((s: any) => String(s.id) === String(id))
+    const fallbackName = spec?.file_name || spec?.name || `specification-${id}`
+    const filename = getDownloadFilename(res, fallbackName)
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = '' // Let backend set filename via headers
+    a.download = filename || 'specification'
+    a.setAttribute('download', a.download)
     document.body.appendChild(a)
     a.click()
     a.remove()
-    window.URL.revokeObjectURL(url)
+    setTimeout(() => window.URL.revokeObjectURL(url), 500)
     console.log('✅ Download successful')
     showToast('File downloaded successfully')
   } catch (e: any) {

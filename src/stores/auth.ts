@@ -37,6 +37,15 @@ export const useAuthStore = defineStore('auth', () => {
     return authenticated
   })
 
+  /** True if user has admin or super-admin role (for admin-only routes like System Usage). */
+  const isAdmin = computed(() => {
+    const u = user.value
+    if (!u) return false
+    const role = (u as any).role
+    const superuser = (u as any).is_superuser
+    return role === 'admin' || superuser === true
+  })
+
   function getAuthHeader(): HeadersInit | undefined {
     if (token.value && token.value !== 'undefined' && token.value !== 'null') {
       // Ensure token has "Bearer " prefix (remove if already present to avoid duplication)
@@ -421,6 +430,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     isLoading,
     isAuthenticated,
+    isAdmin,
     login,
     loginWithGoogle,
     logout,

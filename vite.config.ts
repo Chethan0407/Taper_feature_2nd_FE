@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
-export default defineConfig({
+const config = {
   plugins: [vue()],
   
   // Path aliases for cleaner imports
@@ -70,4 +70,6 @@ export default defineConfig({
     exclude: ['vue-virtual-scroller'],
     force: false,
   },
-})
+}
+
+export default defineConfig(config)

@@ -18,6 +18,7 @@
 
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import LandingPage from '@/views/LandingPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -33,8 +34,8 @@ const router = createRouter({
     {
       path: '/',
       name: 'Landing',
-      // Landing page - public, no auth required
-      component: () => import('@/views/LandingPage.vue'),
+      // Landing page loaded synchronously so initial visit never shows a blank page
+      component: LandingPage,
       meta: { requiresAuth: false },
     },
     {
@@ -188,6 +189,12 @@ const router = createRouter({
       component: () => import('@/views/BrandingSettingsPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin/usage',
+      name: 'SystemUsage',
+      component: () => import('@/views/SystemUsagePage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 })
 
@@ -213,21 +220,32 @@ router.beforeEach(async (to, from, next) => {
     // WHY: Protected routes require valid authentication token
     if (to.meta.requiresAuth) {
       // Check if we have a valid token (even if user data isn't loaded yet)
-      // WHY: Token check is faster than waiting for user data to load
       const hasValidToken = authStore.token && 
                            authStore.token !== 'undefined' && 
                            authStore.token !== 'null' &&
                            authStore.token.trim() !== ''
       
       if (!hasValidToken) {
-        // Redirect to login if no valid token
-        // WHY: User must authenticate before accessing protected routes
         next('/login')
         return
       }
+
+      // Admin-only routes: require user to be loaded and admin/super-admin (or allow in dev for testing)
+      if (to.meta.requiresAdmin) {
+        if (!authStore.user) {
+          const ok = await authStore.checkAuth()
+          if (!ok) {
+            next('/login')
+            return
+          }
+        }
+        const isDev = import.meta.env.DEV
+        if (!authStore.isAdmin && !isDev) {
+          next('/dashboard')
+          return
+        }
+      }
       
-      // Always allow navigation if we have a token
-      // WHY: Token is sufficient - user data can load after navigation
       next()
       return
     }

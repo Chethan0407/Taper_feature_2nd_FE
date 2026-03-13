@@ -9,10 +9,10 @@
         </button>
       </div>
     </div>
-    <div v-else-if="!mounted" class="flex items-center justify-center min-h-screen text-white">
+    <div v-else-if="!mounted" class="flex items-center justify-center min-h-screen text-white" style="color: #f1f5f9;">
       <div class="text-center">
-        <div class="text-2xl mb-4">Loading...</div>
-        <div class="text-sm text-gray-400">Initializing application</div>
+        <div class="text-2xl mb-4" style="color: #f1f5f9;">Loading...</div>
+        <div class="text-sm" style="color: #94a3b8;">Initializing application</div>
       </div>
     </div>
     <router-view v-else />

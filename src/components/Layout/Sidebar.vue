@@ -75,13 +75,14 @@ import {
   Users,
   Settings,
   Folder,
-  Building2
+  Building2,
+  BarChart3
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const navigationItems = [
+const mainNavItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Projects', path: '/projects', icon: Folder },
   { name: 'Specs', path: '/specs', icon: FileText },
@@ -91,6 +92,19 @@ const navigationItems = [
   { name: 'Companies', path: '/companies', icon: Building2 },
   { name: 'Settings', path: '/settings', icon: Settings },
 ]
+
+const adminNavItems = [
+  { name: 'System Usage', path: '/admin/usage', icon: BarChart3 },
+]
+
+const navigationItems = computed(() => {
+  const items = [...mainNavItems]
+  const isDev = import.meta.env.DEV
+  if (authStore.isAdmin || isDev) {
+    items.push(...adminNavItems)
+  }
+  return items
+})
 
 const userInitials = computed(() => {
   const name = authStore.user?.name || ''
