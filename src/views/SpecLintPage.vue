@@ -421,7 +421,14 @@
                         >
                           <div class="flex items-start justify-between">
                             <div class="flex-1">
-                              <div class="font-medium text-gray-900 dark:text-white">{{ comment.user_name || 'Anonymous' }}</div>
+                              <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                  {{ comment.user_name || comment.user?.name || comment.created_by || comment.user_email || comment.user?.email || 'Anonymous' }}
+                                </span>
+                                <span v-if="(comment.user_email || comment.user?.email) && (comment.user_name || comment.user?.name || comment.created_by)" class="text-xs text-gray-500 dark:text-gray-400">
+                                  ({{ comment.user_email || comment.user?.email }})
+                                </span>
+                              </div>
                               <div v-if="editingCommentId !== comment.id" class="text-gray-700 dark:text-gray-300 mt-1">{{ comment.content }}</div>
                               <input
                                 v-else

@@ -675,6 +675,15 @@ const handleSubmit = async () => {
     }
     
     closeModal()
+
+    // Refresh the visible list so status / new companies show without full navigation
+    if (searchQuery.value || statusFilter.value) {
+      // Respect current search + status filters
+      await handleSearch()
+    } else {
+      // No filters: just mirror latest store state
+      searchResults.value = companiesStore.companies
+    }
   } catch (error: any) {
     console.error('Failed to save company:', error)
     showToast(error.message || 'Failed to save company', true)

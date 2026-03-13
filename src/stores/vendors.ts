@@ -46,17 +46,32 @@ export const useVendorsStore = defineStore('vendors', () => {
   }
 
   // Create a new vendor
-  const createVendor = async (data: { name: string; type: string; status: string }) => {
+  const createVendor = async (data: { name: string; type: string; status: string; linkedSpecs?: (string | number)[]; linkedChecklists?: (string | number)[] }) => {
     loading.value = true
     error.value = null
     try {
+      // Prepare the request body with all fields including linked items
+      const requestBody: any = {
+        name: data.name,
+        type: data.type,
+        status: data.status
+      }
+      
+      // Include linked specs and checklists if provided
+      if (data.linkedSpecs !== undefined) {
+        requestBody.linked_specs = data.linkedSpecs
+      }
+      if (data.linkedChecklists !== undefined) {
+        requestBody.linked_checklists = data.linkedChecklists
+      }
+      
       const res = await fetch(API_BASE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(requestBody)
       })
       if (!res.ok) throw new Error('Failed to create vendor')
       const newVendor = await res.json()
@@ -89,17 +104,32 @@ export const useVendorsStore = defineStore('vendors', () => {
   }
 
   // Update vendor
-  const updateVendor = async (id: string, data: { name: string; type: string; status: string }) => {
+  const updateVendor = async (id: string, data: { name: string; type: string; status: string; linkedSpecs?: (string | number)[]; linkedChecklists?: (string | number)[] }) => {
     loading.value = true
     error.value = null
     try {
+      // Prepare the request body with all fields including linked items
+      const requestBody: any = {
+        name: data.name,
+        type: data.type,
+        status: data.status
+      }
+      
+      // Include linked specs and checklists if provided
+      if (data.linkedSpecs !== undefined) {
+        requestBody.linked_specs = data.linkedSpecs
+      }
+      if (data.linkedChecklists !== undefined) {
+        requestBody.linked_checklists = data.linkedChecklists
+      }
+      
       const res = await fetch(`${API_BASE}${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {})
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(requestBody)
       })
       if (!res.ok) throw new Error('Failed to update vendor')
       const updatedVendor = await res.json()

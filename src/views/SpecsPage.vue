@@ -175,8 +175,8 @@
                       class="flex items-center justify-center gap-2"
                     >
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400"
-                        @click="updateSpecStatus(spec, 'approved')"
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400 transition-colors cursor-pointer"
+                        @click.stop.prevent="updateSpecStatus(spec, 'approved')"
                         :title="spec.status === 'Approved' ? 'Approve again' : 'Approve'"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -184,8 +184,8 @@
                         </svg>
                       </button>
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500"
-                        @click="updateSpecStatus(spec, 'rejected')"
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500 transition-colors cursor-pointer"
+                        @click.stop.prevent="updateSpecStatus(spec, 'rejected')"
                         :title="spec.status === 'Rejected' ? 'Reject again' : 'Reject'"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -194,8 +194,8 @@
                         </svg>
                       </button>
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400"
-                        @click="handleDownload(spec.id)"
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400 transition-colors cursor-pointer"
+                        @click.stop.prevent="handleDownload(spec.id)"
                         title="Download"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -203,8 +203,8 @@
                         </svg>
                       </button>
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500"
-                        @click="() => confirmAndDelete(spec.id)"
+                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500 transition-colors cursor-pointer"
+                        @click.stop.prevent="() => confirmAndDelete(spec.id)"
                         title="Delete"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -234,8 +234,8 @@
                         </button>
                         <!-- Active download & delete actions are still available -->
                         <button
-                          class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400"
-                          @click="handleDownload(spec.id)"
+                          class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400 transition-colors cursor-pointer"
+                          @click.stop.prevent="handleDownload(spec.id)"
                           title="Download"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -243,8 +243,8 @@
                           </svg>
                         </button>
                         <button
-                          class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500"
-                          @click="() => confirmAndDelete(spec.id)"
+                          class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500 transition-colors cursor-pointer"
+                          @click.stop.prevent="() => confirmAndDelete(spec.id)"
                           title="Delete"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -762,9 +762,14 @@ const handleStatusChange = (e: Event) => {
 }
 
 const handleDownload = async (id: string) => {
+  console.log('📥 handleDownload called:', id)
   try {
     const res = await authenticatedFetch(`/api/v1/specifications/${id}/download`)
-    if (!res.ok) throw new Error('Failed to download file')
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('❌ Download failed:', res.status, errorText)
+      throw new Error(errorText || 'Failed to download file')
+    }
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -774,8 +779,11 @@ const handleDownload = async (id: string) => {
     a.click()
     a.remove()
     window.URL.revokeObjectURL(url)
-  } catch (e) {
-    // Optionally show toast
+    console.log('✅ Download successful')
+    showToast('File downloaded successfully')
+  } catch (e: any) {
+    console.error('❌ Download error:', e)
+    showToast(e.message || 'Failed to download file', true)
   }
 }
 
@@ -783,6 +791,7 @@ const showDeleteModal = ref(false)
 const specToDelete = ref<any>(null)
 
 function confirmAndDelete(id: string) {
+  console.log('🗑️ confirmAndDelete called:', id)
   specToDelete.value = id
   showDeleteModal.value = true
 }
@@ -924,15 +933,21 @@ function showToast(message: string, isError = false) {
 }
 
 async function updateSpecStatus(spec: any, status: string) {
+  console.log('🔄 updateSpecStatus called:', { specId: spec.id, status })
   try {
     // Use the store's method which handles cache invalidation and updates
     if (status === 'approved' || status === 'rejected') {
+      console.log('📤 Calling updateSpecificationStatus with:', spec.id, status)
       await specificationsStore.updateSpecificationStatus(spec.id, status as 'approved' | 'rejected')
+      console.log('✅ Status updated successfully')
       showToast(`Spec marked as ${status}.`)
+      // Reload specs to show updated status
+      await specificationsStore.loadSpecifications()
     } else {
       throw new Error('Invalid status')
     }
   } catch (e: any) {
+    console.error('❌ Error updating spec status:', e)
     showToast(e.message || 'Failed to update status', true)
   }
 }

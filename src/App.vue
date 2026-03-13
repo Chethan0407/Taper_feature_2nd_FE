@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="min-h-screen bg-dark-950 dark">
+  <div id="app" class="min-h-screen" style="background-color: #0E0E0E; color: #f1f5f9;">
     <div v-if="error" class="flex items-center justify-center min-h-screen text-white p-4">
       <div class="text-center max-w-2xl">
         <div class="text-2xl mb-4 text-red-500">Application Error</div>
@@ -17,13 +17,14 @@
     </div>
     <router-view v-else />
     <!-- Suggestion Chat Widget -->
-    <SuggestionChat />
+    <!-- <SuggestionChat /> -->
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onErrorCaptured } from 'vue'
-import SuggestionChat from '@/components/Common/SuggestionChat.vue'
+// Temporarily disable SuggestionChat to debug white page issue
+// import SuggestionChat from '@/components/Common/SuggestionChat.vue'
 
 const mounted = ref(false)
 const error = ref<string | null>(null)

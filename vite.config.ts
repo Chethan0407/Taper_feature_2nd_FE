@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   plugins: [vue()],
@@ -18,12 +21,17 @@ export default defineConfig({
     host: 'localhost',
     strictPort: false, // Allow fallback to next available port if 5177 is busy
     open: true, // Auto-open browser when server starts
+    hmr: {
+      host: 'localhost',
+      port: 5177,
+    },
     // CRITICAL: API proxy - required for all /api requests to work
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        ws: true, // Enable WebSocket proxying for HMR
       },
     },
   },

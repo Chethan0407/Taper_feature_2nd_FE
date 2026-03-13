@@ -255,6 +255,7 @@
                       <span 
                         v-if="typeof checklist === 'object' && checklist !== null && checklist.status" 
                         :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getChecklistStatusBadgeClass(checklist.status)]"
+                        :key="`badge-${checklist.id || checklist.template_id}-${checklist.status}`"
                       >
                         <svg 
                           v-if="checklist.status === 'approved'" 
@@ -266,7 +267,7 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                         <svg 
-                          v-else-if="checklist.status === 'declined'" 
+                          v-else-if="checklist.status === 'rejected' || checklist.status === 'declined'" 
                           class="w-3 h-3 mr-1" 
                           fill="none" 
                           stroke="currentColor" 
@@ -275,11 +276,11 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                         <span class="w-1.5 h-1.5 mr-1 rounded-full" v-else :class="getStatusColor(checklist.status)"></span>
-                        {{ checklist.status.charAt(0).toUpperCase() + checklist.status.slice(1) }}
+                        {{ (checklist.status === 'declined' ? 'Rejected' : checklist.status.charAt(0).toUpperCase() + checklist.status.slice(1)) }}
                       </span>
             </div>
                     <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      <!-- Show "Already Approved" text if approved -->
+                      <!-- Show "Approved" text with approver email if approved -->
                       <span 
                         v-if="typeof checklist === 'object' && checklist !== null && checklist.status === 'approved'" 
                         class="flex items-center text-green-600 dark:text-green-400 font-medium"
@@ -287,17 +288,57 @@
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        Already Approved
+                        Approved
+                        <!-- Backend now returns approved_by_email directly -->
+                        <span 
+                          v-if="checklist.approved_by_email || checklist.approved_by" 
+                          class="ml-2 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          by {{ checklist.approved_by_email || checklist.approved_by }}
+                        </span>
+                        <!-- Show fallback message if email is null (approved before backend update) -->
+                        <span 
+                          v-else 
+                          class="ml-2 text-xs text-gray-400 dark:text-gray-500 italic"
+                          title="This checklist was approved before email tracking was added"
+                        >
+                          (no email)
+                        </span>
+                </span>
+                      <!-- Show "Rejected" text with rejecter email if rejected or declined -->
+                      <!-- NOTE: "declined" from project endpoint = "rejected" from active endpoint -->
+                      <span 
+                        v-if="typeof checklist === 'object' && checklist !== null && (checklist.status === 'rejected' || checklist.status === 'declined')" 
+                        class="flex items-center text-red-600 dark:text-red-400 font-medium"
+                      >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Rejected
+                        <span 
+                          v-if="checklist.rejected_by || checklist.rejected_by_email" 
+                          class="ml-2 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          by {{ checklist.rejected_by_email || checklist.rejected_by || 'Unknown' }}
+                        </span>
+                        <!-- Debug: Show if email is missing -->
+                        <span 
+                          v-else 
+                          class="ml-2 text-xs text-yellow-500 dark:text-yellow-400 italic"
+                          title="Debug: rejected_by={{ checklist.rejected_by }}, rejected_by_email={{ checklist.rejected_by_email }}"
+                        >
+                          (no email)
+                        </span>
                 </span>
                     </div>
                   </div>
                   <div class="flex items-center ml-4 gap-2">
-                    <!-- Approve Button (only show if status is not "approved") -->
+                    <!-- Approve Button (show when NOT approved - allows approving pending or rejected checklists) -->
                     <button 
                       v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'approved'"
-                      @click="onApproveChecklist(checklist)"
-                      class="px-3 py-1 text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center space-x-1"
-                      :disabled="approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) || rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      @click.stop.prevent="onApproveChecklist(checklist)"
+                      class="px-3 py-1 text-sm rounded-lg transition-colors flex items-center space-x-1 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
+                      :disabled="checklist.status === 'approved' || approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) || rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
                       title="Approve checklist"
                     >
                       <svg v-if="approvingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,12 +350,12 @@
                       </svg>
                       <span>{{ approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) ? 'Approving...' : 'Approve' }}</span>
                   </button>
-                    <!-- Reject Button (only show if status is not "declined" and not "approved") -->
+                    <!-- Reject Button (show when NOT rejected - allows rejecting pending or approved checklists) -->
                     <button 
-                      v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'declined' && checklist.status !== 'approved'"
-                      @click="onRejectChecklist(checklist)"
-                      class="px-3 py-1 text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex items-center space-x-1"
-                      :disabled="rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) || approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
+                      v-if="typeof checklist === 'object' && checklist !== null && checklist.status !== 'rejected' && checklist.status !== 'declined'"
+                      @click.stop.prevent="onRejectChecklist(checklist)"
+                      class="px-3 py-1 text-sm rounded-lg transition-colors flex items-center space-x-1 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                      :disabled="checklist.status === 'rejected' || checklist.status === 'declined' || rejectingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist) || approvingChecklistId === (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)"
                       title="Reject checklist"
                     >
                       <svg v-if="rejectingChecklistId !== (typeof checklist === 'object' && checklist !== null ? checklist.id : checklist)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -781,6 +822,47 @@
             </div>
           </div>
 
+          <!-- Comments Section -->
+          <div class="mb-6">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Comments</h4>
+            
+            <!-- Loading Comments -->
+            <div v-if="loadingComments" class="text-center py-4 text-gray-400 text-sm">
+              Loading comments...
+            </div>
+            
+            <!-- Comments List -->
+            <div v-else-if="lintComments.length > 0" class="space-y-3 mb-4">
+              <div 
+                v-for="comment in lintComments" 
+                :key="comment.id"
+                class="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-700"
+              >
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-medium text-gray-900 dark:text-white text-sm">
+                        {{ comment.user_name || comment.user?.name || comment.created_by || 'Anonymous' }}
+                      </span>
+                      <span v-if="comment.user_email || comment.user?.email" class="text-xs text-gray-500 dark:text-gray-400">
+                        ({{ comment.user_email || comment.user?.email }})
+                      </span>
+                    </div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">{{ comment.content }}</p>
+                  </div>
+                </div>
+                <div v-if="comment.created_at || comment.timestamp" class="text-xs text-gray-400 mt-2">
+                  {{ formatDate(comment.created_at || comment.timestamp) }}
+                </div>
+              </div>
+            </div>
+            
+            <!-- No Comments -->
+            <div v-else class="text-center py-4 text-gray-400 text-sm">
+              No comments yet. Be the first to comment!
+            </div>
+          </div>
+
           <!-- Add Comment Section -->
           <div class="mb-6">
             <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Add Comment</h4>
@@ -801,8 +883,10 @@
           <!-- Actions -->
           <div class="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
             <button 
-              @click="reRunLint(selectedLintResult.spec_id)"
+              @click="reRunLint(selectedLintResult.spec_id || selectedLintResult.linked_spec_id || selectedLintResult.id)"
+              :disabled="!selectedLintResult.spec_id && !selectedLintResult.linked_spec_id && !selectedLintResult.id"
               class="btn-primary px-4 py-2 text-sm"
+              :class="{ 'opacity-50 cursor-not-allowed': !selectedLintResult.spec_id && !selectedLintResult.linked_spec_id && !selectedLintResult.id }"
             >
               Re-run Lint
             </button>
@@ -1049,6 +1133,8 @@ const lintDetailLoading = ref(false)
 const lintDetailData = ref<any>(null)
 const newComment = ref('')
 const commentSubmitting = ref(false)
+const lintComments = ref<any[]>([])
+const loadingComments = ref(false)
 
 // Confirmation modal state
 const showConfirmModal = ref(false)
@@ -1278,7 +1364,14 @@ const loadProject = async () => {
     }
     const projectData = await projectRes.json()
     console.log('✅ Project loaded:', projectData)
-    project.value = projectData
+
+    // Normalize core fields so edit modal sees consistent data
+    project.value = {
+      ...projectData,
+      platform: projectData.platform || projectData.platform_name || projectData.platform_type || '',
+      edaTool: projectData.edaTool || projectData.eda_tool || projectData.eda_tool_name || '',
+      type: projectData.type || projectData.project_type || ''
+    }
     
     if (!metadataStore.platforms.length) await metadataStore.fetchMetadata()
     
@@ -1309,17 +1402,8 @@ const loadProject = async () => {
       // Don't throw - allow page to render even if quality score fails
     }
     
-    // STEP 4: Start auto-refresh (every 5 minutes - less frequent to avoid unnecessary refreshes)
-    if (!autoRefreshTimer.value) {
-      autoRefreshTimer.value = setInterval(async () => {
-        const currentProjectId = project.value?.id || route.params.id
-        if (currentProjectId) {
-          console.log('🔄 Auto-refreshing linked content...')
-          await loadLinkedContent()
-        }
-      }, 300000) // Every 5 minutes (300000ms) instead of 30 seconds
-      console.log('🔄 Auto-refresh started (every 5 minutes)')
-    }
+    // STEP 4: Auto-refresh disabled - user requested to stop auto-refreshing
+    // Removed auto-refresh timer to prevent unwanted page refreshes
     
     // Removed: 2-second delayed refresh - unnecessary and causes flickering
   } catch (err: any) {
@@ -1491,75 +1575,99 @@ const loadLinkedContent = async () => {
     const specsArray = linkedContent.specs || []
     const checklistsArray = linkedContent.checklists || []
     
-    // Fetch checklists with status from the with-status endpoint
-    // This ensures we have the correct status (approved/declined/pending)
-    let checklistsWithStatus: any[] = []
-    try {
-      console.log('📋 Fetching checklists with status for project:', projectId)
-      const checklistsStatusResponse = await authenticatedFetch(`/api/v1/projects/${projectId}/checklists/with-status`)
-      if (checklistsStatusResponse.ok) {
-        checklistsWithStatus = await checklistsStatusResponse.json()
-        console.log('✅ Checklists with status fetched:', checklistsWithStatus.length)
-        console.log('📋 Checklists status details:', checklistsWithStatus.map((c: any) => ({ id: c.id, name: c.name, status: c.status })))
-      } else {
-        console.warn('⚠️ Failed to fetch checklists with status:', checklistsStatusResponse.status)
-      }
-    } catch (err: any) {
-      console.error('❌ Error fetching checklists with status:', err)
-    }
+    // Backend now returns status and email fields directly in linked-content response
+    // No need to fetch from with-status endpoint - use data directly from linked-content
+    console.log('✅ Using status directly from linked-content API (backend fixed)')
+    console.log('📋 Sample checklist from linked-content:', JSON.stringify(checklistsArray[0] || {}, null, 2))
     
-    // Merge checklists from linked-content with status/active IDs from with-status endpoint
-    // Create a flexible map so we can match either by template ID or active checklist ID.
-    const statusMap = new Map<number | string, any>()
-    checklistsWithStatus.forEach((checklist: any) => {
-      // Backend may send different identifier fields; index by all of them.
-      // Common shapes:
-      // - { id: <template_checklist_id>, ... }
-      // - { template_id: <template_checklist_id>, ... }
-      // - { checklist_template_id: <template_checklist_id>, ... }
-      // - { active_checklist_id: <active_instance_id>, ... }
-      if (checklist.id !== undefined) {
-        statusMap.set(checklist.id, checklist)
-      }
-      if (checklist.template_id !== undefined) {
-        statusMap.set(checklist.template_id, checklist)
-      }
-      if (checklist.checklist_template_id !== undefined) {
-        statusMap.set(checklist.checklist_template_id, checklist)
-      }
-      if (checklist.active_checklist_id !== undefined) {
-        statusMap.set(checklist.active_checklist_id, checklist)
-      }
-    })
-    
-    // Merge status into checklists from linked-content
+    // Process checklists - status and emails are already in the response
     const mergedChecklists = checklistsArray.map((checklist: any) => {
-      const checklistId = checklist.id
-      const statusEntry = statusMap.get(checklistId) || {}
-      // Backend might expose status or an approved flag under different keys; prefer explicit ones first
-      const approvedFlag =
-        statusEntry.is_approved ??
-        statusEntry.approved ??
-        checklist.is_approved ??
-        checklist.approved
-      const rawStatus =
-        (approvedFlag === true ? 'approved' : undefined) ??
-        statusEntry.status ??
-        statusEntry.approval_status ??
-        statusEntry.review_status ??
-        checklist.status ??
-        'pending'
-      // Normalize to lowercase so UI checks like status === 'approved' work reliably
-      const status = String(rawStatus).toLowerCase()
-      const activeChecklistId =
-        statusEntry.active_checklist_id !== undefined
-          ? statusEntry.active_checklist_id
-          : checklist.active_checklist_id
+      // Backend returns status directly: "pending" | "approved" | "rejected"
+      // Check multiple possible field names for status (for robustness)
+      let status = checklist.status || 
+                   checklist.checklist_status || 
+                   checklist.approval_status || 
+                   null
+      
+      // Normalize to lowercase and handle "declined" → "rejected" for backward compatibility
+      if (status) {
+        status = String(status).toLowerCase().trim()
+        if (status === 'declined') {
+          status = 'rejected'
+        }
+      } else {
+        // If status is missing, check if there are approval/rejection indicators
+        // If approved_by_email exists, status should be 'approved'
+        // If rejected_by_email exists, status should be 'rejected'
+        if (checklist.approved_by_email || checklist.approved_by) {
+          status = 'approved'
+        } else if (checklist.rejected_by_email || checklist.rejected_by) {
+          status = 'rejected'
+        } else {
+          status = 'pending'
+        }
+      }
+      
+      // Backend returns email fields directly
+      const approvedByEmail = checklist.approved_by_email || checklist.approved_by || null
+      const rejectedByEmail = checklist.rejected_by_email || checklist.rejected_by || null
+      
+      // CRITICAL: Ensure status matches email fields (final safeguard)
+      // If we have an approver email but status is not 'approved', fix it
+      if (approvedByEmail && status !== 'approved') {
+        console.warn('⚠️ Status mismatch: has approved_by_email but status is not "approved". Fixing...', {
+          id: checklist.id,
+          current_status: status,
+          approved_by_email: approvedByEmail
+        })
+        status = 'approved'
+      }
+      // If we have a rejecter email but status is not 'rejected', fix it
+      if (rejectedByEmail && status !== 'rejected' && status !== 'declined') {
+        console.warn('⚠️ Status mismatch: has rejected_by_email but status is not "rejected". Fixing...', {
+          id: checklist.id,
+          current_status: status,
+          rejected_by_email: rejectedByEmail
+        })
+        status = 'rejected'
+      }
+      
+      console.log('✅ Checklist status from linked-content (FINAL):', {
+        id: checklist.id,
+        name: checklist.name,
+        raw_status: checklist.status,
+        normalized_status: status,
+        approved_by_email: approvedByEmail,
+        rejected_by_email: rejectedByEmail
+      })
 
       return {
         ...checklist,
-        status,                  // Use status from with-status endpoint, fallback to linked-content status, then 'pending'
-        active_checklist_id: activeChecklistId
+        status, // Use normalized status - ensure it's always set and matches email fields
+        approved_by_email: approvedByEmail,
+        approved_by: approvedByEmail, // Also set for compatibility
+        rejected_by_email: rejectedByEmail,
+        rejected_by: rejectedByEmail // Also set for compatibility
+      }
+    })
+    
+    // Backend now returns status and email fields directly in linked-content response
+    // No need to fetch emails separately - they're already in the response
+    console.log('✅ Using email fields directly from linked-content API (backend fixed)')
+    
+    // Log final status and email for debugging
+    console.log('📧 Final checklist status and emails from linked-content:')
+    mergedChecklists.forEach((c: any) => {
+      if (c.status === 'approved' || c.status === 'rejected') {
+        console.log('📧 Checklist:', {
+          id: c.id || c.template_id,
+          name: c.name || c.template_name,
+          status: c.status,
+          approved_by_email: c.approved_by_email,
+          approved_by: c.approved_by,
+          rejected_by_email: c.rejected_by_email,
+          rejected_by: c.rejected_by
+        })
       }
     })
     
@@ -1568,13 +1676,39 @@ const loadLinkedContent = async () => {
     
     console.log('🔍 Specs found:', specsArray.length)
     console.log('🔍 Checklists found:', mergedChecklists.length)
-    console.log('🔍 Checklists with merged status:', mergedChecklists.map((c: any) => ({ id: c.id, name: c.name, status: c.status })))
+    console.log('🔍 Checklists with merged status:', mergedChecklists.map((c: any) => ({ 
+      id: c.id, 
+      name: c.name, 
+      status: c.status,
+      approved_by_email: c.approved_by_email,
+      approved_by: c.approved_by,
+      rejected_by_email: c.rejected_by_email,
+      rejected_by: c.rejected_by
+    })))
     console.log('🔍 Spec Lints found:', specLintsArray.length)
     console.log('🔍 Spec Lints details:', specLintsArray)
     
+    // Assign to reactive refs AFTER all email fetches are complete
     linkedSpecifications.value = specsArray
     linkedChecklists.value = mergedChecklists
     linkedSpecLints.value = specLintsArray
+    
+    // Log AFTER assignment to verify reactivity and status persistence
+    console.log('📧 Status and email AFTER assignment to linkedChecklists.value:')
+    linkedChecklists.value.forEach((c: any) => {
+      console.log('📧 Linked checklist status:', {
+        id: c.id || c.template_id,
+        name: c.name || c.template_name,
+        status: c.status,
+        status_type: typeof c.status,
+        approved_by_email: c.approved_by_email,
+        approved_by: c.approved_by,
+        rejected_by_email: c.rejected_by_email,
+        rejected_by: c.rejected_by,
+        has_status: 'status' in c,
+        all_keys: Object.keys(c)
+      })
+    })
     
     // Map specs to dashboard format
     if (specsArray.length > 0) {
@@ -1815,11 +1949,12 @@ const getStatusColor = (status: string) => {
 }
 
 // Get status badge class for checklists
-// Approved: Green, Pending: Yellow/Orange, Declined: Red
+// Approved: Green, Pending: Yellow/Orange, Rejected/Declined: Red
 const getChecklistStatusBadgeClass = (status: string) => {
   switch (status?.toLowerCase()) {
     case 'approved':
       return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
+    case 'rejected':
     case 'declined':
       return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
     case 'pending':
@@ -2056,17 +2191,7 @@ onActivated(async () => {
     // Also refresh quality score
     await loadQualityScore(currentProjectId)
     
-    // Only restart auto-refresh if it's not already running
-    if (!autoRefreshTimer.value) {
-    autoRefreshTimer.value = setInterval(async () => {
-      const currentProjectId = project.value?.id || route.params.id
-      if (currentProjectId) {
-        console.log('🔄 Auto-refreshing linked content...')
-        await loadLinkedContent()
-      }
-      }, 300000) // 5 minutes
-      console.log('🔄 Auto-refresh restarted (every 5 minutes)')
-    }
+    // Auto-refresh disabled - user requested to stop auto-refreshing
   }
 })
 
@@ -2361,10 +2486,223 @@ async function onApproveChecklist(checklist: any) {
     }
     
     const updatedChecklist = await approvalResponse.json()
-    console.log('✅ Checklist approved:', updatedChecklist)
+    console.log('✅ Checklist approved - API response (full):', JSON.stringify(updatedChecklist, null, 2))
     
-    // Refresh linked content to get updated checklist status
-    await loadLinkedContent()
+    // Get approver email from API response - check all possible fields
+    let approverEmail = updatedChecklist.approved_by_email || 
+                       updatedChecklist.approved_by || 
+                       updatedChecklist.approver_email ||
+                       updatedChecklist.approver?.email ||
+                       updatedChecklist.approved_by_user?.email ||
+                       updatedChecklist.approver_user?.email ||
+                       updatedChecklist.user?.email ||
+                       undefined
+    
+    console.log('📧 Approver email from approval API response:', approverEmail, 'checked fields:', {
+      approved_by_email: updatedChecklist.approved_by_email,
+      approved_by: updatedChecklist.approved_by,
+      approver_email: updatedChecklist.approver_email,
+      approver: updatedChecklist.approver,
+      approved_by_user: updatedChecklist.approved_by_user,
+      approver_user: updatedChecklist.approver_user,
+      user: updatedChecklist.user
+    })
+    
+    // If API doesn't return approver email, use current user's email as fallback
+    if (!approverEmail) {
+      approverEmail = authStore.user?.email || ''
+      console.log('📧 Using current user email as approver (fallback):', approverEmail)
+    }
+    
+    // Get the actual status from the API response (should be 'approved' after approval)
+    const apiStatus = updatedChecklist.status || 
+                     updatedChecklist.approval_status || 
+                     updatedChecklist.review_status ||
+                     (updatedChecklist.is_approved === true ? 'approved' : undefined) ||
+                     (updatedChecklist.approved === true ? 'approved' : undefined) ||
+                     'approved' // Default to approved if API doesn't return status
+    
+    console.log('✅ Approval API returned status:', apiStatus, 'approverEmail:', approverEmail)
+    
+    // Immediately update the status in the linkedChecklists array so UI reflects approval instantly
+    // Try multiple matching strategies to find the checklist
+    let checklistIndex = -1
+    const possibleIds = [
+      checklistId,
+      activeChecklistId,
+      updatedChecklist.id,
+      updatedChecklist.active_checklist_id,
+      updatedChecklist.template_id,
+      updatedChecklist.checklist_template_id
+    ].filter(id => id !== null && id !== undefined)
+    
+    // First, try to find by any of the possible IDs
+    for (const searchId of possibleIds) {
+      checklistIndex = linkedChecklists.value.findIndex((c: any) => {
+        if (typeof c !== 'object' || c === null) return false
+        const cIds = [
+          c.id,
+          c.template_id,
+          c.checklist_template_id,
+          c.active_checklist_id
+        ].filter(id => id !== null && id !== undefined)
+        return cIds.some(cId => String(cId) === String(searchId))
+      })
+      if (checklistIndex !== -1) break
+    }
+    
+    // If still not found, try by name as fallback
+    if (checklistIndex === -1 && checklistName) {
+      checklistIndex = linkedChecklists.value.findIndex((c: any) => {
+        if (typeof c !== 'object' || c === null) return false
+        const cName = c.name || c.template_name || ''
+        return cName.toLowerCase() === checklistName.toLowerCase()
+      })
+    }
+    
+    if (checklistIndex !== -1) {
+      // Force Vue reactivity by creating a new object
+      // Use the status from API response, normalized to lowercase
+      const finalStatus = apiStatus ? String(apiStatus).toLowerCase() : 'approved'
+      
+      // CRITICAL: Create a completely new array to force Vue reactivity
+      const updatedItem = {
+        ...linkedChecklists.value[checklistIndex],
+        status: finalStatus, // Use status from API response - MUST be lowercase 'approved'
+        active_checklist_id: updatedChecklist.active_checklist_id || activeChecklistId || linkedChecklists.value[checklistIndex].active_checklist_id,
+        approved_by_email: approverEmail, // Store approver email
+        approved_by: approverEmail, // Also store in approved_by for compatibility
+        rejected_by_email: null, // Clear rejected fields
+        rejected_by: null
+      }
+      
+      // Replace the item in the array to trigger reactivity
+      linkedChecklists.value.splice(checklistIndex, 1, updatedItem)
+      
+      // Force Vue to update by creating a new array reference
+      linkedChecklists.value = [...linkedChecklists.value]
+      
+      console.log('✅ Updated checklist status in UI:', finalStatus, 'approverEmail:', approverEmail)
+      console.log('✅ Checklist after update:', JSON.stringify(updatedItem, null, 2))
+      console.log('✅ Updated item has email fields:', {
+        approved_by_email: updatedItem.approved_by_email,
+        approved_by: updatedItem.approved_by,
+        fullItem: JSON.stringify(updatedItem, null, 2)
+      })
+      
+      // Force Vue to re-render by triggering a reactive update
+      // This ensures the template picks up the new email field
+      await nextTick()
+      const checkItem = linkedChecklists.value.find((c: any) => {
+        const cIds = [c.id, c.template_id, c.checklist_template_id, c.active_checklist_id].filter(id => id !== null && id !== undefined)
+        return cIds.some(cId => possibleIds.some(pId => String(cId) === String(pId)))
+      })
+      if (checkItem) {
+        console.log('✅ After nextTick, checklist has email:', {
+          approved_by_email: checkItem.approved_by_email,
+          approved_by: checkItem.approved_by,
+          status: checkItem.status
+        })
+      }
+    } else {
+      console.warn('⚠️ Could not find checklist in linkedChecklists to update status. IDs searched:', possibleIds)
+      console.warn('⚠️ Current linkedChecklists:', linkedChecklists.value.map((c: any) => ({
+        id: c?.id,
+        template_id: c?.template_id,
+        checklist_template_id: c?.checklist_template_id,
+        active_checklist_id: c?.active_checklist_id,
+        name: c?.name
+      })))
+    }
+    
+    // Also update the local checklist object reference
+    if (typeof checklist === 'object' && checklist !== null) {
+      const finalStatus = apiStatus ? String(apiStatus).toLowerCase() : 'approved'
+      checklist.status = finalStatus
+      checklist.approved_by_email = approverEmail
+      if (updatedChecklist.active_checklist_id !== undefined) {
+        checklist.active_checklist_id = updatedChecklist.active_checklist_id
+      } else if (activeChecklistId) {
+        checklist.active_checklist_id = activeChecklistId
+      }
+      console.log('✅ Updated local checklist object status:', finalStatus)
+    }
+    
+    // After approval, fetch the active checklist status directly to ensure we have the latest
+    // This ensures the status is persisted and will be correct on hard refresh
+    if (activeChecklistId) {
+      try {
+        console.log('🔄 Fetching active checklist from API after approval to get email:', activeChecklistId)
+        const statusResponse = await authenticatedFetch(`/api/v1/checklists/active/${activeChecklistId}`)
+        if (statusResponse.ok) {
+          const activeChecklistData = await statusResponse.json()
+          console.log('✅ Active checklist data from API (full response):', JSON.stringify(activeChecklistData, null, 2))
+          
+          // Get approver email from active checklist data - check ALL possible fields
+          const activeApproverEmail = activeChecklistData.approved_by_email || 
+                                     activeChecklistData.approved_by || 
+                                     activeChecklistData.approver_email ||
+                                     activeChecklistData.approver?.email ||
+                                     activeChecklistData.approved_by_user?.email ||
+                                     activeChecklistData.approver_user?.email ||
+                                     activeChecklistData.user?.email ||
+                                     activeChecklistData.created_by || // Backend might use created_by
+                                     approverEmail // Fallback to what we already have
+          
+          console.log('📧 Approver email extraction from active checklist API:', {
+            activeApproverEmail,
+            approved_by_email: activeChecklistData.approved_by_email,
+            approved_by: activeChecklistData.approved_by,
+            approver_email: activeChecklistData.approver_email,
+            approver: activeChecklistData.approver,
+            approved_by_user: activeChecklistData.approved_by_user,
+            approver_user: activeChecklistData.approver_user,
+            user: activeChecklistData.user,
+            created_by: activeChecklistData.created_by,
+            fullResponse: activeChecklistData
+          })
+          
+          // Get status from active checklist
+          const activeStatus = activeChecklistData.status ? String(activeChecklistData.status).toLowerCase() : linkedChecklists.value[checklistIndex]?.status || 'approved'
+          
+          // Update the status and approver email in the UI
+          if (checklistIndex !== -1) {
+            const finalApproverEmail = activeApproverEmail || approverEmail
+            const updatedItem = {
+              ...linkedChecklists.value[checklistIndex],
+              status: activeStatus,
+              approved_by_email: finalApproverEmail, // Use active checklist email from API
+              approved_by: finalApproverEmail // Also set approved_by for compatibility
+            }
+            linkedChecklists.value.splice(checklistIndex, 1, updatedItem)
+            console.log('✅ Updated checklist from active API fetch:', {
+              status: activeStatus,
+              approved_by_email: finalApproverEmail,
+              updatedItem: JSON.stringify(updatedItem, null, 2)
+            })
+          }
+          
+          // Also update the local checklist object reference
+          if (typeof checklist === 'object' && checklist !== null) {
+            checklist.approved_by_email = activeApproverEmail || approverEmail
+            checklist.approved_by = activeApproverEmail || approverEmail
+            checklist.status = activeStatus
+            console.log('✅ Updated local checklist object with email from API:', {
+              approved_by_email: checklist.approved_by_email,
+              status: checklist.status
+            })
+          }
+        } else {
+          const errorText = await statusResponse.text()
+          console.warn('⚠️ Failed to fetch active checklist, status:', statusResponse.status, errorText)
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch active checklist status (non-critical):', err)
+      }
+    }
+    
+    // Removed automatic refetch - UI is updated optimistically and backend is source of truth
+    // No need for delayed refresh that causes unwanted auto-refreshing
     
     // Refresh quality score to show updated completion rate
     await loadQualityScore(projectId)
@@ -2378,7 +2716,7 @@ async function onApproveChecklist(checklist: any) {
   }
 }
 
-// Reject checklist by creating a comment with "reject" in the content
+// Reject checklist using the reject endpoint
 async function onRejectChecklist(checklist: any) {
   console.log('❌ onRejectChecklist called with checklist:', checklist)
   
@@ -2392,43 +2730,245 @@ async function onRejectChecklist(checklist: any) {
   const checklistId = typeof checklist === 'object' && checklist !== null ? checklist.id : checklist
   const checklistName = typeof checklist === 'object' && checklist !== null ? (checklist.name || 'checklist') : 'checklist'
   
+  // IMPORTANT: rejection must use the ACTIVE checklist ID, not the template/linked ID
+  const activeChecklistId =
+    typeof checklist === 'object' && checklist !== null
+      ? (checklist.active_checklist_id ?? checklist.id)
+      : checklist
+  
   try {
     rejectingChecklistId.value = checklistId
     
-    // Create a comment with "reject" in the content to trigger rejection
-    console.log('📝 Creating rejection comment for checklist:', checklistId)
-    const commentResponse = await authenticatedFetch('/api/v1/comments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_type: 'checklist',
-        entity_id: checklistId,
-        content: 'Rejected by reviewer' // Must contain "reject" (case-insensitive)
-      })
+    // Use the reject endpoint: POST /api/v1/checklists/active/{checklist_id}/reject
+    console.log('❌ Rejecting active checklist:', activeChecklistId)
+    const rejectResponse = await authenticatedFetch(`/api/v1/checklists/active/${activeChecklistId}/reject`, {
+      method: 'POST'
     })
     
-    if (!commentResponse.ok) {
-      if (commentResponse.status === 401) {
-        const errorText = await commentResponse.text()
-        console.error('❌ 401 Unauthorized:', errorText)
+    if (!rejectResponse.ok) {
+      const rawErrorText = await rejectResponse.text()
+      let errorMessage = rawErrorText || 'Failed to reject checklist'
+
+      // Try to parse JSON error: { "detail": "..." }
+      try {
+        const parsed = JSON.parse(rawErrorText)
+        if (parsed?.detail) {
+          errorMessage = parsed.detail
+        }
+      } catch {
+        // not JSON, keep raw text
+      }
+
+      const lowerMsg = errorMessage.toLowerCase()
+
+      // If backend says it's already rejected, treat as success
+      if (lowerMsg.includes('already rejected') || lowerMsg.includes('already declined')) {
+        console.warn('ℹ️ Checklist already rejected:', errorMessage)
+        await loadLinkedContent()
+        await loadQualityScore(projectId)
+        showToast(`"${checklistName}" is already rejected.`, false)
+        return
+      }
+
+      if (rejectResponse.status === 401) {
+        console.error('❌ 401 Unauthorized:', errorMessage)
         showToast('Authentication failed. Please log in again.', true)
         router.push('/login')
         return
       }
-      const errorText = await commentResponse.text()
-      throw new Error(errorText || 'Failed to reject checklist')
+
+      throw new Error(errorMessage)
     }
     
-    const commentData = await commentResponse.json()
-    console.log('✅ Rejection comment created:', commentData)
+    const updatedChecklist = await rejectResponse.json()
+    console.log('✅ Checklist rejected - API response (full):', JSON.stringify(updatedChecklist, null, 2))
     
-    // Wait a bit for backend to process the rejection
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Get the actual status from the API response - backend returns "approved" | "rejected" | "pending"
+    const apiStatus = updatedChecklist.status || 'rejected'
+    console.log('✅ Rejection API returned status:', apiStatus)
     
-    // Refresh linked content to get updated checklist status
-    await loadLinkedContent()
+    // Get rejecter email from API response - check all possible fields
+    let rejecterEmail = updatedChecklist.rejected_by_email || 
+                       updatedChecklist.rejected_by || 
+                       updatedChecklist.rejecter_email ||
+                       updatedChecklist.rejecter?.email ||
+                       updatedChecklist.rejected_by_user?.email ||
+                       updatedChecklist.rejecter_user?.email ||
+                       updatedChecklist.user?.email ||
+                       updatedChecklist.created_by || // Backend might use created_by
+                       undefined
+    
+    console.log('📧 Rejecter email from rejection API response:', rejecterEmail, 'checked fields:', {
+      rejected_by_email: updatedChecklist.rejected_by_email,
+      rejected_by: updatedChecklist.rejected_by,
+      rejecter_email: updatedChecklist.rejecter_email,
+      rejecter: updatedChecklist.rejecter,
+      rejected_by_user: updatedChecklist.rejected_by_user,
+      rejecter_user: updatedChecklist.rejecter_user,
+      user: updatedChecklist.user,
+      created_by: updatedChecklist.created_by,
+      fullResponse: updatedChecklist
+    })
+    
+    // If API doesn't return rejecter email, use current user's email as fallback
+    if (!rejecterEmail) {
+      rejecterEmail = authStore.user?.email || ''
+      console.log('📧 Using current user email as rejecter (fallback):', rejecterEmail)
+    }
+    
+    console.log('✅ Final rejecterEmail:', rejecterEmail)
+    
+    // Immediately update the status in the linkedChecklists array so UI reflects rejection instantly
+    // Try multiple matching strategies to find the checklist
+    let checklistIndex = -1
+    const possibleIds = [
+      checklistId,
+      checklist?.active_checklist_id,
+      checklist?.template_id,
+      checklist?.checklist_template_id
+    ].filter(id => id !== null && id !== undefined)
+    
+    // First, try to find by any of the possible IDs
+    for (const searchId of possibleIds) {
+      checklistIndex = linkedChecklists.value.findIndex((c: any) => {
+        if (typeof c !== 'object' || c === null) return false
+        const cIds = [
+          c.id,
+          c.template_id,
+          c.checklist_template_id,
+          c.active_checklist_id
+        ].filter(id => id !== null && id !== undefined)
+        return cIds.some(cId => String(cId) === String(searchId))
+      })
+      if (checklistIndex !== -1) break
+    }
+    
+    // If still not found, try by name as fallback
+    if (checklistIndex === -1 && checklistName) {
+      checklistIndex = linkedChecklists.value.findIndex((c: any) => {
+        if (typeof c !== 'object' || c === null) return false
+        const cName = c.name || c.template_name || ''
+        return cName.toLowerCase() === checklistName.toLowerCase()
+      })
+    }
+    
+    if (checklistIndex !== -1) {
+      // Force Vue reactivity by creating a new object
+      // Use the status from API response, normalized to lowercase
+      const finalStatus = apiStatus ? String(apiStatus).toLowerCase() : 'rejected'
+      const updatedItem = {
+        ...linkedChecklists.value[checklistIndex],
+        status: finalStatus, // Use status from API response (should be "rejected")
+        active_checklist_id: updatedChecklist?.active_checklist_id || activeChecklistId || linkedChecklists.value[checklistIndex].active_checklist_id,
+        rejected_by_email: rejecterEmail, // Store rejecter email
+        rejected_by: rejecterEmail // Also store in rejected_by for compatibility
+      }
+      // Replace the item in the array to trigger reactivity
+      linkedChecklists.value.splice(checklistIndex, 1, updatedItem)
+      console.log('✅ Updated checklist status in UI to rejected:', finalStatus, 'rejecterEmail:', rejecterEmail)
+      console.log('✅ Updated item has email fields:', {
+        rejected_by_email: updatedItem.rejected_by_email,
+        rejected_by: updatedItem.rejected_by,
+        fullItem: JSON.stringify(updatedItem, null, 2)
+      })
+      
+      // Force Vue to re-render by triggering a reactive update
+      await nextTick()
+      const checkItem = linkedChecklists.value.find((c: any) => {
+        const cIds = [c.id, c.template_id, c.checklist_template_id, c.active_checklist_id].filter(id => id !== null && id !== undefined)
+        return cIds.some(cId => possibleIds.some(pId => String(cId) === String(pId)))
+      })
+      if (checkItem) {
+        console.log('✅ After nextTick, checklist has email:', {
+          rejected_by_email: checkItem.rejected_by_email,
+          rejected_by: checkItem.rejected_by,
+          status: checkItem.status
+        })
+      }
+    } else {
+      console.warn('⚠️ Could not find checklist in linkedChecklists to update status. IDs searched:', possibleIds)
+    }
+    
+    // Also update the local checklist object reference
+    if (typeof checklist === 'object' && checklist !== null) {
+      checklist.status = 'rejected' // Backend uses "rejected" not "declined"
+      checklist.rejected_by_email = rejecterEmail
+      checklist.rejected_by = rejecterEmail // Also set rejected_by for compatibility
+      console.log('✅ Updated local checklist object status to rejected:', rejecterEmail, 'checklist:', JSON.stringify(checklist, null, 2))
+    }
+    
+    // After rejection, try to fetch status if we have an active checklist ID
+    const activeChecklistIdForReject = checklist?.active_checklist_id
+    if (activeChecklistIdForReject) {
+      try {
+        console.log('🔄 Fetching active checklist status after rejection:', activeChecklistIdForReject)
+        const statusResponse = await authenticatedFetch(`/api/v1/checklists/active/${activeChecklistIdForReject}`)
+        if (statusResponse.ok) {
+          const activeChecklistData = await statusResponse.json()
+          console.log('✅ Active checklist status after rejection:', activeChecklistData)
+          
+          // Get rejecter email from active checklist data - check ALL possible fields
+          const activeRejecterEmail = activeChecklistData.rejected_by_email || 
+                                     activeChecklistData.rejected_by || 
+                                     activeChecklistData.rejecter_email ||
+                                     activeChecklistData.rejecter?.email ||
+                                     activeChecklistData.rejected_by_user?.email ||
+                                     activeChecklistData.rejecter_user?.email ||
+                                     activeChecklistData.user?.email ||
+                                     activeChecklistData.created_by || // Backend might use created_by
+                                     rejecterEmail // Fallback to what we already have
+          
+          console.log('📧 Rejecter email extraction from active checklist API:', {
+            activeRejecterEmail,
+            rejected_by_email: activeChecklistData.rejected_by_email,
+            rejected_by: activeChecklistData.rejected_by,
+            rejecter_email: activeChecklistData.rejecter_email,
+            rejecter: activeChecklistData.rejecter,
+            rejected_by_user: activeChecklistData.rejected_by_user,
+            rejecter_user: activeChecklistData.rejecter_user,
+            user: activeChecklistData.user,
+            created_by: activeChecklistData.created_by,
+            fullResponse: activeChecklistData
+          })
+          
+          // Get status from active checklist
+          const activeStatus = activeChecklistData.status ? String(activeChecklistData.status).toLowerCase() : linkedChecklists.value[checklistIndex]?.status || 'rejected'
+          
+          // Update the status and rejecter email in the UI
+          if (checklistIndex !== -1) {
+            const finalRejecterEmail = activeRejecterEmail || rejecterEmail
+            const updatedItem = {
+              ...linkedChecklists.value[checklistIndex],
+              status: activeStatus,
+              rejected_by_email: finalRejecterEmail, // Use active checklist email from API
+              rejected_by: finalRejecterEmail // Also set rejected_by for compatibility
+            }
+            linkedChecklists.value.splice(checklistIndex, 1, updatedItem)
+            console.log('✅ Updated checklist from active API fetch:', {
+              status: activeStatus,
+              rejected_by_email: finalRejecterEmail,
+              updatedItem: JSON.stringify(updatedItem, null, 2)
+            })
+          }
+          
+          // Also update the local checklist object reference
+          if (typeof checklist === 'object' && checklist !== null) {
+            checklist.rejected_by_email = activeRejecterEmail || rejecterEmail
+            checklist.rejected_by = activeRejecterEmail || rejecterEmail
+            checklist.status = activeStatus
+            console.log('✅ Updated local checklist object with email from API:', {
+              rejected_by_email: checklist.rejected_by_email,
+              status: checklist.status
+            })
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch active checklist status (non-critical):', err)
+      }
+    }
+    
+    // Removed automatic refetch - UI is updated optimistically and backend is source of truth
+    // No need for delayed refresh that causes unwanted auto-refreshing
     
     // Refresh quality score to show updated completion rate
     await loadQualityScore(projectId)
@@ -2858,6 +3398,29 @@ async function triggerSpecLint(specId: string | number) {
 }
 
 // Load detailed lint result
+// Fetch comments for lint result
+const fetchLintComments = async (lintResultId: string | number) => {
+  loadingComments.value = true
+  try {
+    const response = await apiClient(`/comments?entity_type=lint_result&entity_id=${lintResultId}`)
+    
+    if (response.ok) {
+      const data = await response.json()
+      // Handle both array and paginated response formats
+      lintComments.value = Array.isArray(data) ? data : (data.results || data.items || [])
+      console.log('✅ Fetched comments:', lintComments.value.length)
+    } else {
+      console.warn('⚠️ Failed to fetch comments:', response.status)
+      lintComments.value = []
+    }
+  } catch (err: any) {
+    console.error('❌ Error fetching comments:', err)
+    lintComments.value = []
+  } finally {
+    loadingComments.value = false
+  }
+}
+
 const loadLintDetail = async (lintResultId: string | number) => {
   lintDetailLoading.value = true
   lintDetailData.value = null
@@ -2873,12 +3436,18 @@ const loadLintDetail = async (lintResultId: string | number) => {
     lintDetailData.value = data
 
     // Keep the lightweight list item and the detailed payload in sync
+    // Preserve spec_id from original selectedLintResult if detail doesn't have it
     if (selectedLintResult.value && String(selectedLintResult.value.id) === String(data.id ?? lintResultId)) {
       selectedLintResult.value = {
         ...selectedLintResult.value,
-        ...data
+        ...data,
+        // Preserve spec_id if it exists in original but not in detail
+        spec_id: data.spec_id || data.linked_spec_id || selectedLintResult.value.spec_id || selectedLintResult.value.linked_spec_id || selectedLintResult.value.id
       }
     }
+    
+    // Fetch comments for this lint result
+    await fetchLintComments(lintResultId)
   } catch (err: any) {
     console.error('Error loading lint detail:', err)
     showToast(`Failed to load lint details: ${err.message}`, true)
@@ -2900,6 +3469,7 @@ const closeLintDetailModal = () => {
   selectedLintResult.value = null
   lintDetailData.value = null
   newComment.value = ''
+  lintComments.value = []
 }
 
 // Navigate to spec detail page
@@ -2908,7 +3478,14 @@ const navigateToSpec = (specId: string | number) => {
 }
 
 // Re-run lint on a spec (from lint detail modal)
-const reRunLint = async (specId: string | number) => {
+const reRunLint = async (specId: string | number | null | undefined) => {
+  // Validate specId before making the request
+  if (!specId || specId === 'null' || specId === 'undefined') {
+    showToast('Cannot re-run lint: Spec ID is missing. Please select a valid spec.', true)
+    console.error('❌ Invalid spec ID for re-run lint:', specId)
+    return
+  }
+  
   try {
     const response = await authenticatedFetch(`/api/v1/specs/${specId}/lint`, {
       method: 'POST'
@@ -2990,6 +3567,9 @@ const submitComment = async () => {
     
     // Reload lint detail to get updated comments
     await loadLintDetail(selectedLintResult.value.id)
+    
+    // Also fetch comments directly to ensure they're displayed
+    await fetchLintComments(selectedLintResult.value.id)
     
     // Refresh the list
     await loadLinkedContent()

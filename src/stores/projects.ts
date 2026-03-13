@@ -42,16 +42,18 @@ export const useProjectsStore = defineStore('projects', () => {
         throw new Error(errorText || 'Failed to load projects')
       }
       
-      const data = await response.json();
+      const data = await response.json()
       projects.value = Array.isArray(data)
         ? data.map((p: any) => ({
             ...p,
-            // Normalize backend field eda_tool → edaTool for the UI
+            // Normalize core fields so edit modal always sees them
+            platform: p.platform || p.platform_name || p.platform_type || '',
             edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
+            type: p.type || p.project_type || '',
             createdAt: p.created_at,
             updatedAt: p.updated_at
           }))
-        : [];
+        : []
     } catch (err: any) {
       error.value = err.message || 'Failed to load projects'
       console.error('🔍 DEBUG - Error loading projects:', err)
@@ -90,7 +92,9 @@ export const useProjectsStore = defineStore('projects', () => {
       const newProject = await response.json()
       return {
         ...newProject,
+        platform: newProject.platform || newProject.platform_name || newProject.platform_type || '',
         edaTool: newProject.edaTool || newProject.eda_tool || newProject.eda_tool_name || '',
+        type: newProject.type || newProject.project_type || '',
         createdAt: newProject.created_at,
         updatedAt: newProject.updated_at
       }
@@ -120,7 +124,9 @@ export const useProjectsStore = defineStore('projects', () => {
       const p = await response.json()
       return {
         ...p,
+        platform: p.platform || p.platform_name || p.platform_type || '',
         edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
+        type: p.type || p.project_type || '',
         createdAt: p.created_at,
         updatedAt: p.updated_at
       }
@@ -164,14 +170,18 @@ export const useProjectsStore = defineStore('projects', () => {
       if (index !== -1) {
         projects.value[index] = {
           ...updatedProject,
-          edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || '',
+          platform: updatedProject.platform || updatedProject.platform_name || updatedProject.platform_type || projects.value[index].platform,
+          edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || projects.value[index].edaTool,
+          type: updatedProject.type || updatedProject.project_type || projects.value[index].type,
           createdAt: updatedProject.created_at,
           updatedAt: updatedProject.updated_at
         }
       }
       return {
         ...updatedProject,
+        platform: updatedProject.platform || updatedProject.platform_name || updatedProject.platform_type || '',
         edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || '',
+        type: updatedProject.type || updatedProject.project_type || '',
         createdAt: updatedProject.created_at,
         updatedAt: updatedProject.updated_at
       }
