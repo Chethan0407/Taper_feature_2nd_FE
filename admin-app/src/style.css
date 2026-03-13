@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent;
+}
