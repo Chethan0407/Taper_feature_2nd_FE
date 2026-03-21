@@ -211,6 +211,14 @@ const router = createRouter({
  */
 router.beforeEach(async (to, from, next) => {
   try {
+    // Collapse duplicate slashes (e.g. tapeoutops.com//dashboard/... in the bar → path //dashboard/...)
+    // so mistaken URLs still match redirects and routes instead of an empty router-view (black screen).
+    const collapsed = to.path.replace(/\/+/g, '/')
+    if (collapsed !== to.path) {
+      next({ path: collapsed, query: to.query, hash: to.hash, replace: true })
+      return
+    }
+
     const authStore = useAuthStore()
     
     // Always allow access to public pages (no checks)
