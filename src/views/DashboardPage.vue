@@ -10,6 +10,25 @@
       
       <!-- Dashboard Content -->
       <main class="p-8">
+        <div
+          v-if="adminAccessNotice"
+          class="mb-6 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-100"
+          role="status"
+        >
+          <p class="font-semibold text-amber-50">System Usage is admin-only</p>
+          <p class="mt-1 text-sm text-amber-100/90">
+            You were redirected from <code class="rounded bg-dark-800 px-1 py-0.5 text-xs">/admin/usage</code> because this account is not recognized as an administrator.
+            The sidebar hides &quot;System Usage&quot; for the same reason. Ask your team to assign an admin role in the backend (or log in with an admin user).
+          </p>
+          <button
+            type="button"
+            class="mt-3 text-sm font-medium text-neon-blue hover:underline"
+            @click="dismissAdminNotice"
+          >
+            Dismiss
+          </button>
+        </div>
+
         <!-- Welcome Banner -->
         <div class="mb-8">
           <h1 class="text-4xl font-bold text-gradient mb-4">
@@ -274,7 +293,7 @@
 <script setup lang="ts">
 import { onMounted, ref, onUnmounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { useMetadataStore } from '@/stores/metadata'
@@ -282,7 +301,13 @@ import { useSpecificationsStore } from '@/stores/specifications'
 import { authenticatedFetch } from '@/utils/auth-requests'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const router = useRouter()
+
+const adminAccessNotice = computed(() => route.query.notice === 'admin_required')
+function dismissAdminNotice() {
+  router.replace({ path: '/dashboard' })
+}
 const metadataStore = useMetadataStore()
 const specificationsStore = useSpecificationsStore()
 
