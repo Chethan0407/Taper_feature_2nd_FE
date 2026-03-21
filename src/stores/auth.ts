@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { resolveApiUrl } from '@/config/api'
 
 interface User {
   id: string
@@ -10,8 +11,7 @@ interface User {
   is_superuser?: boolean
 }
 
-// Use relative path to go through Vite proxy
-const API_BASE = '/api/v1/auth'
+const API_BASE = resolveApiUrl('/api/v1/auth')
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)

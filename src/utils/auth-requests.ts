@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth'
+import { resolveApiUrl } from '@/config/api'
 import { validateToken, isTokenExpired } from './token-utils'
 
 /**
@@ -52,7 +53,6 @@ export async function authenticatedFetch(
     console.log('🔧 authenticatedFetch - Removed trailing slash from URL:', finalUrl)
   }
   
-  // Use the URL as-is (Vite proxy will handle /api/v1/* requests)
   const cleanUrl = finalUrl
   
   // Validate and add token FIRST - Check both authStore and localStorage
@@ -329,7 +329,7 @@ export async function authenticatedFetch(
     })
     
     // Make the fetch request - headers should be properly formatted
-    const response = await fetch(cleanUrl, fetchOptions)
+    const response = await fetch(resolveApiUrl(cleanUrl), fetchOptions)
     
     console.log('📥 authenticatedFetch - Response:', {
       url: cleanUrl,

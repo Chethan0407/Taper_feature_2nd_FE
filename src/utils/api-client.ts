@@ -3,6 +3,8 @@
  * Reads token directly from localStorage and ensures Authorization header is always included
  */
 
+import { resolveApiUrl } from '@/config/api'
+
 const TOKEN_KEY = 'tapeout_token'
 
 /**
@@ -72,7 +74,7 @@ export async function apiClient(
   }
   // For other endpoints, preserve as-is (don't auto-add trailing slash)
   
-  const fullUrl = `/api/v1${finalUrl}`
+  const fullUrl = resolveApiUrl(`/api/v1${finalUrl}`)
   
   // Ensure token doesn't have "Bearer " prefix (we'll add it)
   const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token
@@ -119,13 +121,17 @@ export async function apiClient(
     if (response.status === 307 || response.status === 308) {
       const redirectUrl = response.headers.get('Location')
       if (redirectUrl) {
+        const nextUrl =
+          /^https?:\/\//i.test(redirectUrl)
+            ? redirectUrl
+            : resolveApiUrl(redirectUrl.startsWith('/') ? redirectUrl : `/${redirectUrl}`)
         console.log('🔄 apiClient - Handling redirect:', {
           from: fullUrl,
-          to: redirectUrl,
+          to: nextUrl,
           status: response.status
         })
         // Retry with redirect URL, preserving all headers (especially Authorization)
-        response = await fetch(redirectUrl, {
+        response = await fetch(nextUrl, {
           ...options,
           headers, // Headers are preserved, including Authorization
           redirect: 'follow' as RequestRedirect // Allow further redirects if needed

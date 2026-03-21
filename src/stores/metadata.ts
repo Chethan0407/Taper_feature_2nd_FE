@@ -12,16 +12,27 @@ export const useMetadataStore = defineStore('metadata', () => {
   const fetchMetadata = async () => {
     loading.value = true
     error.value = null
+    const controller = new AbortController()
+    const t = window.setTimeout(() => controller.abort(), 20_000)
     try {
-      [platforms.value, edaTools.value, types.value, statuses.value] = await Promise.all([
-        fetch('/api/v1/metadata/platforms').then(r => r.json()),
-        fetch('/api/v1/metadata/eda-tools').then(r => r.json()),
-        fetch('/api/v1/metadata/types').then(r => r.json()),
-        fetch('/api/v1/metadata/statuses').then(r => r.json()),
+      const json = (path: string) =>
+        fetch(path, { signal: controller.signal }).then(async (r) => {
+          if (!r.ok) throw new Error(`${path} (${r.status})`)
+          return r.json()
+        })
+      ;[platforms.value, edaTools.value, types.value, statuses.value] = await Promise.all([
+        json('/api/v1/metadata/platforms'),
+        json('/api/v1/metadata/eda-tools'),
+        json('/api/v1/metadata/types'),
+        json('/api/v1/metadata/statuses'),
       ])
     } catch (e: any) {
-      error.value = e.message || 'Failed to load metadata'
+      error.value =
+        e?.name === 'AbortError'
+          ? 'Metadata request timed out — is the API running on port 8000?'
+          : e.message || 'Failed to load metadata'
     } finally {
+      clearTimeout(t)
       loading.value = false
     }
   }

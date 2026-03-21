@@ -5,7 +5,7 @@
  * Tests the key endpoints that were failing
  */
 
-const API_BASE = 'http://localhost:8000/api/v1'
+const API_BASE = 'http://127.0.0.1:8000/api/v1'
 
 // Test credentials (replace with actual test credentials)
 const TEST_EMAIL = 'test@example.com'
