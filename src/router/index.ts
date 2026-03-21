@@ -195,6 +195,11 @@ const router = createRouter({
       component: () => import('@/views/SystemUsagePage.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
+    // Common mistaken URL (no /dashboard prefix in this app) — was a blank black screen in prod
+    {
+      path: '/dashboard/admin/usage',
+      redirect: '/admin/usage',
+    },
   ],
 })
 
