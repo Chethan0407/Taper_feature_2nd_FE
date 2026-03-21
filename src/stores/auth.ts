@@ -11,6 +11,25 @@ interface User {
   is_superuser?: boolean
 }
 
+/** Backend role / flags vary; normalize so /admin/usage works in prod. */
+function userHasAdminAccess(u: Record<string, unknown> | null | undefined): boolean {
+  if (!u) return false
+  const su = u.is_superuser
+  if (su === true || su === 1 || su === '1') return true
+  const ia = u.is_admin
+  if (ia === true || ia === 1 || ia === '1') return true
+  const r = u.role
+  if (r == null || r === '') return false
+  const role = String(r).toLowerCase().trim()
+  return (
+    role === 'admin' ||
+    role === 'superuser' ||
+    role === 'super_admin' ||
+    role === 'superadmin' ||
+    role === 'administrator'
+  )
+}
+
 const API_BASE = resolveApiUrl('/api/v1/auth')
 
 export const useAuthStore = defineStore('auth', () => {
@@ -38,13 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   /** True if user has admin or super-admin role (for admin-only routes like System Usage). */
-  const isAdmin = computed(() => {
-    const u = user.value
-    if (!u) return false
-    const role = (u as any).role
-    const superuser = (u as any).is_superuser
-    return role === 'admin' || superuser === true
-  })
+  const isAdmin = computed(() => userHasAdminAccess(user.value as Record<string, unknown> | null))
 
   function getAuthHeader(): HeadersInit | undefined {
     if (token.value && token.value !== 'undefined' && token.value !== 'null') {

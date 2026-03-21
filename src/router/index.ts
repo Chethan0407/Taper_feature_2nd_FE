@@ -254,7 +254,8 @@ router.beforeEach(async (to, from, next) => {
         }
         const isDev = import.meta.env.DEV
         if (!authStore.isAdmin && !isDev) {
-          next('/dashboard')
+          // Query helps support/debug: prod “/admin/usage not working” is often non-admin user
+          next({ path: '/dashboard', query: { notice: 'admin_required' }, replace: true })
           return
         }
       }
