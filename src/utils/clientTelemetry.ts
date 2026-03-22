@@ -1,0 +1,167 @@
+import { resolveApiUrl } from '@/config/api'
+
+/** Default relative path; backend should accept POST JSON. */
+const DEFAULT_UI_EVENTS_PATH = '/api/v1/auth/ui-events'
+
+function isTelemetryDisabled(): boolean {
+  return (
+    import.meta.env.VITE_DISABLE_UI_TELEMETRY === '1' ||
+    import.meta.env.VITE_DISABLE_UI_TELEMETRY === 'true'
+  )
+}
+
+function resolveTelemetryUrl(): string {
+  const override = import.meta.env.VITE_UI_TELEMETRY_URL?.trim()
+  if (override && /^https?:\/\//i.test(override)) {
+    return override
+  }
+  if (override) {
+    const p = override.startsWith('/') ? override : `/${override}`
+    return resolveApiUrl(p)
+  }
+  return resolveApiUrl(DEFAULT_UI_EVENTS_PATH)
+}
+
+function sendTelemetryBody(body: Record<string, unknown>): void {
+  if (isTelemetryDisabled()) return
+
+  const url = resolveTelemetryUrl()
+  const json = JSON.stringify(body)
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      const ok = navigator.sendBeacon(url, new Blob([json], { type: 'application/json' }))
+      if (ok) return
+    }
+  } catch {
+    /* fall through to fetch */
+  }
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: json,
+    credentials: 'omit',
+    keepalive: true
+  }).catch(() => {})
+}
+
+/**
+ * Fire-and-forget UI telemetry. Safe payload only — never pass user-typed secrets.
+ * Production: enable by implementing POST on the default path, or set VITE_UI_TELEMETRY_URL.
+ * Disable: VITE_DISABLE_UI_TELEMETRY=1
+ */
+export function reportUiEvent(
+  event: string,
+  payload: Record<string, string | number | boolean>
+): void {
+  sendTelemetryBody({
+    event,
+    payload,
+    ts: Date.now(),
+    path: typeof window !== 'undefined' ? window.location.pathname : ''
+  })
+}
+
+/** Full `user@host.tld` — used only to set `partial: false` on the wire. */
+const SIGNUP_EMAIL_COMPLETE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * True when the user has typed enough in the email field to show intent:
+ * non-empty local part, @, and domain segment at least 2 chars (e.g. `alex@acme` before `.com`).
+ */
+export function isSignupEmailEnoughForLead(value: string): boolean {
+  const t = value.trim().toLowerCase()
+  if (t.length < 4) return false
+  const m = /^([^\s@]+)@([^\s@]+)$/.exec(t)
+  if (!m) return false
+  return m[1].length >= 1 && m[2].length >= 2
+}
+
+export type SignupEmailLeadSource =
+  | 'blur'
+  | 'idle'
+  | 'modal_close'
+  | 'page_left'
+  /** User typed an email-shaped value in Full Name instead of Email */
+  | 'name_blur'
+  | 'name_idle'
+  | 'name_modal_close'
+  | 'name_page_left'
+
+/** Browser-only log so admins can preview captures without GET /admin/usage/signup-leads. */
+const LOCAL_SIGNUP_LEADS_KEY = 'tapeout_signup_leads_log'
+const LOCAL_SIGNUP_LEADS_MAX = 150
+
+export type LocalSignupLeadEntry = {
+  email: string
+  source: SignupEmailLeadSource
+  partial: boolean
+  ts: number
+  path: string
+}
+
+function appendLocalSignupLeadEntry(entry: LocalSignupLeadEntry): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    const raw = localStorage.getItem(LOCAL_SIGNUP_LEADS_KEY)
+    const arr: LocalSignupLeadEntry[] = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(arr)) return
+    arr.unshift(entry)
+    localStorage.setItem(LOCAL_SIGNUP_LEADS_KEY, JSON.stringify(arr.slice(0, LOCAL_SIGNUP_LEADS_MAX)))
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+export function readLocalSignupLeadsLog(): LocalSignupLeadEntry[] {
+  try {
+    if (typeof localStorage === 'undefined') return []
+    const raw = localStorage.getItem(LOCAL_SIGNUP_LEADS_KEY)
+    if (!raw) return []
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) ? (arr as LocalSignupLeadEntry[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function clearLocalSignupLeadsLog(): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    localStorage.removeItem(LOCAL_SIGNUP_LEADS_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Captures signup email text once it looks “enough” typed (not only after full domain.tld).
+ * Also appends to localStorage so System Usage can show rows without a backend list API.
+ * PII — align with your privacy policy; store securely server-side when API exists.
+ */
+export function reportSignupEmailLead(email: string, source: SignupEmailLeadSource): void {
+  const trimmed = email.trim().toLowerCase()
+  if (!isSignupEmailEnoughForLead(trimmed)) return
+
+  const complete = SIGNUP_EMAIL_COMPLETE.test(trimmed)
+  const ts = Date.now()
+  const path = typeof window !== 'undefined' ? window.location.pathname : ''
+
+  appendLocalSignupLeadEntry({
+    email: trimmed,
+    source,
+    partial: !complete,
+    ts,
+    path
+  })
+
+  sendTelemetryBody({
+    event: 'signup_email_lead',
+    email: trimmed,
+    source,
+    partial: !complete,
+    ts,
+    path
+  })
+}

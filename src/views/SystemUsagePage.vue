@@ -43,6 +43,166 @@
           </div>
         </section>
 
+        <!-- Signup leads — same layout pattern as Users (filters + table) -->
+        <section class="mb-10">
+          <h2 class="text-xl font-semibold text-white mb-4">Signup leads</h2>
+          <p class="text-gray-400 text-sm mb-4 max-w-3xl">
+            Incomplete sign-ups captured on <strong class="text-gray-300">this browser</strong> (local log). Server list
+            uses <code class="text-neon-blue/90 text-xs">GET /api/v1/admin/usage/signup-leads</code> when available.
+          </p>
+
+          <h3 class="text-lg font-semibold text-white mb-3">This browser</h3>
+          <div class="flex flex-wrap gap-4 mb-4">
+            <select
+              v-model="leadsLocalSourceFilter"
+              class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm"
+            >
+              <option value="">All sources</option>
+              <option value="blur">blur (email field)</option>
+              <option value="idle">idle (email field)</option>
+              <option value="modal_close">modal_close (email)</option>
+              <option value="page_left">page_left (email)</option>
+              <option value="name_blur">name_blur</option>
+              <option value="name_idle">name_idle</option>
+              <option value="name_modal_close">name_modal_close</option>
+              <option value="name_page_left">name_page_left</option>
+            </select>
+            <input
+              v-model="leadsLocalEmailFilter"
+              type="text"
+              placeholder="Filter by email or domain"
+              class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm w-56 md:w-64"
+            />
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-white text-sm"
+              @click="applyLocalSignupLeadsFilters"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg bg-dark-800 border border-dark-600 text-gray-300 hover:text-white text-sm"
+              @click="clearLocalSignupLeads"
+            >
+              Clear log
+            </button>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900">
+            <table class="min-w-full text-left">
+              <thead class="bg-dark-800 border-b border-dark-700">
+                <tr>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Source</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Partial</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Path</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Captured</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, idx) in (filteredLocalSignupLeads || [])"
+                  :key="String(row?.ts) + String(row?.email) + String(idx)"
+                  class="border-b border-dark-800 hover:bg-dark-800/50"
+                >
+                  <td class="py-3 px-4 text-gray-200">{{ row?.email ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-200">{{ leadEmailDomain(row?.email) }}</td>
+                  <td class="py-3 px-4 text-gray-400 text-sm">{{ row?.source ?? '—' }}</td>
+                  <td class="py-3 px-4">
+                    <span :class="row?.partial ? 'text-amber-400' : 'text-green-400'">
+                      {{ row?.partial ? 'Yes' : 'No' }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-gray-500 text-sm">{{ row?.path ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-400 text-sm">{{ formatDate(row?.ts) }}</td>
+                </tr>
+                <tr v-if="!(filteredLocalSignupLeads?.length)">
+                  <td colspan="6" class="py-8 px-4 text-gray-500 text-sm text-center">
+                    No signup leads match your filters. Open Sign up on this browser, type enough of an email (e.g.
+                    <code class="text-xs text-gray-400">you@co</code>), pause or blur — then click Apply.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="text-lg font-semibold text-white mb-3 mt-10">From server</h3>
+          <div class="flex flex-wrap gap-4 mb-4">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-white text-sm disabled:opacity-50"
+              :disabled="signupLeadsLoading"
+              @click="fetchSignupLeads"
+            >
+              {{ signupLeadsLoading ? 'Loading…' : 'Refresh' }}
+            </button>
+          </div>
+          <div v-if="signupLeadsLoading" class="text-gray-400 mb-4">Loading signup leads…</div>
+          <div v-if="signupLeadsError" class="text-red-400 mb-4">{{ signupLeadsError }}</div>
+          <p v-if="signupLeadsInfo && !signupLeadsError" class="text-amber-400/90 text-sm mb-4 whitespace-pre-line">
+            {{ signupLeadsInfo }}
+          </p>
+          <div
+            v-if="!signupLeadsLoading && !signupLeadsError && (signupLeads?.length ?? 0) > 0"
+            class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900"
+          >
+            <table class="min-w-full text-left">
+              <thead class="bg-dark-800 border-b border-dark-700">
+                <tr>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Last source</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Last seen</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Converted</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, idx) in (signupLeads || [])"
+                  :key="String(row?.email) + String(idx)"
+                  class="border-b border-dark-800 hover:bg-dark-800/50"
+                >
+                  <td class="py-3 px-4 text-gray-200">{{ row?.email ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-200">{{ leadEmailDomain(row?.email) }}</td>
+                  <td class="py-3 px-4 text-gray-400 text-sm">{{ row.last_source ?? row.source ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-400 text-sm">{{ formatDateTime(row.last_seen || row.last_seen_at || row.updated_at || row.created_at) }}</td>
+                  <td class="py-3 px-4">
+                    <span
+                      :class="row.converted === true || row.user_id ? 'text-green-400' : 'text-gray-500'"
+                    >
+                      {{ row.converted === true || row.user_id ? 'Yes' : 'No' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div
+            v-else-if="!signupLeadsLoading && !signupLeadsError && !(signupLeads?.length) && !signupLeadsInfo"
+            class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900"
+          >
+            <table class="min-w-full text-left">
+              <thead class="bg-dark-800 border-b border-dark-700">
+                <tr>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Last source</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Last seen</th>
+                  <th class="py-3 px-4 text-gray-300 font-semibold">Converted</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="5" class="py-8 px-4 text-gray-500 text-sm text-center">
+                    No server rows for this query.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <!-- Trends (charts) -->
         <section class="mb-10">
           <h2 class="text-xl font-semibold text-white mb-4">Usage trends</h2>
@@ -255,6 +415,11 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import {
+  readLocalSignupLeadsLog,
+  clearLocalSignupLeadsLog,
+  type LocalSignupLeadEntry,
+} from '@/utils/clientTelemetry'
 
 const API = '/api/v1/admin/usage'
 const isDev = import.meta.env.DEV
@@ -335,12 +500,70 @@ const activeUsersData = ref<{ active_users?: { email: string; activity_count: nu
 const activeUsersLoading = ref(false)
 const activeUsersError = ref('')
 
-function formatDate(s: string) {
-  if (!s) return '—'
+type SignupLeadRow = {
+  email: string
+  last_source?: string
+  source?: string
+  last_seen?: string
+  last_seen_at?: string
+  updated_at?: string
+  created_at?: string
+  converted?: boolean
+  user_id?: string | number | null
+}
+
+const signupLeads = ref<SignupLeadRow[]>([])
+const signupLeadsLoading = ref(false)
+const signupLeadsError = ref('')
+/** Shown when API is missing (404) — not a hard error */
+const signupLeadsInfo = ref('')
+const localSignupLeads = ref<LocalSignupLeadEntry[]>([])
+const leadsLocalSourceFilter = ref('')
+const leadsLocalEmailFilter = ref('')
+
+function leadEmailDomain(email: string | null | undefined): string {
+  if (email == null || typeof email !== 'string') return '—'
+  const i = email.lastIndexOf('@')
+  if (i === -1 || i === email.length - 1) return '—'
+  const d = email.slice(i + 1).trim()
+  return d || '—'
+}
+
+const filteredLocalSignupLeads = computed(() => {
+  const raw = localSignupLeads.value
+  let rows = Array.isArray(raw) ? raw : []
+  if (leadsLocalSourceFilter.value) {
+    rows = rows.filter((r) => r?.source === leadsLocalSourceFilter.value)
+  }
+  const q = leadsLocalEmailFilter.value.trim().toLowerCase()
+  if (q) {
+    rows = rows.filter((r) => {
+      const em = String(r?.email ?? '').toLowerCase()
+      return em.includes(q) || leadEmailDomain(r?.email).toLowerCase().includes(q)
+    })
+  }
+  return rows
+})
+
+function refreshLocalSignupLeads() {
+  localSignupLeads.value = readLocalSignupLeadsLog()
+}
+
+function applyLocalSignupLeadsFilters() {
+  refreshLocalSignupLeads()
+}
+
+function clearLocalSignupLeads() {
+  clearLocalSignupLeadsLog()
+  localSignupLeads.value = []
+}
+
+function formatDate(s: string | number | undefined) {
+  if (s === '' || s === null || s === undefined) return '—'
   try {
     return new Date(s).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
   } catch {
-    return s
+    return String(s)
   }
 }
 function formatDateTime(s: string) {
@@ -481,6 +704,56 @@ async function fetchDomains() {
   }
 }
 
+async function fetchSignupLeads() {
+  signupLeadsLoading.value = true
+  signupLeadsError.value = ''
+  signupLeadsInfo.value = ''
+  try {
+    const res = await authenticatedFetch(`${API}/signup-leads?limit=100`)
+    if (res.status === 404) {
+      signupLeads.value = []
+      signupLeadsInfo.value =
+        'GET /api/v1/admin/usage/signup-leads returned 404 — use the “Captured on this browser” table above for a simple preview, or add this endpoint later for all users.'
+      return
+    }
+    if (!res.ok) {
+      const text = await res.text()
+      let msg = 'Failed to load signup leads'
+      try {
+        const j = JSON.parse(text)
+        msg = j.detail || j.message || text
+      } catch {
+        msg = text || msg
+      }
+      throw new Error(msg)
+    }
+    const data = (await res.json()) as Record<string, unknown>
+    const raw = data.items ?? data.leads ?? data.signup_leads
+    const items = Array.isArray(raw) ? raw : []
+    signupLeads.value = items.map((x: unknown) => {
+      const o = x as Record<string, unknown>
+      const email = String(o.email ?? o.address ?? '')
+      return {
+        email,
+        last_source: o.last_source != null ? String(o.last_source) : o.source != null ? String(o.source) : undefined,
+        source: o.source != null ? String(o.source) : undefined,
+        last_seen: o.last_seen != null ? String(o.last_seen) : undefined,
+        last_seen_at: o.last_seen_at != null ? String(o.last_seen_at) : undefined,
+        updated_at: o.updated_at != null ? String(o.updated_at) : undefined,
+        created_at: o.created_at != null ? String(o.created_at) : undefined,
+        converted: typeof o.converted === 'boolean' ? o.converted : undefined,
+        user_id: o.user_id as string | number | null | undefined,
+      } as SignupLeadRow
+    }).filter((r) => r.email.includes('@'))
+  } catch (e: any) {
+    signupLeadsError.value = e.message || 'Failed to load signup leads'
+    signupLeads.value = []
+  } finally {
+    signupLeadsLoading.value = false
+    refreshLocalSignupLeads()
+  }
+}
+
 async function fetchActiveUsers() {
   activeUsersLoading.value = true
   activeUsersError.value = ''
@@ -509,8 +782,10 @@ watch(trendsDays, () => fetchTrends())
 watch(activityHours, () => fetchActivity())
 
 onMounted(async () => {
+  refreshLocalSignupLeads()
   await Promise.all([
     fetchOverview(),
+    fetchSignupLeads(),
     fetchTrends(),
     fetchUsers(),
     fetchActivity(),

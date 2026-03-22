@@ -51,6 +51,15 @@
                 </ul>
               </div>
               <div>
+                <h3 class="text-xl font-semibold text-white mb-2">Sign-up form (before you finish registering)</h3>
+                <p class="mb-2">
+                  If you open the sign-up flow and type enough of an email address to show intent (for example <span class="text-gray-400">name@company</span> or <span class="text-gray-400">name@company.com</span>), we may send that text to our servers <strong class="text-white font-medium">before</strong> you click to create your account. A short history of those captures may also be kept in <strong class="text-white font-medium">this browser’s storage</strong> so authorized staff viewing System Usage on the same device can review recent test entries. This can happen when you leave the email field, after you pause typing for a short period, when you close the sign-up dialog, or when you leave or close the page while sign-up is open. We use this only as described in “How We Use Your Information” below. We do not collect your password from the password fields until you submit the sign-up form.
+                </p>
+                <p>
+                  We may also receive <strong class="text-white font-medium">non-identifying</strong> technical details about sign-up (for example that text in the email field matched certain patterns, or field length), to detect mistakes—such as typing a password into the email field—and to improve the product. Those signals are not used to reconstruct your password.
+                </p>
+              </div>
+              <div>
                 <h3 class="text-xl font-semibold text-white mb-2">Usage Information</h3>
                 <p>We automatically collect information about how you use our platform, including:</p>
                 <ul class="list-disc list-inside ml-4 mt-2 space-y-2">
@@ -73,6 +82,7 @@
               <li>Respond to your comments and questions</li>
               <li>Monitor and analyze usage patterns and trends</li>
               <li>Detect, prevent, and address technical issues</li>
+              <li>Follow up on incomplete sign-ups where appropriate (for example to help you finish registration or to understand drop-off), and improve sign-up clarity and reliability</li>
             </ul>
           </section>
 

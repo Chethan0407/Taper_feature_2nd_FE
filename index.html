@@ -35,7 +35,21 @@
     </script>
   </head>
   <body class="bg-dark-950 text-gray-100 antialiased">
-    <div id="app"></div>
+    <!--
+      If you only see this block (no app UI), JS did not boot: check DevTools → Console, disable extensions,
+      hard refresh (Cmd+Shift+R). Vue replaces everything inside #app when it mounts.
+    -->
+    <div id="app" style="min-height: 100vh; background-color: #0e0e0e">
+      <div
+        id="boot-fallback"
+        style="color: #94a3b8; padding: 2rem; font-family: system-ui, sans-serif; text-align: center; max-width: 24rem; margin: 0 auto"
+      >
+        <p style="margin: 0 0 0.5rem; font-size: 1rem">Loading TapeOutOps…</p>
+        <p style="margin: 0; font-size: 0.75rem; line-height: 1.4; opacity: 0.85">
+          Stuck on this screen? Open DevTools (F12) → Console for errors, then hard refresh.
+        </p>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html> 

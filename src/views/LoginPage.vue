@@ -215,10 +215,25 @@
                 v-model="signupName" 
                 type="text" 
                 required 
-                class="input-field w-full" 
+                :class="[
+                  'input-field w-full',
+                  signupNameLooksLikeEmail && signupName ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500/20' : ''
+                ]"
                 placeholder="Enter your full name"
                 autocomplete="name"
+                @blur="onSignupNameBlur"
               />
+              <Transition name="fade">
+                <div
+                  v-if="signupNameLooksLikeEmail && signupName"
+                  class="mt-2 flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm"
+                >
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>This looks like an email. Use the <strong class="text-amber-300">Email Address</strong> field below for that, and put your real name here.</span>
+                </div>
+              </Transition>
             </div>
 
             <!-- Email Field -->
@@ -234,11 +249,14 @@
                 autocomplete="off"
                 :class="[
                   'input-field w-full',
-                  signupEmailError && signupEmail 
-                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
-                    : ''
+                  signupEmailError && signupEmail
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                    : signupEmailPasswordConfusion && signupEmail
+                      ? 'border-amber-500 focus:border-amber-500 focus:ring-amber-500/20'
+                      : ''
                 ]"
                 placeholder="Enter your company email"
+                @blur="onSignupEmailBlur"
               />
               <!-- Email Error Message -->
               <Transition name="fade">
@@ -247,6 +265,17 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   <span>{{ signupEmailError }}</span>
+                </div>
+              </Transition>
+              <Transition name="fade">
+                <div
+                  v-if="signupEmailPasswordConfusion && signupEmail"
+                  class="mt-2 flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm"
+                >
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>This looks like a password. Use the email field for your work address (e.g. you@company.com) and put your password below.</span>
                 </div>
               </Transition>
           </div>
@@ -523,10 +552,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { validatePassword, getPasswordRequirements, type PasswordValidationResult } from '@/utils/passwordValidation'
+import { reportUiEvent, reportSignupEmailLead, isSignupEmailEnoughForLead } from '@/utils/clientTelemetry'
 
 const router = useRouter()
 const route = useRoute()
@@ -534,16 +564,6 @@ const authStore = useAuthStore()
 
 // Check for success message from password reset (do not replace URL here - it remounts the component and clears the form)
 const successMessage = ref('')
-onMounted(() => {
-  const message = route.query.message as string
-  if (message) {
-    successMessage.value = message
-    // Auto-hide after 5 seconds (do not router.replace - that causes component remount and breaks typing in email)
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 5000)
-  }
-})
 
 const email = ref('')
 const password = ref('')
@@ -613,6 +633,129 @@ const validateEmailDomain = (email: string): { isValid: boolean; error: string }
   return { isValid: true, error: '' }
 }
 
+/** Heuristic: user likely typed a password into the email field (no @, length, mixed character classes). */
+const emailFieldLooksLikePassword = (value: string): boolean => {
+  const t = value.trim()
+  if (t.length < 8) return false
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return false
+
+  const hasUpper = /[A-Z]/.test(t)
+  const hasLower = /[a-z]/.test(t)
+  const hasNum = /[0-9]/.test(t)
+  const hasSpec = /[!@#$%^&*(),.?":{}|<>]/.test(t)
+  const classCount = [hasUpper, hasLower, hasNum, hasSpec].filter(Boolean).length
+  return classCount >= 3
+}
+
+const signupEmailPasswordConfusion = ref(false)
+const prevSignupEmailPasswordConfusion = ref(false)
+
+/** True after signup API succeeds this modal open — skip abandon telemetry. */
+const signupAccountCreatedThisModal = ref(false)
+/** Dedupe abandon beacons (e.g. pagehide + unmount). */
+const signupAbandonReported = ref(false)
+
+/** Dedupe signup email lead POSTs for the same address this modal session. */
+const lastCapturedSignupEmail = ref('')
+/** Dedupe leads captured from Full Name when it contains an email-shaped value */
+const lastCapturedNameLead = ref('')
+const SIGNUP_EMAIL_CAPTURE_IDLE_MS = 1800
+let signupEmailIdleTimer: ReturnType<typeof setTimeout> | null = null
+let signupNameIdleTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearSignupEmailIdleTimer() {
+  if (signupEmailIdleTimer != null) {
+    clearTimeout(signupEmailIdleTimer)
+    signupEmailIdleTimer = null
+  }
+}
+
+function clearSignupNameIdleTimer() {
+  if (signupNameIdleTimer != null) {
+    clearTimeout(signupNameIdleTimer)
+    signupNameIdleTimer = null
+  }
+}
+
+const signupNameLooksLikeEmail = computed(() => {
+  const t = signupName.value.trim().toLowerCase()
+  return !!(t && isSignupEmailEnoughForLead(t))
+})
+
+function tryCaptureSignupEmailLead(source: 'blur' | 'idle' | 'modal_close' | 'page_left') {
+  if (!showSignUp.value || signupAccountCreatedThisModal.value) return
+  const trimmed = signupEmail.value.trim().toLowerCase()
+  if (!isSignupEmailEnoughForLead(trimmed)) return
+  if (trimmed === lastCapturedSignupEmail.value) return
+  lastCapturedSignupEmail.value = trimmed
+  reportSignupEmailLead(trimmed, source)
+}
+
+function tryCaptureSignupNameLead(source: 'name_blur' | 'name_idle' | 'name_modal_close' | 'name_page_left') {
+  if (!showSignUp.value || signupAccountCreatedThisModal.value) return
+  const trimmed = signupName.value.trim().toLowerCase()
+  if (!isSignupEmailEnoughForLead(trimmed)) return
+  if (trimmed === lastCapturedNameLead.value) return
+  lastCapturedNameLead.value = trimmed
+  reportSignupEmailLead(trimmed, source)
+}
+
+function onSignupEmailBlur() {
+  tryCaptureSignupEmailLead('blur')
+}
+
+function onSignupNameBlur() {
+  tryCaptureSignupNameLead('name_blur')
+}
+
+function signupAbandonMeta(trimmed: string) {
+  const validation = validateEmailDomain(trimmed)
+  return {
+    length: trimmed.length,
+    hasAt: trimmed.includes('@'),
+    looksLikePassword: emailFieldLooksLikePassword(trimmed),
+    emailValidForSignup: validation.isValid
+  }
+}
+
+function reportSignupFormAbandoned(reason: 'closed_modal' | 'page_left') {
+  if (signupAccountCreatedThisModal.value || signupAbandonReported.value) return
+  if (!showSignUp.value) return
+  const trimmed = signupEmail.value.trim()
+  if (!trimmed) return
+  signupAbandonReported.value = true
+  reportUiEvent('signup_form_abandoned', {
+    reason,
+    ...signupAbandonMeta(trimmed)
+  })
+}
+
+function onPageHideForSignupAbandon() {
+  tryCaptureSignupEmailLead('page_left')
+  tryCaptureSignupNameLead('name_page_left')
+  reportSignupFormAbandoned('page_left')
+}
+
+onMounted(() => {
+  const message = route.query.message as string
+  if (message) {
+    successMessage.value = message
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 5000)
+  }
+  window.addEventListener('pagehide', onPageHideForSignupAbandon)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', onPageHideForSignupAbandon)
+  clearSignupEmailIdleTimer()
+  clearSignupNameIdleTimer()
+  tryCaptureSignupEmailLead('page_left')
+  tryCaptureSignupNameLead('name_page_left')
+  reportSignupFormAbandoned('page_left')
+})
+
 // Watch email changes for real-time validation
 watch(signupEmail, (newEmail) => {
   if (newEmail && newEmail.trim()) {
@@ -621,6 +764,45 @@ watch(signupEmail, (newEmail) => {
   } else {
     signupEmailError.value = ''
   }
+
+  const confusion = !!(newEmail && emailFieldLooksLikePassword(newEmail))
+  signupEmailPasswordConfusion.value = confusion
+
+  if (confusion && !prevSignupEmailPasswordConfusion.value) {
+    const t = (newEmail || '').trim()
+    const hasUpper = /[A-Z]/.test(t)
+    const hasLower = /[a-z]/.test(t)
+    const hasNum = /[0-9]/.test(t)
+    const hasSpec = /[!@#$%^&*(),.?":{}|<>]/.test(t)
+    const meta = {
+      length: t.length,
+      hasAt: t.includes('@'),
+      classCount: [hasUpper, hasLower, hasNum, hasSpec].filter(Boolean).length
+    }
+    if (import.meta.env.DEV) {
+      console.info('[signup] email_field_looks_like_password', meta)
+    }
+    reportUiEvent('signup_email_looks_like_password', meta)
+  }
+  prevSignupEmailPasswordConfusion.value = confusion
+})
+
+watch(signupEmail, () => {
+  if (!showSignUp.value || signupAccountCreatedThisModal.value) return
+  clearSignupEmailIdleTimer()
+  signupEmailIdleTimer = setTimeout(() => {
+    signupEmailIdleTimer = null
+    tryCaptureSignupEmailLead('idle')
+  }, SIGNUP_EMAIL_CAPTURE_IDLE_MS)
+})
+
+watch(signupName, () => {
+  if (!showSignUp.value || signupAccountCreatedThisModal.value) return
+  clearSignupNameIdleTimer()
+  signupNameIdleTimer = setTimeout(() => {
+    signupNameIdleTimer = null
+    tryCaptureSignupNameLead('name_idle')
+  }, SIGNUP_EMAIL_CAPTURE_IDLE_MS)
 })
 
 // Password validation state
@@ -726,6 +908,12 @@ const validateLoginEmail = () => {
 // Function to open signup modal
 const openSignUpModal = () => {
   showSignUp.value = true
+  signupAccountCreatedThisModal.value = false
+  signupAbandonReported.value = false
+  lastCapturedSignupEmail.value = ''
+  lastCapturedNameLead.value = ''
+  clearSignupEmailIdleTimer()
+  clearSignupNameIdleTimer()
   // Reset any previous errors/states when opening
   signupError.value = ''
   signupEmailError.value = ''
@@ -735,6 +923,11 @@ const openSignUpModal = () => {
 
 // Function to close signup modal and reset form
 const closeSignUpModal = () => {
+  tryCaptureSignupEmailLead('modal_close')
+  tryCaptureSignupNameLead('name_modal_close')
+  clearSignupEmailIdleTimer()
+  clearSignupNameIdleTimer()
+  reportSignupFormAbandoned('closed_modal')
   // Only reset if not loading and not successful (preserve success state)
   if (!signupLoading.value && !signupSuccess.value) {
     // Reset form fields
@@ -960,7 +1153,8 @@ const handleSignUp = async () => {
 
     // Success - account created, OTP sent
     const data = await res.json()
-    
+    signupAccountCreatedThisModal.value = true
+
     // Close signup modal
     showSignUp.value = false
     

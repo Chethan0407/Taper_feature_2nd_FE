@@ -19,7 +19,7 @@
             type="text"
             class="input-field w-full pl-10 pr-4"
             placeholder="Search companies by name..."
-            @focus="showDropdown = !!searchResults.length"
+            @focus="showDropdown = !!(searchResults?.length)"
             @blur="handleSearchBlur"
             @keydown="handleKeydown"
           />
@@ -32,10 +32,10 @@
           <div v-if="showDropdown" class="absolute left-0 right-0 mt-1 bg-dark-900 border border-dark-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
             <div v-if="searchLoading" class="p-4 text-gray-400">Searching...</div>
             <div v-else-if="searchError" class="p-4 text-red-400">{{ searchError }}</div>
-            <div v-else-if="searchResults.length === 0" class="p-4 text-gray-400">No companies found</div>
+            <div v-else-if="!searchResults?.length" class="p-4 text-gray-400">No companies found</div>
             <div v-else>
               <ul>
-                <li v-for="(item, idx) in searchResults" :key="item.id"
+                <li v-for="(item, idx) in (searchResults || [])" :key="item.id"
                   class="p-3 hover:bg-dark-800 cursor-pointer flex flex-col"
                   :class="{ 'bg-dark-700': idx === highlightedIndex }"
                   @mousedown.prevent="handleResultClick(item)"
@@ -201,10 +201,11 @@ async function doCompanySearch(query: string) {
     // If you want to support status filter, pass it as the second argument
     // const companies = await companiesStore.searchCompanies(query, statusFilter.value)
     const companies = await companiesStore.searchCompanies(query)
+    const list = Array.isArray(companies) ? companies : []
 
     // Extra client-side guard: only show results whose NAME (or domain) visibly matches the query
     const normalized = query.trim().toLowerCase()
-    const filtered = companies.filter((c: any) => {
+    const filtered = list.filter((c: any) => {
       const name = (c.name || c.company_name || '').toLowerCase()
       const domain = (c.domain || c.website || '').toLowerCase()
       return (

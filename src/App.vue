@@ -1,5 +1,6 @@
 <template>
-  <div id="app" class="min-h-screen" style="background-color: #0E0E0E; color: #f1f5f9;">
+  <!-- Root: do not reuse id="app" (mount target in index.html) — duplicate IDs break layout/DOM APIs -->
+  <div class="app-root min-h-screen" style="background-color: #0e0e0e; color: #f1f5f9;">
     <div v-if="error" class="flex items-center justify-center min-h-screen text-white p-4">
       <div class="text-center max-w-2xl">
         <div class="text-2xl mb-4 text-red-500">Application Error</div>
@@ -49,7 +50,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-#app {
+.app-root {
   font-family: 'Inter', system-ui, sans-serif;
 }
 </style>
