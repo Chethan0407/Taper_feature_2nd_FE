@@ -140,7 +140,10 @@
           </div>
           <div v-if="signupLeadsLoading" class="text-gray-400 mb-4">Loading signup leads…</div>
           <div v-if="signupLeadsError" class="text-red-400 mb-4">{{ signupLeadsError }}</div>
-          <p v-if="signupLeadsInfo && !signupLeadsError" class="text-amber-400/90 text-sm mb-4 whitespace-pre-line">
+          <p
+            v-if="signupLeadsInfo && !signupLeadsError"
+            :class="signupLeadsEndpointMissing ? 'text-gray-400 text-sm mb-4' : 'text-amber-400/90 text-sm mb-4 whitespace-pre-line'"
+          >
             {{ signupLeadsInfo }}
           </p>
           <div
@@ -218,7 +221,7 @@
           <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-dark-900 border border-dark-700 rounded-xl p-5">
               <h3 class="text-gray-300 font-medium mb-3">Signups per day</h3>
-              <div class="h-48 flex items-end gap-0.5">
+              <div v-if="(trends?.signups || []).length" class="h-48 flex items-end gap-0.5">
                 <template v-for="d in (trends?.signups || [])" :key="d.date">
                   <div
                     class="flex-1 min-w-0 bg-neon-blue/70 rounded-t hover:bg-neon-blue transition-colors"
@@ -227,14 +230,20 @@
                   />
                 </template>
               </div>
-              <div class="flex justify-between mt-2 text-xs text-gray-500">
+              <div
+                v-else
+                class="h-48 flex items-center justify-center rounded-lg border border-dashed border-dark-600 text-gray-500 text-sm text-center px-4"
+              >
+                No signup data for this window. The API returned an empty series or there were no signups in range.
+              </div>
+              <div v-if="(trends?.signups || []).length" class="flex justify-between mt-2 text-xs text-gray-500">
                 <span>{{ firstTrendDate }}</span>
                 <span>{{ lastTrendDate }}</span>
               </div>
             </div>
             <div class="bg-dark-900 border border-dark-700 rounded-xl p-5">
               <h3 class="text-gray-300 font-medium mb-3">Projects per day</h3>
-              <div class="h-48 flex items-end gap-0.5">
+              <div v-if="(trends?.projects || []).length" class="h-48 flex items-end gap-0.5">
                 <template v-for="d in (trends?.projects || [])" :key="d.date">
                   <div
                     class="flex-1 min-w-0 bg-neon-purple/70 rounded-t hover:bg-neon-purple transition-colors"
@@ -243,7 +252,13 @@
                   />
                 </template>
               </div>
-              <div class="flex justify-between mt-2 text-xs text-gray-500">
+              <div
+                v-else
+                class="h-48 flex items-center justify-center rounded-lg border border-dashed border-dark-600 text-gray-500 text-sm text-center px-4"
+              >
+                No project-creation data for this window. Empty charts here are normal if no new projects were recorded per day.
+              </div>
+              <div v-if="(trends?.projects || []).length" class="flex justify-between mt-2 text-xs text-gray-500">
                 <span>{{ firstTrendDate }}</span>
                 <span>{{ lastTrendDate }}</span>
               </div>
@@ -517,6 +532,8 @@ const signupLeadsLoading = ref(false)
 const signupLeadsError = ref('')
 /** Shown when API is missing (404) — not a hard error */
 const signupLeadsInfo = ref('')
+/** True when signup-leads GET returns 404 (expected until backend adds route) */
+const signupLeadsEndpointMissing = ref(false)
 const localSignupLeads = ref<LocalSignupLeadEntry[]>([])
 const leadsLocalSourceFilter = ref('')
 const leadsLocalEmailFilter = ref('')
@@ -708,12 +725,14 @@ async function fetchSignupLeads() {
   signupLeadsLoading.value = true
   signupLeadsError.value = ''
   signupLeadsInfo.value = ''
+  signupLeadsEndpointMissing.value = false
   try {
     const res = await authenticatedFetch(`${API}/signup-leads?limit=100`)
     if (res.status === 404) {
       signupLeads.value = []
+      signupLeadsEndpointMissing.value = true
       signupLeadsInfo.value =
-        'GET /api/v1/admin/usage/signup-leads returned 404 — use the “Captured on this browser” table above for a simple preview, or add this endpoint later for all users.'
+        'Server list is optional: signup-leads is not deployed yet (404). Use the “This browser” table above for local captures, or add GET /api/v1/admin/usage/signup-leads when ready.'
       return
     }
     if (!res.ok) {
