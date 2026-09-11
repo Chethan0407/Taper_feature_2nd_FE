@@ -1,4 +1,4 @@
-name: Playwright E2E
+name: Frontend Automation
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  e2e:
+  automation:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
@@ -24,19 +24,26 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build app
-        run: npm run build
+      - name: Build app (CI — vite only, skip vue-tsc)
+        run: npm run build:ci
 
-      - name: Run Playwright tests
-        run: npx playwright test
+      - name: Run automation suite
+        run: npm run test:automation
         env:
           CI: true
 
-      - uses: actions/upload-artifact@v4
-        if: failure()
+      - name: Generate Allure report
+        if: always()
+        run: npm run test:automation:report:gen
+
+      - name: Upload Allure + Playwright reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: automation-report
           path: |
+            allure-report/
+            allure-results/
             playwright-report/
             test-results/
-          retention-days: 7
+          retention-days: 14

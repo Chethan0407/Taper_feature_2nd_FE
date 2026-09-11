@@ -179,6 +179,8 @@ temp/
 # Playwright
 /test-results/
 /playwright-report/
+/allure-results/
+/allure-report/
 /blob-report/
 /playwright/.cache/
 
