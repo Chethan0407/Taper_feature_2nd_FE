@@ -1,8 +1,12 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-light-50 to-light-100 dark:from-dark-950 dark:to-dark-900 flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <!-- Login Card -->
-      <div class="glass-effect rounded-2xl p-8 shadow-2xl">
+  <div
+    class="login-page-root min-h-screen bg-gradient-to-br from-light-50 to-light-100 dark:from-dark-950 dark:to-dark-900 flex flex-col items-center justify-center p-4 text-gray-900 dark:text-gray-100"
+  >
+    <div class="w-full max-w-md relative z-10 min-w-0">
+      <!-- Login Card: solid panel so the form stays visible even if glass/backdrop or Tailwind partial-load fails -->
+      <div
+        class="rounded-2xl p-8 shadow-2xl border bg-white/95 border-gray-200/90 dark:bg-dark-900 dark:border-dark-600 backdrop-blur-sm"
+      >
         <!-- Logo -->
         <div class="text-center mb-8">
           <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-2xl flex items-center justify-center mx-auto mb-4">

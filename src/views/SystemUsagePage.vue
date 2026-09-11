@@ -12,50 +12,50 @@
 
         <!-- Overview KPIs -->
         <section class="mb-10">
-          <h2 class="text-xl font-semibold text-white mb-4">Overview</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Overview</h2>
           <div v-if="overviewLoading" class="text-gray-400">Loading overview...</div>
           <div v-else-if="overviewError" class="text-red-400">{{ overviewError }}</div>
           <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-4">
+            <div class="bg-white border border-gray-200 dark:bg-dark-900 dark:border-dark-700 rounded-xl p-4">
               <div class="text-gray-400 text-sm">Total Users</div>
-              <div class="text-2xl font-bold text-white">{{ overview?.users?.total ?? '—' }}</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ overview?.users?.total ?? '—' }}</div>
             </div>
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-4">
+            <div class="bg-white border border-gray-200 dark:bg-dark-900 dark:border-dark-700 rounded-xl p-4">
               <div class="text-gray-400 text-sm">Active Users</div>
-              <div class="text-2xl font-bold text-white">{{ overview?.users?.active ?? '—' }}</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ overview?.users?.active ?? '—' }}</div>
             </div>
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-4">
+            <div class="bg-white border border-gray-200 dark:bg-dark-900 dark:border-dark-700 rounded-xl p-4">
               <div class="text-gray-400 text-sm">Signups (7d)</div>
-              <div class="text-2xl font-bold text-white">{{ overview?.users?.signups_7d ?? '—' }}</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ overview?.users?.signups_7d ?? '—' }}</div>
             </div>
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-4">
+            <div class="bg-white border border-gray-200 dark:bg-dark-900 dark:border-dark-700 rounded-xl p-4">
               <div class="text-gray-400 text-sm">Companies</div>
-              <div class="text-2xl font-bold text-white">{{ overview?.resources?.companies ?? '—' }}</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ overview?.resources?.companies ?? '—' }}</div>
             </div>
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-4">
+            <div class="bg-white border border-gray-200 dark:bg-dark-900 dark:border-dark-700 rounded-xl p-4">
               <div class="text-gray-400 text-sm">Projects</div>
-              <div class="text-2xl font-bold text-white">{{ overview?.resources?.projects ?? '—' }}</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ overview?.resources?.projects ?? '—' }}</div>
             </div>
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-4">
+            <div class="bg-white border border-gray-200 dark:bg-dark-900 dark:border-dark-700 rounded-xl p-4">
               <div class="text-gray-400 text-sm">Specifications</div>
-              <div class="text-2xl font-bold text-white">{{ overview?.resources?.specifications ?? '—' }}</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ overview?.resources?.specifications ?? '—' }}</div>
             </div>
           </div>
         </section>
 
         <!-- Signup leads — same layout pattern as Users (filters + table) -->
         <section class="mb-10">
-          <h2 class="text-xl font-semibold text-white mb-4">Signup leads</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Signup leads</h2>
           <p class="text-gray-400 text-sm mb-4 max-w-3xl">
-            Incomplete sign-ups captured on <strong class="text-gray-300">this browser</strong> (local log). Server list
+            Incomplete sign-ups captured on <strong class="text-gray-800 dark:text-gray-300">this browser</strong> (local log). Server list
             uses <code class="text-neon-blue/90 text-xs">GET /api/v1/admin/usage/signup-leads</code> when available.
           </p>
 
-          <h3 class="text-lg font-semibold text-white mb-3">This browser</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">This browser</h3>
           <div class="flex flex-wrap gap-4 mb-4">
             <select
               v-model="leadsLocalSourceFilter"
-              class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm"
+              class="input-field rounded-lg px-3 py-2 text-sm"
             >
               <option value="">All sources</option>
               <option value="blur">blur (email field)</option>
@@ -71,43 +71,43 @@
               v-model="leadsLocalEmailFilter"
               type="text"
               placeholder="Filter by email or domain"
-              class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm w-56 md:w-64"
+              class="input-field w-56 rounded-lg px-3 py-2 text-sm md:w-64"
             />
             <button
               type="button"
-              class="px-4 py-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-white text-sm"
+              class="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 dark:bg-dark-700 dark:hover:bg-dark-600"
               @click="applyLocalSignupLeadsFilters"
             >
               Apply
             </button>
             <button
               type="button"
-              class="px-4 py-2 rounded-lg bg-dark-800 border border-dark-600 text-gray-300 hover:text-white text-sm"
+              class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300 dark:hover:text-white"
               @click="clearLocalSignupLeads"
             >
               Clear log
             </button>
           </div>
-          <div class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900">
+          <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
             <table class="min-w-full text-left">
-              <thead class="bg-dark-800 border-b border-dark-700">
+              <thead class="bg-gray-100 border-b border-gray-200 dark:bg-dark-800 dark:border-dark-700">
                 <tr>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Source</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Partial</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Path</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Captured</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Email</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Domain</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Source</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Partial</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Path</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Captured</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   v-for="(row, idx) in (filteredLocalSignupLeads || [])"
                   :key="String(row?.ts) + String(row?.email) + String(idx)"
-                  class="border-b border-dark-800 hover:bg-dark-800/50"
+                  class="border-b border-gray-200 hover:bg-gray-50 dark:border-dark-800 dark:hover:bg-dark-800/50"
                 >
-                  <td class="py-3 px-4 text-gray-200">{{ row?.email ?? '—' }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ leadEmailDomain(row?.email) }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ row?.email ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ leadEmailDomain(row?.email) }}</td>
                   <td class="py-3 px-4 text-gray-400 text-sm">{{ row?.source ?? '—' }}</td>
                   <td class="py-3 px-4">
                     <span :class="row?.partial ? 'text-amber-400' : 'text-green-400'">
@@ -127,11 +127,11 @@
             </table>
           </div>
 
-          <h3 class="text-lg font-semibold text-white mb-3 mt-10">From server</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3 mt-10">From server</h3>
           <div class="flex flex-wrap gap-4 mb-4">
             <button
               type="button"
-              class="px-4 py-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-white text-sm disabled:opacity-50"
+              class="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-dark-700 dark:hover:bg-dark-600"
               :disabled="signupLeadsLoading"
               @click="fetchSignupLeads"
             >
@@ -148,26 +148,26 @@
           </p>
           <div
             v-if="!signupLeadsLoading && !signupLeadsError && (signupLeads?.length ?? 0) > 0"
-            class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900"
+            class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900"
           >
             <table class="min-w-full text-left">
-              <thead class="bg-dark-800 border-b border-dark-700">
+              <thead class="bg-gray-100 border-b border-gray-200 dark:bg-dark-800 dark:border-dark-700">
                 <tr>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Last source</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Last seen</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Converted</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Email</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Domain</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Last source</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Last seen</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Converted</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   v-for="(row, idx) in (signupLeads || [])"
                   :key="String(row?.email) + String(idx)"
-                  class="border-b border-dark-800 hover:bg-dark-800/50"
+                  class="border-b border-gray-200 hover:bg-gray-50 dark:border-dark-800 dark:hover:bg-dark-800/50"
                 >
-                  <td class="py-3 px-4 text-gray-200">{{ row?.email ?? '—' }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ leadEmailDomain(row?.email) }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ row?.email ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ leadEmailDomain(row?.email) }}</td>
                   <td class="py-3 px-4 text-gray-400 text-sm">{{ row.last_source ?? row.source ?? '—' }}</td>
                   <td class="py-3 px-4 text-gray-400 text-sm">{{ formatDateTime(row.last_seen || row.last_seen_at || row.updated_at || row.created_at) }}</td>
                   <td class="py-3 px-4">
@@ -183,16 +183,16 @@
           </div>
           <div
             v-else-if="!signupLeadsLoading && !signupLeadsError && !(signupLeads?.length) && !signupLeadsInfo"
-            class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900"
+            class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900"
           >
             <table class="min-w-full text-left">
-              <thead class="bg-dark-800 border-b border-dark-700">
+              <thead class="bg-gray-100 border-b border-gray-200 dark:bg-dark-800 dark:border-dark-700">
                 <tr>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Last source</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Last seen</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Converted</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Email</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Domain</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Last source</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Last seen</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Converted</th>
                 </tr>
               </thead>
               <tbody>
@@ -208,9 +208,9 @@
 
         <!-- Trends (charts) -->
         <section class="mb-10">
-          <h2 class="text-xl font-semibold text-white mb-4">Usage trends</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Usage trends</h2>
           <div class="flex gap-4 mb-4">
-            <select v-model="trendsDays" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm">
+            <select v-model="trendsDays" class="input-field rounded-lg px-3 py-2 text-sm">
               <option :value="7">7 days</option>
               <option :value="30">30 days</option>
               <option :value="90">90 days</option>
@@ -219,8 +219,8 @@
           <div v-if="trendsLoading" class="text-gray-400">Loading trends...</div>
           <div v-else-if="trendsError" class="text-red-400">{{ trendsError }}</div>
           <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-5">
-              <h3 class="text-gray-300 font-medium mb-3">Signups per day</h3>
+            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-dark-700 dark:bg-dark-900">
+              <h3 class="mb-3 font-medium text-gray-700 dark:text-gray-300">Signups per day</h3>
               <div v-if="(trends?.signups || []).length" class="h-48 flex items-end gap-0.5">
                 <template v-for="d in (trends?.signups || [])" :key="d.date">
                   <div
@@ -232,7 +232,7 @@
               </div>
               <div
                 v-else
-                class="h-48 flex items-center justify-center rounded-lg border border-dashed border-dark-600 text-gray-500 text-sm text-center px-4"
+                class="flex h-48 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-sm text-gray-500 dark:border-dark-600"
               >
                 No signup data for this window. The API returned an empty series or there were no signups in range.
               </div>
@@ -241,8 +241,8 @@
                 <span>{{ lastTrendDate }}</span>
               </div>
             </div>
-            <div class="bg-dark-900 border border-dark-700 rounded-xl p-5">
-              <h3 class="text-gray-300 font-medium mb-3">Projects per day</h3>
+            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-dark-700 dark:bg-dark-900">
+              <h3 class="mb-3 font-medium text-gray-700 dark:text-gray-300">Projects per day</h3>
               <div v-if="(trends?.projects || []).length" class="h-48 flex items-end gap-0.5">
                 <template v-for="d in (trends?.projects || [])" :key="d.date">
                   <div
@@ -254,7 +254,7 @@
               </div>
               <div
                 v-else
-                class="h-48 flex items-center justify-center rounded-lg border border-dashed border-dark-600 text-gray-500 text-sm text-center px-4"
+                class="flex h-48 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-sm text-gray-500 dark:border-dark-600"
               >
                 No project-creation data for this window. Empty charts here are normal if no new projects were recorded per day.
               </div>
@@ -268,9 +268,9 @@
 
         <!-- Users table -->
         <section class="mb-10">
-          <h2 class="text-xl font-semibold text-white mb-4">Users</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Users</h2>
           <div class="flex flex-wrap gap-4 mb-4">
-            <select v-model="usersFilterActive" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm">
+            <select v-model="usersFilterActive" class="input-field rounded-lg px-3 py-2 text-sm">
               <option value="">All</option>
               <option value="true">Active only</option>
               <option value="false">Inactive only</option>
@@ -279,10 +279,10 @@
               v-model="usersFilterDomain"
               type="text"
               placeholder="Filter by domain"
-              class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm w-48"
+              class="input-field w-48 rounded-lg px-3 py-2 text-sm"
             />
             <button
-              class="px-4 py-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-white text-sm"
+              class="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 dark:bg-dark-700 dark:hover:bg-dark-600"
               @click="fetchUsers"
             >
               Apply
@@ -290,33 +290,33 @@
           </div>
           <div v-if="usersLoading" class="text-gray-400">Loading users...</div>
           <div v-else-if="usersError" class="text-red-400">{{ usersError }}</div>
-          <div v-else class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900">
+          <div v-else class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
             <table class="min-w-full text-left">
-              <thead class="bg-dark-800 border-b border-dark-700">
+              <thead class="bg-gray-100 border-b border-gray-200 dark:bg-dark-800 dark:border-dark-700">
                 <tr>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Email</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Name</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Role</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Active</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Activity</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Created</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Email</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Name</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Role</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Domain</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Active</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Activity</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Created</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   v-for="u in usersList"
                   :key="u.id"
-                  class="border-b border-dark-800 hover:bg-dark-800/50"
+                  class="border-b border-gray-200 hover:bg-gray-50 dark:border-dark-800 dark:hover:bg-dark-800/50"
                 >
-                  <td class="py-3 px-4 text-gray-200">{{ u.email }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ u.full_name || '—' }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ u.role || '—' }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ u.email_domain || '—' }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ u.email }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ u.full_name || '—' }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ u.role || '—' }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ u.email_domain || '—' }}</td>
                   <td class="py-3 px-4">
                     <span :class="u.is_active ? 'text-green-400' : 'text-gray-500'">{{ u.is_active ? 'Yes' : 'No' }}</span>
                   </td>
-                  <td class="py-3 px-4 text-gray-200">{{ u.activity_count ?? '—' }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ u.activity_count ?? '—' }}</td>
                   <td class="py-3 px-4 text-gray-400 text-sm">{{ formatDate(u.created_at) }}</td>
                 </tr>
               </tbody>
@@ -327,14 +327,14 @@
             <div class="flex gap-2">
               <button
                 :disabled="usersSkip === 0"
-                class="px-3 py-1 rounded bg-dark-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                class="rounded bg-gray-900 px-3 py-1 text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-dark-700"
                 @click="usersSkip = Math.max(0, usersSkip - usersLimit); fetchUsers()"
               >
                 Previous
               </button>
               <button
                 :disabled="usersSkip + usersLimit >= usersTotal"
-                class="px-3 py-1 rounded bg-dark-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                class="rounded bg-gray-900 px-3 py-1 text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-dark-700"
                 @click="usersSkip += usersLimit; fetchUsers()"
               >
                 Next
@@ -345,9 +345,9 @@
 
         <!-- Recent activity -->
         <section class="mb-10">
-          <h2 class="text-xl font-semibold text-white mb-4">Recent activity</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Recent activity</h2>
           <div class="flex gap-4 mb-4">
-            <select v-model="activityHours" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm">
+            <select v-model="activityHours" class="input-field rounded-lg px-3 py-2 text-sm">
               <option :value="24">Last 24 hours</option>
               <option :value="48">Last 48 hours</option>
               <option :value="168">Last 7 days</option>
@@ -355,15 +355,15 @@
           </div>
           <div v-if="activityLoading" class="text-gray-400">Loading activity...</div>
           <div v-else-if="activityError" class="text-red-400">{{ activityError }}</div>
-          <div v-else class="space-y-2 max-h-96 overflow-y-auto rounded-xl border border-dark-700 bg-dark-900 p-4">
+          <div v-else class="max-h-96 space-y-2 overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900">
             <div
               v-for="a in (activity?.activities || [])"
               :key="a.id"
-              class="flex items-start gap-3 py-2 border-b border-dark-800 last:border-0"
+              class="flex items-start gap-3 border-b border-gray-200 py-2 last:border-0 dark:border-dark-800"
             >
-              <span class="text-gray-500 text-sm shrink-0">{{ formatDateTime(a.created_at) }}</span>
-              <span class="text-gray-300">{{ a.user }}</span>
-              <span class="text-white">{{ a.action }}</span>
+              <span class="shrink-0 text-sm text-gray-500">{{ formatDateTime(a.created_at) }}</span>
+              <span class="text-gray-600 dark:text-gray-300">{{ a.user }}</span>
+              <span class="text-gray-900 dark:text-white">{{ a.action }}</span>
               <span v-if="a.entity" class="text-gray-500 text-sm">{{ a.entity }} {{ a.entity_id }}</span>
             </div>
             <div v-if="!(activity?.activities?.length)" class="text-gray-500">No activity in this period.</div>
@@ -372,29 +372,29 @@
 
         <!-- Domains (optional) -->
         <section class="mb-10">
-          <h2 class="text-xl font-semibold text-white mb-4">Usage by domain</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Usage by domain</h2>
           <div v-if="domainsLoading" class="text-gray-400">Loading domains...</div>
           <div v-else-if="domainsError" class="text-red-400">{{ domainsError }}</div>
-          <div v-else class="overflow-x-auto rounded-xl border border-dark-700 bg-dark-900">
+          <div v-else class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
             <table class="min-w-full text-left">
-              <thead class="bg-dark-800 border-b border-dark-700">
+              <thead class="bg-gray-100 border-b border-gray-200 dark:bg-dark-800 dark:border-dark-700">
                 <tr>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Domain</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Users</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Companies</th>
-                  <th class="py-3 px-4 text-gray-300 font-semibold">Projects</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Domain</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Users</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Companies</th>
+                  <th class="py-3 px-4 text-gray-700 font-semibold dark:text-gray-300">Projects</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   v-for="d in (domainsData?.domains || [])"
                   :key="d.domain"
-                  class="border-b border-dark-800 hover:bg-dark-800/50"
+                  class="border-b border-gray-200 hover:bg-gray-50 dark:border-dark-800 dark:hover:bg-dark-800/50"
                 >
-                  <td class="py-3 px-4 text-gray-200">{{ d.domain }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ d.users }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ d.companies }}</td>
-                  <td class="py-3 px-4 text-gray-200">{{ d.projects }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ d.domain }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ d.users }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ d.companies }}</td>
+                  <td class="py-3 px-4 text-gray-800 dark:text-gray-200">{{ d.projects }}</td>
                 </tr>
               </tbody>
             </table>
@@ -403,17 +403,17 @@
 
         <!-- Most active users (optional) -->
         <section>
-          <h2 class="text-xl font-semibold text-white mb-4">Most active users (30 days)</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Most active users (30 days)</h2>
           <div v-if="activeUsersLoading" class="text-gray-400">Loading...</div>
           <div v-else-if="activeUsersError" class="text-red-400">{{ activeUsersError }}</div>
-          <div v-else class="rounded-xl border border-dark-700 bg-dark-900 p-4 max-w-xl">
+          <div v-else class="max-w-xl rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900">
             <ul class="space-y-2">
               <li
                 v-for="(u, i) in (activeUsersData?.active_users || [])"
                 :key="u.email"
-                class="flex justify-between items-center py-1"
+                class="flex items-center justify-between py-1"
               >
-                <span class="text-gray-200">{{ i + 1 }}. {{ u.email }}</span>
+                <span class="text-gray-800 dark:text-gray-200">{{ i + 1 }}. {{ u.email }}</span>
                 <span class="text-gray-400 text-sm">{{ u.activity_count }} actions · {{ formatDateTime(u.last_activity) }}</span>
               </li>
             </ul>

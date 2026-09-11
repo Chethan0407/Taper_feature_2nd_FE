@@ -82,14 +82,14 @@
         <!-- Vendor Preview Card - Centered Modal (like Edit Project) -->
         <Transition name="modal">
           <div v-if="selectedVendorPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="closeVendorPreview">
-            <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-lg relative border border-neon-blue/20 ring-2 ring-neon-blue/10" @click.stop>
-              <button @click="closeVendorPreview" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-dark-800 hover:ring-1 hover:ring-neon-blue/30">
+            <div class="relative w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-8 shadow-2xl ring-2 ring-gray-200/80 dark:border-neon-blue/20 dark:bg-dark-900 dark:ring-neon-blue/10" @click.stop>
+              <button @click="closeVendorPreview" class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-2xl font-bold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-dark-800 dark:hover:text-white dark:hover:ring-1 dark:hover:ring-neon-blue/30">
                 &times;
               </button>
-              <h2 class="text-3xl font-bold mb-8 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-blue bg-clip-text text-transparent animate-gradient">
+              <h2 class="mb-8 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-blue bg-clip-text text-3xl font-bold text-transparent animate-gradient">
                 Vendor Preview
               </h2>
-              <div v-if="previewLoading" class="text-center text-gray-300 py-8">
+              <div v-if="previewLoading" class="py-8 text-center text-gray-600 dark:text-gray-300">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-neon-blue border-t-transparent mb-3"></div>
                 <p class="text-sm">Loading vendor details...</p>
               </div>
@@ -101,15 +101,15 @@
               </div>
               <div v-else-if="selectedVendorPreview" class="space-y-5">
                 <!-- Vendor Basic Info -->
-                <div class="flex items-center space-x-4 pb-5 border-b border-dark-700/50 relative">
-                  <div class="w-14 h-14 bg-gradient-to-br from-neon-blue via-neon-purple to-neon-blue rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ring-2 ring-neon-blue/30 animate-pulse-slow">
-                    <span class="text-white font-bold text-2xl drop-shadow-lg">{{ selectedVendorPreview.name?.charAt(0) || 'V' }}</span>
+                <div class="relative flex items-center space-x-4 border-b border-gray-200 pb-5 dark:border-dark-700/50">
+                  <div class="flex h-14 w-14 flex-shrink-0 animate-pulse-slow items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue via-neon-purple to-neon-blue shadow-lg ring-2 ring-neon-blue/30">
+                    <span class="text-2xl font-bold text-white drop-shadow-lg">{{ selectedVendorPreview.name?.charAt(0) || 'V' }}</span>
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-xl font-bold text-white mb-1 drop-shadow-sm">{{ selectedVendorPreview.name }}</h3>
-                    <p class="text-sm text-gray-300 font-medium">{{ selectedVendorPreview.type }}</p>
+                  <div class="min-w-0 flex-1">
+                    <h3 class="mb-1 text-xl font-bold text-gray-900 drop-shadow-sm dark:text-white">{{ selectedVendorPreview.name }}</h3>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ selectedVendorPreview.type }}</p>
                   </div>
-                  <span :class="getStatusClass(selectedVendorPreview.status)" class="px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 shadow-md ring-1 ring-white/10">
+                  <span :class="getStatusClass(selectedVendorPreview.status)" class="flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md ring-1 ring-gray-900/5 dark:ring-white/10">
                     {{ selectedVendorPreview.status }}
                   </span>
                 </div>
@@ -117,8 +117,8 @@
                 <!-- Linked Specifications -->
                 <div>
                   <div class="flex items-center justify-between mb-3">
-                    <label class="block text-gray-200 text-sm font-semibold uppercase tracking-wider flex items-center space-x-2">
-                      <svg class="w-4 h-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <label class="flex items-center space-x-2 text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-200">
+                      <svg class="h-4 w-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
                       <span>Linked Specifications</span>
@@ -130,12 +130,12 @@
                       + Link Spec
                     </button>
                   </div>
-                  <div v-if="previewLinkedSpecs.length === 0" class="text-sm text-gray-500 italic py-3 px-4 bg-gradient-to-r from-dark-800/30 to-dark-800/20 border border-dashed border-neon-blue/20 rounded-lg backdrop-blur-sm">
+                  <div v-if="previewLinkedSpecs.length === 0" class="rounded-lg border border-dashed border-neon-blue/25 bg-gray-50 px-4 py-3 text-sm italic text-gray-500 backdrop-blur-sm dark:border-neon-blue/20 dark:from-dark-800/30 dark:to-dark-800/20 dark:bg-gradient-to-r">
                     No specifications linked
                   </div>
-                  <div v-else class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                  <div v-else class="custom-scrollbar max-h-40 space-y-2 overflow-y-auto pr-2">
                     <div v-for="specId in previewLinkedSpecs" :key="specId" 
-                         class="px-4 py-2.5 bg-gradient-to-r from-dark-800/60 to-dark-800/40 border border-neon-blue/20 rounded-lg text-sm text-white hover:border-neon-blue/40 hover:from-dark-700/60 hover:to-dark-700/40 transition-all shadow-sm hover:shadow-md group flex items-center justify-between">
+                         class="group flex items-center justify-between rounded-lg border border-neon-blue/20 bg-gray-100 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-all hover:border-neon-blue/40 hover:shadow-md dark:bg-gradient-to-r dark:from-dark-800/60 dark:to-dark-800/40 dark:text-white dark:hover:from-dark-700/60 dark:hover:to-dark-700/40">
                       <div class="flex items-center space-x-2 flex-1 min-w-0">
                         <svg class="w-4 h-4 text-neon-blue opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -158,8 +158,8 @@
                 <!-- Linked Checklists -->
                 <div>
                   <div class="flex items-center justify-between mb-3">
-                    <label class="block text-gray-200 text-sm font-semibold uppercase tracking-wider flex items-center space-x-2">
-                      <svg class="w-4 h-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <label class="flex items-center space-x-2 text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-200">
+                      <svg class="h-4 w-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                       </svg>
                       <span>Linked Checklists</span>
@@ -171,12 +171,12 @@
                       + Link Checklist
                     </button>
                   </div>
-                  <div v-if="previewLinkedChecklists.length === 0" class="text-sm text-gray-500 italic py-3 px-4 bg-gradient-to-r from-dark-800/30 to-dark-800/20 border border-dashed border-neon-blue/20 rounded-lg backdrop-blur-sm">
+                  <div v-if="previewLinkedChecklists.length === 0" class="rounded-lg border border-dashed border-neon-blue/25 bg-gray-50 px-4 py-3 text-sm italic text-gray-500 backdrop-blur-sm dark:border-neon-blue/20 dark:from-dark-800/30 dark:to-dark-800/20 dark:bg-gradient-to-r">
                     No checklists linked
                   </div>
-                  <div v-else class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                  <div v-else class="custom-scrollbar max-h-40 space-y-2 overflow-y-auto pr-2">
                     <div v-for="checklistId in previewLinkedChecklists" :key="checklistId" 
-                         class="px-4 py-2.5 bg-gradient-to-r from-dark-800/60 to-dark-800/40 border border-neon-blue/20 rounded-lg text-sm text-white hover:border-neon-blue/40 hover:from-dark-700/60 hover:to-dark-700/40 transition-all shadow-sm hover:shadow-md group flex items-center justify-between">
+                         class="group flex items-center justify-between rounded-lg border border-neon-blue/20 bg-gray-100 px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-all hover:border-neon-blue/40 hover:shadow-md dark:bg-gradient-to-r dark:from-dark-800/60 dark:to-dark-800/40 dark:text-white dark:hover:from-dark-700/60 dark:hover:to-dark-700/40">
                       <div class="flex items-center space-x-2 flex-1 min-w-0">
                         <svg class="w-4 h-4 text-neon-blue opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
@@ -197,8 +197,8 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="flex justify-end gap-3 pt-5 border-t border-dark-700/50">
-                  <button @click="closeVendorPreview" class="btn-secondary px-6 py-3 rounded-lg font-medium hover:bg-dark-800 transition-all hover:scale-105">
+                <div class="flex justify-end gap-3 border-t border-gray-200 pt-5 dark:border-dark-700/50">
+                  <button @click="closeVendorPreview" class="btn-secondary rounded-lg px-6 py-3 font-medium transition-all hover:scale-105">
                     Close
                   </button>
                   <button @click="handleEdit(selectedVendorPreview)" class="btn-primary px-8 py-3 rounded-lg font-semibold shadow-xl hover:shadow-2xl transition-all hover:scale-105 animate-glow">
@@ -237,12 +237,12 @@
     <!-- WHY: Better UX with larger modal, better spacing, searchable multi-selects, and validation -->
     <Transition name="modal">
       <div v-if="showVendorModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closeModal">
-        <div class="bg-dark-900 rounded-2xl relative w-full max-w-2xl shadow-2xl border border-dark-700 max-h-[90vh] overflow-y-auto">
+        <div class="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-dark-700 dark:bg-dark-900">
           <!-- Header -->
-          <div class="sticky top-0 bg-dark-900 border-b border-dark-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <div class="sticky top-0 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-6 py-4 dark:border-dark-700 dark:bg-dark-900">
             <h2 class="text-2xl font-bold text-gradient">{{ editingVendor ? 'Edit Vendor' : 'Add Vendor' }}</h2>
             <button 
-              class="text-gray-400 hover:text-gray-200 transition-colors p-2 hover:bg-dark-800 rounded-lg" 
+              class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-dark-800 dark:hover:text-gray-200" 
               @click="closeModal"
               aria-label="Close modal"
             >
@@ -256,14 +256,14 @@
           <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
             <!-- Name Field -->
             <div>
-              <label for="name" class="block text-sm font-semibold text-gray-200 mb-2">
+              <label for="name" class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Vendor Name <span class="text-red-400">*</span>
               </label>
               <input 
                 id="name" 
                 v-model="vendorForm.name" 
                 type="text"
-                class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-500 focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all" 
+                class="input-field w-full py-3 px-4 text-base"
                 placeholder="Enter vendor name"
                 required
                 :class="{ 'border-red-500': formErrors.name }"
@@ -273,13 +273,13 @@
 
             <!-- Type Field - Dropdown with common types -->
             <div>
-              <label for="type" class="block text-sm font-semibold text-gray-200 mb-2">
+              <label for="type" class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Vendor Type <span class="text-red-400">*</span>
               </label>
               <select 
                 id="type" 
                 v-model="vendorForm.type" 
-                class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all"
+                class="input-field w-full py-3 px-4 text-base"
                 required
                 :class="{ 'border-red-500': formErrors.type }"
               >
@@ -297,13 +297,13 @@
 
             <!-- Status Field -->
             <div>
-              <label for="status" class="block text-sm font-semibold text-gray-200 mb-2">
+              <label for="status" class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Status <span class="text-red-400">*</span>
               </label>
               <select 
                 id="status" 
                 v-model="vendorForm.status" 
-                class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all"
+                class="input-field w-full py-3 px-4 text-base"
                 required
                 :class="{ 'border-red-500': formErrors.status }"
               >
@@ -317,23 +317,23 @@
 
             <!-- Linked Specs - Improved with preview and search -->
             <div>
-              <label class="block text-sm font-semibold text-gray-200 mb-2">
+              <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Linked Specifications
-                <span class="text-xs font-normal text-gray-400 ml-2">(Optional)</span>
+                <span class="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
               </label>
               
               <!-- Preview Section - Show all linked specs -->
-              <div v-if="vendorForm.linkedSpecs.length > 0" class="mb-4 p-4 bg-dark-800/50 border border-dark-700 rounded-lg">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-sm font-semibold text-gray-300">Currently Linked ({{ vendorForm.linkedSpecs.length }})</h4>
+              <div v-if="vendorForm.linkedSpecs.length > 0" class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-800/50">
+                <div class="mb-3 flex items-center justify-between">
+                  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Currently Linked ({{ vendorForm.linkedSpecs.length }})</h4>
                 </div>
-                <div class="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+                <div class="custom-scrollbar max-h-32 space-y-2 overflow-y-auto">
                   <div 
                     v-for="specId in vendorForm.linkedSpecs" 
                     :key="specId"
-                    class="flex items-center justify-between px-3 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors"
+                    class="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2 transition-colors hover:bg-gray-200 dark:bg-dark-700 dark:hover:bg-dark-600"
                   >
-                    <span class="text-white text-sm flex-1">{{ getSpecName(specId) }}</span>
+                    <span class="flex-1 text-sm text-gray-900 dark:text-white">{{ getSpecName(specId) }}</span>
                     <button 
                       type="button"
                       @click="removeSpec(specId)"
@@ -353,20 +353,20 @@
                 <input 
                   v-model="specSearch" 
                   type="text"
-                  class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-500 focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all" 
+                  class="input-field w-full py-3 px-4 text-base"
                   placeholder="Search specifications to add..."
                   @focus="showSpecDropdown = true"
                   @blur="onSpecInputBlur"
                 >
                 <!-- Dropdown -->
-                <div v-if="showSpecDropdown && filteredSpecs.length > 0" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div v-if="showSpecDropdown && filteredSpecs.length > 0" class="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-800">
                   <div 
                     v-for="spec in filteredSpecs" 
                     :key="spec.id"
-                    class="px-4 py-2 hover:bg-dark-700 cursor-pointer flex items-center justify-between"
+                    class="flex cursor-pointer items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-700"
                     @click="toggleSpec(spec.id)"
                   >
-                    <span class="text-white text-sm">{{ spec.name || spec.file_name || 'Unnamed Spec' }}</span>
+                    <span class="text-sm text-gray-900 dark:text-white">{{ spec.name || spec.file_name || 'Unnamed Spec' }}</span>
                     <svg v-if="vendorForm.linkedSpecs.includes(spec.id)" class="w-5 h-5 text-neon-blue" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
@@ -377,23 +377,23 @@
 
             <!-- Linked Checklists - Improved with preview and search -->
             <div>
-              <label class="block text-sm font-semibold text-gray-200 mb-2">
+              <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Linked Checklists
-                <span class="text-xs font-normal text-gray-400 ml-2">(Optional)</span>
+                <span class="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
               </label>
               
               <!-- Preview Section - Show all linked checklists -->
-              <div v-if="vendorForm.linkedChecklists.length > 0" class="mb-4 p-4 bg-dark-800/50 border border-dark-700 rounded-lg">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-sm font-semibold text-gray-300">Currently Linked ({{ vendorForm.linkedChecklists.length }})</h4>
+              <div v-if="vendorForm.linkedChecklists.length > 0" class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-800/50">
+                <div class="mb-3 flex items-center justify-between">
+                  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Currently Linked ({{ vendorForm.linkedChecklists.length }})</h4>
                 </div>
-                <div class="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+                <div class="custom-scrollbar max-h-32 space-y-2 overflow-y-auto">
                   <div 
                     v-for="checklistId in vendorForm.linkedChecklists" 
                     :key="checklistId"
-                    class="flex items-center justify-between px-3 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors"
+                    class="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2 transition-colors hover:bg-gray-200 dark:bg-dark-700 dark:hover:bg-dark-600"
                   >
-                    <span class="text-white text-sm flex-1">{{ getChecklistName(checklistId) }}</span>
+                    <span class="flex-1 text-sm text-gray-900 dark:text-white">{{ getChecklistName(checklistId) }}</span>
                     <button 
                       type="button"
                       @click="removeChecklist(checklistId)"
@@ -413,27 +413,27 @@
                 <input 
                   v-model="checklistSearch" 
                   type="text"
-                  class="input-field w-full py-3 px-4 text-base rounded-lg bg-dark-800 border border-dark-700 text-white placeholder-gray-500 focus:border-neon-blue focus:ring-2 focus:ring-neon-blue/20 transition-all" 
+                  class="input-field w-full py-3 px-4 text-base"
                   placeholder="Search checklists to add..."
                   @focus="showChecklistDropdown = true"
                   @blur="onChecklistInputBlur"
                 >
                 <!-- Dropdown -->
-                <div v-if="showChecklistDropdown" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div v-if="showChecklistDropdown" class="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-800">
                   <template v-if="filteredChecklists.length > 0">
                     <div 
                       v-for="checklist in filteredChecklists" 
                       :key="checklist.id"
-                      class="px-4 py-2 hover:bg-dark-700 cursor-pointer flex items-center justify-between"
+                      class="flex cursor-pointer items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-700"
                       @click="toggleChecklist(checklist.id)"
                     >
-                      <span class="text-white text-sm">{{ checklist.name || 'Unnamed Checklist' }}</span>
+                      <span class="text-sm text-gray-900 dark:text-white">{{ checklist.name || 'Unnamed Checklist' }}</span>
                       <svg v-if="vendorForm.linkedChecklists.includes(checklist.id)" class="w-5 h-5 text-neon-blue" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                       </svg>
                     </div>
                   </template>
-                  <div v-else class="px-4 py-2 text-sm text-gray-400">
+                  <div v-else class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
                     No checklists found.
                   </div>
                 </div>
@@ -446,7 +446,7 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-3 pt-4 border-t border-dark-700">
+            <div class="flex gap-3 border-t border-gray-200 pt-4 dark:border-dark-700">
               <button 
                 type="button" 
                 class="btn-secondary flex-1 py-3 font-semibold" 
@@ -479,7 +479,7 @@
       <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
         <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold" @click="showDeleteModal = false">&times;</button>
         <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Delete Vendor</h2>
-        <p class="mb-6 text-gray-300 text-center">Are you sure you want to delete <span class="font-semibold">{{ vendorToDelete?.name }}</span>?</p>
+        <p class="mb-6 text-center text-gray-600 dark:text-gray-300">Are you sure you want to delete <span class="font-semibold">{{ vendorToDelete?.name }}</span>?</p>
         <div class="flex justify-end gap-2">
           <button class="btn-secondary" @click="showDeleteModal = false">Cancel</button>
           <button class="btn-primary bg-red-500 hover:bg-red-600" @click="deleteVendor" :disabled="deletingVendor">Delete<span v-if="deletingVendor" class="ml-2 animate-spin">⏳</span></button>

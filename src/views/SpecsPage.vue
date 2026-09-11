@@ -44,35 +44,35 @@
         />
 
         <!-- Specs Table -->
-        <div class="card bg-dark-900 border border-dark-700 rounded-xl shadow-lg overflow-hidden">
-          <div class="px-6 py-3 bg-gradient-to-r from-dark-800 to-dark-700 border-b border-dark-600">
+        <div class="card overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-900">
+          <div class="border-b border-gray-200 bg-gradient-to-r from-gray-100 to-gray-50 px-6 py-3 dark:border-dark-600 dark:from-dark-800 dark:to-dark-700">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <div class="flex items-center gap-1">
-                  <svg class="w-4 h-4 text-neon-blue animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 animate-pulse text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                   </svg>
-                  <svg class="w-4 h-4 text-neon-blue animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 animate-pulse text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 13l5-5m0 0l5 5m-5-5H18"/>
                   </svg>
                 </div>
-                <span class="text-sm text-gray-300 font-medium">Scrollable Table</span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Scrollable Table</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="flex items-center gap-1">
-                  <span class="text-xs text-gray-400 animate-pulse">←</span>
-                  <span class="text-xs text-gray-400 animate-pulse delay-100">→</span>
-                  <span class="text-xs text-gray-400 animate-pulse delay-200">↑</span>
-                  <span class="text-xs text-gray-400 animate-pulse delay-300">↓</span>
+                  <span class="animate-pulse text-xs text-gray-500 dark:text-gray-400">←</span>
+                  <span class="animate-pulse text-xs text-gray-500 delay-100 dark:text-gray-400">→</span>
+                  <span class="animate-pulse text-xs text-gray-500 delay-200 dark:text-gray-400">↑</span>
+                  <span class="animate-pulse text-xs text-gray-500 delay-300 dark:text-gray-400">↓</span>
                 </div>
-                <span class="text-xs text-gray-400">scroll to explore</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">scroll to explore</span>
               </div>
             </div>
           </div>
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold text-white">Recent Specifications</h2>
+          <div class="mb-6 flex items-center justify-between px-6 pt-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Recent Specifications</h2>
             <div class="flex items-center gap-4">
-              <span class="text-sm text-gray-400">{{ specificationsStore.specifications.length }} specifications</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">{{ specificationsStore.specifications.length }} specifications</span>
               <button 
                 v-if="selectedSpecs.length > 0"
                 @click="openProjectLinkingModal"
@@ -82,22 +82,22 @@
               </button>
             </div>
           </div>
-          <div v-if="showLoading" class="text-center py-8 text-gray-400">
+          <div v-if="showLoading" class="py-8 text-center text-gray-500 dark:text-gray-400">
             <svg class="w-8 h-8 animate-spin mx-auto mb-4 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
             Loading specifications...
                 </div>
-          <div v-else-if="specificationsStore.error" class="text-center py-8 text-red-400">
+          <div v-else-if="specificationsStore.error" class="py-8 text-center text-red-600 dark:text-red-400">
             <span v-if="specificationsStore.error.includes('Not Found')">No specifications found.</span>
             <span v-else>{{ specificationsStore.error }}</span>
                 </div>
           <div v-else class="max-h-[600px] overflow-y-auto relative" ref="tableContainer" style="scrollbar-width: none; -ms-overflow-style: none;">
-            <table class="min-w-full text-left bg-dark-900 border border-dark-700 rounded-xl overflow-hidden" style="min-width: 1200px;">
+            <table class="min-w-full overflow-hidden rounded-xl border border-gray-200 bg-white text-left dark:border-dark-700 dark:bg-dark-900" style="min-width: 1200px;">
               <thead class="sticky top-0 z-10">
-                <tr class="border-b border-dark-700 bg-dark-800">
-                  <th class="py-3 px-4 text-gray-200 font-semibold text-center" style="min-width: 50px;">
+                <tr class="border-b border-gray-200 bg-gray-100 dark:border-dark-700 dark:bg-dark-800">
+                  <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200" style="min-width: 50px;">
                     <input 
                       type="checkbox" 
                       :checked="allSpecsSelected"
@@ -105,21 +105,21 @@
                       class="w-4 h-4 text-neon-blue border-gray-300 rounded focus:ring-neon-blue"
                     />
                   </th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 200px;">Spec Name</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 150px;">Uploaded By</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 150px;">Uploaded On</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 100px;">File Type</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 120px;">Status</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 120px;">Assigned To</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold text-center" style="min-width: 140px;">Actions</th>
-                  <th class="py-3 px-4 text-gray-200 font-semibold" style="min-width: 180px;">Approval Info</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 200px;">Spec Name</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 150px;">Uploaded By</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 150px;">Uploaded On</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 100px;">File Type</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 120px;">Status</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 120px;">Assigned To</th>
+                  <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200" style="min-width: 140px;">Actions</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200" style="min-width: 180px;">Approval Info</th>
                 </tr>
               </thead>
               <tbody>
                 <tr 
                   v-for="spec in specificationsStore.specifications" 
                   :key="spec.id" 
-                  class="border-b border-dark-800 hover:bg-dark-800/50 transition-colors"
+                  class="border-b border-gray-200 transition-colors hover:bg-gray-50 dark:border-dark-800 dark:hover:bg-dark-800/50"
                   :class="{ 'opacity-50': isSpecAlreadyLinked(spec.id) }"
                 >
                   <td class="py-3 px-4 text-center">
@@ -151,9 +151,9 @@
                       </span>
                     </a>
                   </td>
-                  <td class="py-3 px-4">{{ spec.uploaded_by || '—' }}</td>
-                  <td class="py-3 px-4">{{ spec.uploaded_on ? new Date(spec.uploaded_on).toLocaleString() : '—' }}</td>
-                  <td class="py-3 px-4 text-sm text-gray-300">
+                  <td class="px-4 py-3 text-gray-900 dark:text-gray-100">{{ spec.uploaded_by || '—' }}</td>
+                  <td class="px-4 py-3 text-gray-900 dark:text-gray-100">{{ spec.uploaded_on ? new Date(spec.uploaded_on).toLocaleString() : '—' }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                     {{ getFileTypeLabel(spec.mime_type || spec.file_type || spec.type || '') }}
                   </td>
                   <td class="py-3 px-4">
@@ -167,7 +167,7 @@
                       {{ spec.status }}
                     </span>
                   </td>
-                  <td class="py-3 px-4">{{ spec.assigned_to || '—' }}</td>
+                  <td class="px-4 py-3 text-gray-900 dark:text-gray-100">{{ spec.assigned_to || '—' }}</td>
                   <td class="py-3 px-4 text-center">
                     <!-- If spec is linked, show full action set (user can re-approve / re-reject) -->
                     <div
@@ -175,7 +175,7 @@
                       class="flex items-center justify-center gap-2"
                     >
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-green-100/10 border border-green-400 transition-colors cursor-pointer"
+                        class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-green-400 bg-gray-100 transition-colors hover:bg-green-50 dark:bg-dark-800 dark:hover:bg-green-100/10"
                         @click.stop.prevent="updateSpecStatus(spec, 'approved')"
                         :title="spec.status === 'Approved' ? 'Approve again' : 'Approve'"
                       >
@@ -184,7 +184,7 @@
                         </svg>
                       </button>
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500 transition-colors cursor-pointer"
+                        class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-red-500 bg-gray-100 transition-colors hover:bg-red-50 dark:bg-dark-800 dark:hover:bg-red-100/10"
                         @click.stop.prevent="updateSpecStatus(spec, 'rejected')"
                         :title="spec.status === 'Rejected' ? 'Reject again' : 'Reject'"
                       >
@@ -194,7 +194,7 @@
                         </svg>
                       </button>
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400 transition-colors cursor-pointer"
+                        class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-blue-400 bg-gray-100 transition-colors hover:bg-blue-50 dark:bg-dark-800 dark:hover:bg-blue-100/10"
                         @click.stop.prevent="handleDownload(spec.id)"
                         title="Download"
                       >
@@ -203,7 +203,7 @@
                         </svg>
                       </button>
                       <button
-                        class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500 transition-colors cursor-pointer"
+                        class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-red-500 bg-gray-100 transition-colors hover:bg-red-50 dark:bg-dark-800 dark:hover:bg-red-100/10"
                         @click.stop.prevent="() => confirmAndDelete(spec.id)"
                         title="Delete"
                       >
@@ -221,12 +221,12 @@
                     >
                       <div class="flex items-center gap-2">
                         <!-- Disabled approve/reject buttons -->
-                        <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 border border-gray-600 opacity-50 cursor-not-allowed" disabled>
+                        <button class="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full border border-gray-300 bg-gray-100 opacity-50 dark:border-gray-600 dark:bg-dark-800" disabled>
                           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </button>
-                        <button class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 border border-gray-600 opacity-50 cursor-not-allowed" disabled>
+                        <button class="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full border border-gray-300 bg-gray-100 opacity-50 dark:border-gray-600 dark:bg-dark-800" disabled>
                           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" />
                             <line x1="6" y1="18" x2="18" y2="6" stroke="currentColor" stroke-width="2" />
@@ -234,7 +234,7 @@
                         </button>
                         <!-- Active download & delete actions are still available -->
                         <button
-                          class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-blue-100/10 border border-blue-400 transition-colors cursor-pointer"
+                          class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-blue-400 bg-gray-100 transition-colors hover:bg-blue-50 dark:bg-dark-800 dark:hover:bg-blue-100/10"
                           @click.stop.prevent="handleDownload(spec.id)"
                           title="Download"
                         >
@@ -243,7 +243,7 @@
                           </svg>
                         </button>
                         <button
-                          class="rounded-full w-9 h-9 flex items-center justify-center bg-dark-800 hover:bg-red-100/10 border border-red-500 transition-colors cursor-pointer"
+                          class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-red-500 bg-gray-100 transition-colors hover:bg-red-50 dark:bg-dark-800 dark:hover:bg-red-100/10"
                           @click.stop.prevent="() => confirmAndDelete(spec.id)"
                           title="Delete"
                         >
@@ -257,7 +257,7 @@
                       </span>
                     </div>
                   </td>
-                  <td class="py-3 px-4">
+                  <td class="px-4 py-3 text-gray-900 dark:text-gray-100">
                     <template v-if="spec.status === 'Approved' && spec.approved_by">
                       Approved By: {{ spec.approved_by }}
                     </template>
@@ -271,22 +271,22 @@
                 </tr>
               </tbody>
             </table>
-            <div v-if="!specificationsStore.specifications.length" class="text-center py-8 text-gray-400">
+            <div v-if="!specificationsStore.specifications.length" class="py-8 text-center text-gray-500 dark:text-gray-400">
               No specifications uploaded yet. Drag and drop a file above to get started.
             </div>
             
             <!-- Floating Scroll Indicator -->
-            <div v-if="showScrollIndicator" class="absolute bottom-4 right-4 bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 shadow-lg z-20 animate-fade-in">
+            <div v-if="showScrollIndicator" class="animate-fade-in absolute bottom-4 right-4 z-20 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-dark-600 dark:bg-dark-800">
               <div class="flex items-center gap-2">
                 <div class="flex items-center gap-1">
-                  <svg class="w-3 h-3 text-neon-blue animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-3 w-3 animate-bounce text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                   </svg>
-                  <svg class="w-3 h-3 text-neon-blue animate-bounce delay-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-3 w-3 animate-bounce text-neon-blue delay-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 13l5-5m0 0l5 5m-5-5H18"/>
                   </svg>
                 </div>
-                <span class="text-xs text-gray-300 font-medium">Scrolling...</span>
+                <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Scrolling...</span>
               </div>
             </div>
           </div>
@@ -407,10 +407,10 @@
       </div>
     </Transition>
 
-    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
-        <h2 class="text-2xl font-bold mb-4 text-center text-gradient">Delete Specification</h2>
-        <p class="text-gray-300 text-center mb-6">Are you sure you want to delete this specification?</p>
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/60">
+      <div class="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-dark-700 dark:bg-dark-900">
+        <h2 class="mb-4 text-center text-2xl font-bold text-gradient">Delete Specification</h2>
+        <p class="mb-6 text-center text-gray-600 dark:text-gray-300">Are you sure you want to delete this specification?</p>
         <div class="flex justify-center gap-4">
           <button class="btn-secondary px-6 py-2" @click="showDeleteModal = false">Cancel</button>
           <button class="btn-danger px-6 py-2" @click="() => handleDelete(specToDelete)">Delete</button>

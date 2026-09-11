@@ -1,10 +1,10 @@
 <template>
-  <header class="bg-light-100 dark:bg-dark-900 border-b border-light-300 dark:border-dark-700 px-6 py-4">
+  <header class="border-b border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900 px-6 py-4">
     <div class="flex items-center justify-between">
       <!-- Branding Logo and Name -->
       <div class="flex items-center mr-8">
         <img v-if="branding.logo_url" :src="branding.logo_url" alt="Logo" class="h-10 w-10 rounded-lg mr-4" />
-        <span class="text-xl font-bold text-white tracking-wide">{{ branding.company_name }}</span>
+        <span class="text-xl font-bold tracking-wide text-gray-900 dark:text-white">{{ branding.company_name }}</span>
       </div>
       <!-- Left side - Search -->
       <div class="flex-1 max-w-lg">
@@ -24,24 +24,27 @@
             @keydown="handleKeydown"
           />
           <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-            <kbd class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono text-gray-500 dark:text-gray-400 bg-light-200 dark:bg-dark-800 border border-light-300 dark:border-dark-600">
+            <kbd class="inline-flex items-center rounded border border-gray-200 bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-500 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-400">
               ⌘K
             </kbd>
           </div>
           <!-- Results Dropdown -->
-          <div v-if="showDropdown" class="absolute left-0 right-0 mt-1 bg-dark-900 border border-dark-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-            <div v-if="searchLoading" class="p-4 text-gray-400">Searching...</div>
-            <div v-else-if="searchError" class="p-4 text-red-400">{{ searchError }}</div>
-            <div v-else-if="!searchResults?.length" class="p-4 text-gray-400">No companies found</div>
+          <div
+            v-if="showDropdown"
+            class="absolute left-0 right-0 z-50 mt-1 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-900"
+          >
+            <div v-if="searchLoading" class="p-4 text-gray-500 dark:text-gray-400">Searching...</div>
+            <div v-else-if="searchError" class="p-4 text-red-600 dark:text-red-400">{{ searchError }}</div>
+            <div v-else-if="!searchResults?.length" class="p-4 text-gray-500 dark:text-gray-400">No companies found</div>
             <div v-else>
               <ul>
                 <li v-for="(item, idx) in (searchResults || [])" :key="item.id"
-                  class="p-3 hover:bg-dark-800 cursor-pointer flex flex-col"
-                  :class="{ 'bg-dark-700': idx === highlightedIndex }"
+                  class="flex cursor-pointer flex-col p-3 hover:bg-gray-100 dark:hover:bg-dark-800"
+                  :class="{ 'bg-gray-100 dark:bg-dark-700': idx === highlightedIndex }"
                   @mousedown.prevent="handleResultClick(item)"
                   @mouseenter="handleResultMouseEnter(idx)"
                 >
-                  <span class="text-white font-medium">{{ item.name }}</span>
+                  <span class="font-medium text-gray-900 dark:text-white">{{ item.name }}</span>
                   <!-- Removed description, createdBy, and status -->
                 </li>
               </ul>
@@ -76,13 +79,13 @@
             v-if="branding.logo_url" 
             :src="branding.logo_url" 
             alt="Brand Logo" 
-            class="h-8 w-8 rounded-full border border-dark-600" 
+            class="h-8 w-8 rounded-full border border-gray-200 dark:border-dark-600" 
           />
-          <span class="text-white font-semibold text-base">
+          <span class="text-base font-semibold text-gray-900 dark:text-white">
             {{ userProfile?.full_name || authStore.user?.name || 'User' }}
           </span>
           <svg 
-            class="w-4 h-4 text-white ml-1 transition-transform"
+            class="ml-1 h-4 w-4 text-gray-600 transition-transform dark:text-white"
             :class="{ 'rotate-180': showProfileDropdown }"
             fill="none" 
             stroke="currentColor" 
@@ -111,6 +114,15 @@
                   @click="closeProfileDropdown"
                 >
                   Settings
+                </router-link>
+              </li>
+              <li>
+                <router-link 
+                  to="/settings?section=appearance" 
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
+                  @click="closeProfileDropdown"
+                >
+                  Appearance
                 </router-link>
               </li>
               <li>

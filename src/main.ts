@@ -3,6 +3,9 @@ import { createPinia } from 'pinia'
 import router from './router'
 import App from './App.vue'
 import './style.css'
+import { initTheme } from './utils/theme'
+
+initTheme()
 
 console.log('🚀 main.ts: Starting app initialization...')
 

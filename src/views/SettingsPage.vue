@@ -53,6 +53,33 @@
               </button>
               <div v-if="profileSuccess" class="text-green-500 text-sm text-center">Profile updated successfully!</div>
               <div v-if="profileError" class="text-red-500 text-sm text-center">{{ profileError }}</div>
+
+              <div
+                id="appearance"
+                ref="appearanceSectionRef"
+                class="scroll-mt-8 border-t border-gray-200 pt-6 dark:border-dark-600"
+              >
+                <h3 class="mb-1 text-base font-semibold text-gray-900 dark:text-white">Appearance</h3>
+                <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                  Light, dark, or match your device. Saved in this browser only.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in themeOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+                    :class="
+                      themePref === opt.value
+                        ? 'border-blue-600 bg-blue-50 text-blue-800 dark:border-neon-blue dark:bg-neon-blue/10 dark:text-neon-blue'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300 dark:hover:bg-dark-700'
+                    "
+                    @click="setThemePref(opt.value)"
+                  >
+                    {{ opt.label }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -407,6 +434,7 @@ import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
 import { useRouter, useRoute } from 'vue-router'
+import { applyThemePreference, getThemePreference, type ThemePreference } from '@/utils/theme'
 
 const authStore = useAuthStore()
 const brandingStore = useBrandingStore()
@@ -415,8 +443,21 @@ const route = useRoute()
 
 // Refs for section scrolling
 const profileSectionRef = ref<HTMLElement | null>(null)
+const appearanceSectionRef = ref<HTMLElement | null>(null)
 const notificationsSectionRef = ref<HTMLElement | null>(null)
 const brandingSectionRef = ref<HTMLElement | null>(null)
+
+const themePref = ref<ThemePreference>(getThemePreference())
+const themeOptions: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+]
+
+function setThemePref(pref: ThemePreference) {
+  applyThemePreference(pref)
+  themePref.value = getThemePreference()
+}
 
 // User Profile
 const profile = ref({ name: '', email: '', role: 'engineer' })
@@ -467,8 +508,9 @@ const scrollToSection = async (section: string) => {
   await nextTick()
   const sectionMap: Record<string, HTMLElement | null> = {
     profile: profileSectionRef.value,
+    appearance: appearanceSectionRef.value,
     notifications: notificationsSectionRef.value,
-    branding: brandingSectionRef.value
+    branding: brandingSectionRef.value,
   }
   
   const element = sectionMap[section]
@@ -507,8 +549,10 @@ const loadAllData = async () => {
 
 // Load all data on mount
 onMounted(async () => {
+  themePref.value = getThemePreference()
+
   await loadAllData()
-  
+
   // Check for section query parameter on mount
   const section = route.query.section
   if (section && typeof section === 'string') {
@@ -519,6 +563,7 @@ onMounted(async () => {
 // Reload data when component is activated (when navigating back)
 onActivated(async () => {
   console.log('🔄 Settings page activated, reloading data...')
+  themePref.value = getThemePreference()
   // Only reload if data seems stale or missing
   if (!profile.value.email && !profileLoading.value) {
     await loadAllData()

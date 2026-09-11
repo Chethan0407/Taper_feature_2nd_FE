@@ -1,7 +1,7 @@
 <template>
-  <div class="fixed left-0 top-0 h-full w-64 bg-light-100 dark:bg-dark-900 border-r border-light-300 dark:border-dark-700 flex flex-col">
+  <div class="fixed left-0 top-0 flex h-full w-64 flex-col border-r border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
     <!-- Logo -->
-    <div class="p-6 border-b border-light-300 dark:border-dark-700">
+    <div class="border-b border-gray-200 p-6 dark:border-dark-700">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center">
           <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -15,7 +15,7 @@
             <line x1="6" y1="15" x2="18" y2="15"/>
           </svg>
         </div>
-        <span class="text-xl font-bold text-gradient">TapeOutOps</span>
+        <span class="text-xl font-bold text-gray-900 dark:text-gradient">TapeOutOps</span>
       </div>
     </div>
 
@@ -25,7 +25,7 @@
         v-for="item in navigationItems"
         :key="item.name"
         :to="item.path"
-        class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-light-200 dark:hover:bg-dark-800 transition-all duration-200"
+        class="flex items-center space-x-3 rounded-lg px-4 py-3 text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-dark-800 dark:hover:text-white"
         :class="{ 'bg-primary-600/20 text-primary-600 dark:text-primary-400 border border-primary-600/30': $route.path === item.path }"
       >
         <component :is="item.icon" class="w-5 h-5" />
@@ -34,7 +34,7 @@
     </nav>
 
     <!-- User Profile -->
-    <div class="p-4 border-t border-light-300 dark:border-dark-700">
+    <div class="border-t border-gray-200 p-4 dark:border-dark-700">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 bg-gradient-to-br from-neon-green to-neon-blue rounded-full flex items-center justify-center">
           <span class="text-sm font-semibold text-white">

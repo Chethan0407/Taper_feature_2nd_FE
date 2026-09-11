@@ -1,19 +1,19 @@
 <template>
   <!-- Root: do not reuse id="app" (mount target in index.html) — duplicate IDs break layout/DOM APIs -->
-  <div class="app-root min-h-screen" style="background-color: #0e0e0e; color: #f1f5f9;">
-    <div v-if="error" class="flex items-center justify-center min-h-screen text-white p-4">
-      <div class="text-center max-w-2xl">
-        <div class="text-2xl mb-4 text-red-500">Application Error</div>
-        <div class="text-sm text-gray-400 mb-4">{{ error }}</div>
+  <div class="app-root min-h-screen bg-white text-gray-900 dark:bg-[#0e0e0e] dark:text-gray-100">
+    <div v-if="error" class="flex min-h-screen items-center justify-center bg-white p-4 text-gray-900 dark:bg-dark-950 dark:text-gray-100">
+      <div class="max-w-2xl text-center">
+        <div class="mb-4 text-2xl text-red-600 dark:text-red-500">Application Error</div>
+        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">{{ error }}</div>
         <button @click="location.reload()" class="px-4 py-2 bg-neon-blue text-white rounded-lg hover:opacity-90">
           Reload Page
         </button>
       </div>
     </div>
-    <div v-else-if="!mounted" class="flex items-center justify-center min-h-screen text-white" style="color: #f1f5f9;">
+    <div v-else-if="!mounted" class="flex min-h-screen items-center justify-center bg-white text-gray-900 dark:bg-dark-950 dark:text-gray-100">
       <div class="text-center">
-        <div class="text-2xl mb-4" style="color: #f1f5f9;">Loading...</div>
-        <div class="text-sm" style="color: #94a3b8;">Initializing application</div>
+        <div class="mb-4 text-2xl font-medium">Loading…</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Initializing application</div>
       </div>
     </div>
     <router-view v-else />

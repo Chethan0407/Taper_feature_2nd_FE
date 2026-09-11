@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // Required so Appearance (localStorage + <html class="dark">) overrides OS preference.
+  // Default 'media' ignores .dark and only uses prefers-color-scheme.
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",

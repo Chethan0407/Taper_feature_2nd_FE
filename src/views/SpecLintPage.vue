@@ -594,7 +594,13 @@
                   <tr v-for="rule in filteredRules" :key="rule.id" class="border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800/40 transition-colors">
                     <td class="p-4 font-mono text-gray-500 dark:text-gray-400">{{ rule.id }}</td>
                     <td class="p-4 font-medium text-gray-900 dark:text-white">{{ rule.rule_type }}</td>
-                    <td class="p-4 font-mono text-blue-600 dark:text-blue-400 underline cursor-pointer" @click="copyPattern(rule.pattern)" :title="'Click to copy: ' + rule.pattern">{{ rule.pattern }}</td>
+                    <td
+                      class="cursor-pointer font-mono text-gray-800 underline decoration-gray-400 decoration-dotted underline-offset-2 transition-colors hover:text-gray-950 hover:decoration-gray-600 dark:text-neon-blue dark:decoration-neon-blue/40 dark:hover:text-neon-blue/90"
+                      :title="'Click to copy: ' + rule.pattern"
+                      @click="copyPattern(rule.pattern)"
+                    >
+                      {{ rule.pattern }}
+                    </td>
                     <td class="p-4">
                       <span :class="rule.severity === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded text-xs font-semibold' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded text-xs font-semibold'">
                         {{ rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1) }}
@@ -603,9 +609,10 @@
                     <td class="p-4">
                       <div class="flex items-center gap-2">
                         <button
-                          @click="editRule(rule)"
-                          class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                          type="button"
                           title="Edit rule"
+                          class="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-800 shadow-sm transition-colors hover:bg-gray-50 dark:border-transparent dark:bg-blue-600 dark:text-white dark:shadow-none dark:hover:bg-blue-500"
+                          @click="editRule(rule)"
                         >
                           Edit
                         </button>

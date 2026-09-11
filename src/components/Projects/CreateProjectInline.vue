@@ -8,16 +8,16 @@
       leave-from-class="opacity-100 transform translate-y-0 scale-100"
       leave-to-class="opacity-0 transform -translate-y-4 scale-95"
     >
-      <div class="card bg-dark-900/50 backdrop-blur-sm border border-dark-600/50 rounded-2xl p-6 shadow-2xl">
+      <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-dark-600/50 dark:bg-dark-900/95 dark:backdrop-blur-sm">
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <!-- Project Name -->
           <div>
-            <label class="block text-gray-300 text-sm font-medium mb-2">PROJECT NAME</label>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">PROJECT NAME</label>
             <input 
               v-model="form.name"
               type="text"
               placeholder="Enter project name"
-              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors"
+              class="input-field w-full"
               required
             />
             <p v-if="nameError" class="mt-1 text-xs text-red-400">
@@ -27,12 +27,12 @@
 
           <!-- Description -->
           <div>
-            <label class="block text-gray-300 text-sm font-medium mb-2">DESCRIPTION (OPTIONAL)</label>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">DESCRIPTION (OPTIONAL)</label>
             <textarea 
               v-model="form.description"
               placeholder="Project description"
               rows="3"
-              class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors resize-none"
+              class="input-field w-full resize-none"
             ></textarea>
           </div>
 
@@ -40,8 +40,8 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Platform -->
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">PLATFORM</label>
-              <select v-model="form.platform" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" required>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">PLATFORM</label>
+              <select v-model="form.platform" class="input-field w-full" required>
                 <option value="">Select Platform</option>
                 <option v-for="p in (metadataStore.platforms.length > 0 ? metadataStore.platforms : ['ASIC', 'FPGA', 'SoC'])" :key="p" :value="p">{{ p }}</option>
               </select>
@@ -49,8 +49,8 @@
 
             <!-- EDA Tool -->
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">EDA TOOL</label>
-              <select v-model="form.edaTool" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" required>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">EDA TOOL</label>
+              <select v-model="form.edaTool" class="input-field w-full" required>
                 <option value="">Select EDA Tool</option>
                 <option v-for="e in (metadataStore.edaTools.length > 0 ? metadataStore.edaTools : ['Synopsys', 'Cadence', 'Mentor'])" :key="e" :value="e">{{ e }}</option>
               </select>
@@ -58,8 +58,8 @@
 
             <!-- Type -->
             <div>
-              <label class="block text-gray-300 text-sm font-medium mb-2">TYPE</label>
-              <select v-model="form.type" class="input-field w-full bg-dark-800/50 border-dark-600 focus:border-neon-blue transition-colors" required>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">TYPE</label>
+              <select v-model="form.type" class="input-field w-full" required>
                 <option value="">Select Type</option>
                 <option v-for="t in (metadataStore.types.length > 0 ? metadataStore.types : ['TapeOut', 'LintOnly'])" :key="t" :value="t">{{ t }}</option>
               </select>

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-light-50 dark:bg-dark-950">
+  <div class="min-h-screen bg-white dark:bg-dark-950">
     <!-- Sidebar -->
     <Sidebar />
     
@@ -12,17 +12,17 @@
       <main class="p-8">
         <div
           v-if="adminAccessNotice"
-          class="mb-6 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-100"
+          class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-100"
           role="status"
         >
-          <p class="font-semibold text-amber-50">System Usage is admin-only</p>
-          <p class="mt-1 text-sm text-amber-100/90">
-            You were redirected from <code class="rounded bg-dark-800 px-1 py-0.5 text-xs">/admin/usage</code> because this account is not recognized as an administrator.
+          <p class="font-semibold text-amber-900 dark:text-amber-50">System Usage is admin-only</p>
+          <p class="mt-1 text-sm text-amber-800/90 dark:text-amber-100/90">
+            You were redirected from <code class="rounded bg-amber-100 px-1 py-0.5 text-xs dark:bg-dark-800">/admin/usage</code> because this account is not recognized as an administrator.
             The sidebar hides &quot;System Usage&quot; for the same reason. Ask your team to assign an admin role in the backend (or log in with an admin user).
           </p>
           <button
             type="button"
-            class="mt-3 text-sm font-medium text-neon-blue hover:underline"
+            class="mt-3 text-sm font-medium text-blue-600 hover:underline dark:text-neon-blue"
             @click="dismissAdminNotice"
           >
             Dismiss
@@ -31,7 +31,7 @@
 
         <!-- Welcome Banner -->
         <div class="mb-8">
-          <h1 class="text-4xl font-bold text-gradient mb-4">
+          <h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-gradient">
             Streamline Your Tapeout Workflow
           </h1>
           <p class="text-xl text-gray-600 dark:text-gray-400 max-w-2xl">
@@ -230,7 +230,7 @@
             <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
-            <p class="text-gray-400">Loading data...</p>
+            <p class="text-gray-600 dark:text-gray-400">Loading data...</p>
           </div>
         </div>
         <div v-else-if="tapeoutsError" class="flex flex-col items-center justify-center py-12">
