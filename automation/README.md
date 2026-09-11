@@ -53,11 +53,21 @@ automation/
 - Allure → `npm run test:automation:report`
 - CI artifact → `automation-report` (Allure + Playwright HTML + results)
 
+## Always-on gate
+
+Tests live **only** in `automation/` and must stay green:
+
+- **Every push / every PR** → GitHub Actions job `automation-suite` runs the full Playwright suite
+- Locally before you push: `npm run test:automation`
+- Report: `npm run test:automation:report`
+
+If you change UI behavior, add or update a matching case under `automation/specs/` (and POM helpers under `automation/pages/` when needed).
+
 ## What to tell the team
 
 Frontend automation lives in **`automation/`** in this repo (POM + mocked API).  
 Run locally: `npm run test:automation` then `npm run test:automation:report`.  
-CI uploads the Allure report on every run.
+CI runs the full suite on **every push and PR** and uploads the Allure report.
 
 ## Branch / review gate (do not push to `main`)
 
