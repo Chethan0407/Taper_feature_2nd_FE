@@ -46,12 +46,17 @@ automation/
 | Screenshots / traces / report | screenshot + video on fail; trace on retry; Allure + HTML + JUnit (CI) |
 | CI-friendly | `.github/workflows/playwright.yml` — build:ci, artifacts always |
 
-## Reporting on failure
+## Reporting on failure (never commit to git / main)
 
-- Screenshots + video → `test-results/`
-- Trace (retry) → open with `npx playwright show-trace …`
-- Allure → `npm run test:automation:report`
-- CI artifact → `automation-report` (Allure + Playwright HTML + results)
+Reports stay **separate** from source — local folders + CI artifacts only:
+
+| Where | What |
+|-------|------|
+| Local | `allure-results/`, `allure-report/`, `playwright-report/`, `test-results/` (**gitignored**) |
+| CI | Download artifact `automation-report-<run_id>` from the Actions run |
+| Open locally | `npm run test:automation:report` |
+
+**Do not** commit Allure/HTML/video/trace folders to the repo or merge them into `main`.
 
 ## Always-on gate
 
