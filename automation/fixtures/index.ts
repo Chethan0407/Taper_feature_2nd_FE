@@ -1,5 +1,12 @@
+/**
+ * Playwright fixtures — framework wiring for specs.
+ *
+ * Specs: `import { test, expect } from '../fixtures'`
+ * New code may also: `import { Tags, Users, seedAuth } from '..'`
+ */
 import { test as base, expect } from '@playwright/test'
-import { seedAuth, ENGINEER_USER, TEST_USER } from './api'
+import { Users } from '../config'
+import { seedAuth } from '../helpers'
 import {
   LandingPage,
   LoginPage,
@@ -45,12 +52,6 @@ type AuthPages = Pages & {
   authenticatedEngineer: void
 }
 
-/**
- * Playwright fixtures with Page Object Model.
- * Public: landingPage / loginPage / …
- * Auth admin: authenticated
- * Auth engineer: authenticatedEngineer
- */
 export const test = base.extend<AuthPages>({
   landingPage: async ({ page }, use) => {
     await use(new LandingPage(page))
@@ -102,14 +103,14 @@ export const test = base.extend<AuthPages>({
   },
   authenticated: [
     async ({ page }, use) => {
-      await seedAuth(page, TEST_USER)
+      await seedAuth(page, Users.admin)
       await use()
     },
     { auto: false },
   ],
   authenticatedEngineer: [
     async ({ page }, use) => {
-      await seedAuth(page, ENGINEER_USER)
+      await seedAuth(page, Users.engineer)
       await use()
     },
     { auto: false },

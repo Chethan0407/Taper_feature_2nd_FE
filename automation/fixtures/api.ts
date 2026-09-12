@@ -1,39 +1,13 @@
 import { type Page, type Route } from '@playwright/test'
+import { Users, type FrameworkUser } from '../config'
 
-export type MockUser = {
-  id: number
-  email: string
-  full_name: string
-  name: string
-  role: string
-  is_active: boolean
-  is_admin: boolean
-  is_superuser?: boolean
-}
+export type MockUser = FrameworkUser
 
 /** Admin — default authenticated fixture user */
-export const TEST_USER: MockUser = {
-  id: 1,
-  email: 'e2e@tapeoutops.com',
-  full_name: 'E2E Tester',
-  name: 'E2E Tester',
-  role: 'admin',
-  is_active: true,
-  is_admin: true,
-  is_superuser: true,
-}
+export const TEST_USER: MockUser = Users.admin
 
 /** Non-admin engineer — roles / permissions tests */
-export const ENGINEER_USER: MockUser = {
-  id: 2,
-  email: 'engineer@tapeoutops.com',
-  full_name: 'E2E Engineer',
-  name: 'E2E Engineer',
-  role: 'engineer',
-  is_active: true,
-  is_admin: false,
-  is_superuser: false,
-}
+export const ENGINEER_USER: MockUser = Users.engineer
 
 async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({

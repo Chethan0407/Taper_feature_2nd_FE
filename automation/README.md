@@ -1,12 +1,36 @@
-# Frontend Automation (Playwright)
+# TapeoutOps Automation Framework
 
-Folder: **`automation/`** — call it **automation** with the team (not a separate “e2e repo”).
+High-level **UI automation framework** (Playwright + POM) living in this frontend repo.
 
 ```
 automation/
-  fixtures/   # auth seed, API mocks, BVA/ECP data, feature seeds
-  pages/      # Page Object Model
-  specs/      # suites tagged by purpose
+├── config/       # Env, timeouts, tags, users (single source of truth)
+├── core/         # BasePage, BaseComponent, waits
+├── data/         # BVA/ECP datasets, seeds, route matrices
+├── helpers/      # API mocks, auth seed, network faults
+├── pages/        # Page Object Model (feature pages)
+├── fixtures/     # Playwright test.extend (page + auth fixtures)
+├── reporters/    # Allure metadata
+├── specs/        # Test cases (sanity / regression / integration / …)
+└── index.ts      # Public framework entry
+```
+
+## Architecture
+
+| Layer | Responsibility |
+|-------|----------------|
+| **config** | Base URL, timeouts, suite tags, persona users |
+| **core** | Shared page/component base + wait helpers |
+| **data** | Test data, BVA/ECP, seeded entities |
+| **helpers** | `mockApi`, `seedAuth`, `failApi`, `abortApi` |
+| **pages** | One POM class per screen / flow |
+| **fixtures** | Inject pages + `authenticated` / `authenticatedEngineer` |
+| **specs** | Thin tests — assert behavior, not selectors |
+| **reporters** | Allure env; reports stay **out of git** |
+
+```
+specs  →  fixtures  →  pages  →  core
+                ↘ helpers / data / config
 ```
 
 ## Commands
@@ -14,68 +38,48 @@ automation/
 | Command | Purpose |
 |---------|---------|
 | `npm run test:automation` | Full suite |
-| `npm run test:automation:sanity` | Critical smoke gate |
-| `npm run test:automation:critical` | Critical multi-page journeys |
-| `npm run test:automation:regression` | Broad module regression |
-| `npm run test:automation:integration` | Cross-feature flows |
+| `npm run test:automation:sanity` | Smoke gate |
+| `npm run test:automation:critical` | Critical journeys |
+| `npm run test:automation:regression` | Regression |
+| `npm run test:automation:integration` | Cross-feature |
 | `npm run test:automation:roles` | Admin vs engineer |
 | `npm run test:automation:network` | API failure UI |
-| `npm run test:automation:bva` | BVA + equivalence classes |
-| `npm run test:automation:headed` | Watch Chromium |
-| `npm run test:automation:ui` | Playwright UI mode |
-| `npm run test:automation:report` | Open **Allure Awesome** report |
-| `npm run test:automation:all` | `build:ci` + full suite (stable preview) |
+| `npm run test:automation:bva` | BVA + ECP |
+| `npm run test:automation:headed` | Watch browser |
+| `npm run test:automation:report` | Open Allure (local only) |
 
-## Coverage checklist
+## Writing a new test
 
-| Area | Status |
-|------|--------|
-| Critical E2E user flows | `@critical` — login journey, list→detail, CTA round-trips, settings deep links |
-| Functional major features | Module specs + regression matrix |
-| Regression | `@regression` + per-module specs |
-| Integration across pages | `@integration` + critical flows |
-| Navigation / routing | `navigation.spec`, protected redirects, deep links |
-| Forms & validations | Auth + BVA/ECP form suites |
-| Auth login / logout | `auth.spec`, critical flow, session edges |
-| Roles / permissions | `@roles` — admin System Usage vs engineer |
-| Positive & negative | Across auth, CRUD shells, network |
-| Edge cases | Empty states, cancel modals, BVA boundaries |
-| API / network → UI | `@network` — abort/500/Retry/Authorization header |
-| Page objects / utilities | `automation/pages/*`, `fixtures/*` |
-| Test data / config | `test-data.ts`, `seed.ts`, `api.ts` users |
-| Screenshots / traces / report | screenshot + video on fail; trace on retry; Allure + HTML + JUnit (CI) |
-| CI-friendly | `.github/workflows/playwright.yml` — build:ci, artifacts always |
+```ts
+import { test, expect } from '../fixtures'
+import { Tags } from '../config'
+import { seedFeatureData } from '../data'
 
-## Reporting on failure (never commit to git / main)
-
-Reports stay **separate** from source — local folders + CI artifacts only:
-
-| Where | What |
-|-------|------|
-| Local | `allure-results/`, `allure-report/`, `playwright-report/`, `test-results/` (**gitignored**) |
-| CI | Download artifact `automation-report-<run_id>` from the Actions run |
-| Open locally | `npm run test:automation:report` |
-
-**Do not** commit Allure/HTML/video/trace folders to the repo or merge them into `main`.
+test.describe('My feature @regression', () => {
+  test('positive path', { tag: [Tags.regression] }, async ({ authenticated, projectsPage }) => {
+    void authenticated
+    await projectsPage.goto()
+    await projectsPage.expectLoaded()
+  })
+})
+```
 
 ## Always-on gate
 
-Tests live **only** in `automation/` and must stay green:
+- Tests live **only** under `automation/`
+- CI job `automation-suite` runs on **every push and PR**
+- UI changes → add/update matching specs + POM helpers
 
-- **Every push / every PR** → GitHub Actions job `automation-suite` runs the full Playwright suite
-- Locally before you push: `npm run test:automation`
-- Report: `npm run test:automation:report`
+## Reporting (never commit to main / git)
 
-If you change UI behavior, add or update a matching case under `automation/specs/` (and POM helpers under `automation/pages/` when needed).
+| Where | What |
+|-------|------|
+| Local | `allure-results/`, `allure-report/`, `test-results/` (**gitignored**) |
+| CI | Artifact `automation-report-<run_id>` |
+| Open | `npm run test:automation:report` |
 
-## What to tell the team
+## Branch / review
 
-Frontend automation lives in **`automation/`** in this repo (POM + mocked API).  
-Run locally: `npm run test:automation` then `npm run test:automation:report`.  
-CI runs the full suite on **every push and PR** and uploads the Allure report.
-
-## Branch / review gate (do not push to `main`)
-
-1. Work on a **`feature/*`** branch (example: `feature/frontend-automation-suite`).
-2. Open a **PR into `main`** — use the PR template checklist and review the diff yourself.
-3. Merge only after you approve. Never commit/push straight to `main`.
+1. Work on `feature/*` (not direct `main`)
+2. Open PR → self-review checklist
+3. Merge only after you approve
