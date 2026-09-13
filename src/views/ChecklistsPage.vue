@@ -21,8 +21,8 @@
               </div>
 
               <div class="custom-scrollbar flex-1 overflow-y-auto px-3 py-2">
-                <div v-if="checklistsStore.loading" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading templates...</div>
-                <div v-else-if="checklistsStore.error" class="py-10 text-center text-sm text-red-500">{{ checklistsStore.error }}</div>
+                <div v-if="checklistsStore.loading && visibleTemplates.length === 0" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading templates...</div>
+                <div v-else-if="checklistsStore.error && visibleTemplates.length === 0" class="py-10 text-center text-sm text-red-500">{{ checklistsStore.error }}</div>
                 <div v-else-if="visibleTemplates.length === 0" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">No templates yet. Create your first one.</div>
                 <ul v-else class="divide-y divide-gray-200 dark:divide-dark-700">
                   <li
@@ -56,7 +56,15 @@
                       </p>
                     </div>
                     <div class="flex flex-shrink-0 items-center gap-1.5">
-                      <button class="btn-secondary px-3 py-1.5 text-xs" @click="useTemplate(template.id)">Use</button>
+                      <button
+                        class="btn-secondary px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                        data-testid="use-template-btn"
+                        :disabled="usingTemplateId === template.id"
+                        @click="useTemplate(template.id)"
+                      >
+                        <span v-if="usingTemplateId === template.id">Using…</span>
+                        <span v-else>Use</span>
+                      </button>
                       <button
                         v-if="!template.is_system"
                         class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
@@ -360,6 +368,7 @@ const activeChecklistsError = ref('')
 const approving = ref<string | null>(null)
 const deleting = ref<string | null>(null)
 const deletingTemplate = ref<string | number | null>(null)
+const usingTemplateId = ref<string | number | null>(null)
 const showCreateTemplateModal = ref(false)
 const showDeleteModal = ref(false)
 const showDeleteTemplateModal = ref(false)
@@ -718,23 +727,23 @@ const deleteTemplate = async () => {
 }
 
 const useTemplate = async (templateId: string | number) => {
+  if (usingTemplateId.value != null) return
+  usingTemplateId.value = templateId
   try {
     const res = await authenticatedFetch('/api/v1/checklists/active', {
       method: 'POST',
       body: JSON.stringify({ template_id: templateId })
     })
     if (!res.ok) throw new Error('Failed to create active checklist')
-    const activeChecklist = await res.json()
+    await res.json()
     toast.value = { message: 'Checklist instantiated!', type: 'success' }
-    await Promise.all([
-      fetchActiveChecklists(),
-      checklistsStore.fetchStats() // Refresh statistics after creating active checklist
-    ])
-    // Optionally, you could redirect to the new checklist here
-    // router.push(`/checklists/active/${activeChecklist.id}`)
+    // Refresh active list + stats without blanking the templates panel
+    await fetchActiveChecklists()
+    void checklistsStore.fetchStats()
   } catch (e: any) {
     toast.value = { message: e.message || 'Failed to create active checklist', type: 'error' }
   } finally {
+    usingTemplateId.value = null
     setTimeout(() => { toast.value = null }, 2500)
   }
 }

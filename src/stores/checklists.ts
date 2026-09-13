@@ -272,8 +272,8 @@ export const useChecklistsStore = defineStore('checklists', () => {
   }
   
   // 5. Create active checklist from template
+  // Do NOT toggle shared `loading` — that flag drives the templates list spinner.
   async function createActiveChecklist(data: any) {
-    loading.value = true
     error.value = ''
     try {
       const res = await authenticatedFetch('/api/v1/checklists/active', {
@@ -285,14 +285,12 @@ export const useChecklistsStore = defineStore('checklists', () => {
     } catch (e: any) {
       error.value = e.message || 'Failed to create active checklist'
       throw e
-    } finally {
-      loading.value = false
     }
   }
   
   // 6. List all active checklists
+  // Page uses its own `activeChecklistsLoading`; keep templates list stable.
   async function fetchActiveChecklists() {
-    loading.value = true
     error.value = ''
     try {
       const res = await authenticatedFetch('/api/v1/checklists/active')
@@ -318,14 +316,12 @@ export const useChecklistsStore = defineStore('checklists', () => {
     } catch (e: any) {
       error.value = e.message || 'Failed to fetch active checklists'
       throw e
-    } finally {
-      loading.value = false
     }
   }
   
   // 7. Get items in an active checklist
+  // Keep shared `loading` for templates only — active detail has its own UI state.
   async function fetchActiveChecklistItems(checklistId: string | number) {
-    loading.value = true
     error.value = ''
     try {
       const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/items/`)
@@ -334,14 +330,12 @@ export const useChecklistsStore = defineStore('checklists', () => {
     } catch (e: any) {
       error.value = e.message || 'Failed to fetch active checklist items'
       throw e
-    } finally {
-      loading.value = false
     }
   }
   
   // 8. Update an active checklist item
+  // 8. Update an item in an active checklist
   async function updateActiveChecklistItem(checklistId: string | number, itemId: string | number, data: any) {
-    loading.value = true
     error.value = ''
     try {
       const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/items/${itemId}/`, {
@@ -353,14 +347,11 @@ export const useChecklistsStore = defineStore('checklists', () => {
     } catch (e: any) {
       error.value = e.message || 'Failed to update active checklist item'
       throw e
-    } finally {
-      loading.value = false
     }
   }
   
   // 9. Upload evidence for an item
   async function uploadEvidence(checklistId: string | number, itemId: string | number, file: File) {
-    loading.value = true
     error.value = ''
     try {
       const formData = new FormData()
@@ -375,14 +366,11 @@ export const useChecklistsStore = defineStore('checklists', () => {
     } catch (e: any) {
       error.value = e.message || 'Failed to upload evidence'
       throw e
-    } finally {
-      loading.value = false
     }
   }
   
   // 10. Get checklist completion percent
   async function fetchChecklistCompletion(checklistId: string | number) {
-    loading.value = true
     error.value = ''
     try {
       const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion/`)
@@ -391,8 +379,6 @@ export const useChecklistsStore = defineStore('checklists', () => {
     } catch (e: any) {
       error.value = e.message || 'Failed to fetch checklist completion'
       throw e
-    } finally {
-      loading.value = false
     }
   }
 
