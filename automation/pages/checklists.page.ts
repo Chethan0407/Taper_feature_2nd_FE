@@ -42,11 +42,47 @@ export class ChecklistsPage extends AppShellPage {
   }
 
   emptyTemplates(): Locator {
-    return this.page.getByText(/no templates found/i).first()
+    return this.page.getByText(/no templates yet|no templates found/i).first()
   }
 
   emptyActive(): Locator {
     return this.page.getByText(/no active checklists/i).first()
+  }
+
+  useTemplateButton(): Locator {
+    return this.page.getByTestId('use-template-btn').first()
+  }
+
+  useButtons(): Locator {
+    return this.page.getByTestId('use-template-btn')
+  }
+
+  templatesList(): Locator {
+    return this.page.locator('text=Checklist Templates').locator('xpath=ancestor::div[contains(@class,"module-panel")]').first()
+  }
+
+  activeListPanel(): Locator {
+    return this.page.locator('text=Active Checklists').locator('xpath=ancestor::div[contains(@class,"module-panel")]').first()
+  }
+
+  approveButton(): Locator {
+    return this.page.getByRole('button', { name: /^approve$/i }).first()
+  }
+
+  approvedBadge(): Locator {
+    return this.page.getByText(/^Approved$/i).first()
+  }
+
+  loadingTemplates(): Locator {
+    return this.page.getByText(/loading templates/i)
+  }
+
+  loadingActive(): Locator {
+    return this.page.getByText(/loading active checklists/i)
+  }
+
+  toastSuccess(): Locator {
+    return this.page.locator('.fixed.top-6').filter({ hasText: /instantiated|approved|created/i }).first()
   }
 
   deleteTemplateButton(): Locator {
@@ -131,5 +167,26 @@ export class ChecklistsPage extends AppShellPage {
 
   async submitTemplate() {
     await this.submitCreate().click()
+  }
+
+  async useFirstTemplate() {
+    const btn = this.useTemplateButton()
+    await expect(btn).toBeVisible({ timeout: 15_000 })
+    await btn.click()
+  }
+
+  async approveFirstPending() {
+    const btn = this.approveButton()
+    await expect(btn).toBeVisible({ timeout: 15_000 })
+    await btn.click()
+  }
+
+  async expectNoFullListLoadingFlash(ms = 800) {
+    // After an action, full-panel loaders should not appear while list content exists
+    await this.page.waitForTimeout(ms)
+    const templatesLoading = await this.loadingTemplates().isVisible().catch(() => false)
+    const activeLoading = await this.loadingActive().isVisible().catch(() => false)
+    expect(templatesLoading).toBeFalsy()
+    expect(activeLoading).toBeFalsy()
   }
 }
