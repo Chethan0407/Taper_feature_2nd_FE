@@ -170,6 +170,14 @@ export async function seedFeatureData(page: Page) {
     linked_checklists: [] as Array<string | number>,
   }
 
+  /** Mutable checklists for Use / Approve E2E */
+  const templatesState: Array<Record<string, unknown>> = [
+    { ...MOCK.template },
+    { ...MOCK.torTemplate },
+  ]
+  const activeChecklistsState: Array<Record<string, unknown>> = [{ ...MOCK.activeChecklist }]
+  let nextActiveId = 1000
+
   /** Mutable project list for create / update / delete E2E */
   const projectsState: Array<Record<string, unknown>> = [
     { ...MOCK.project },
@@ -346,18 +354,34 @@ export async function seedFeatureData(page: Page) {
         return fulfillJson(route, [MOCK.company])
       }
       if (path.includes('/checklists/stats')) {
+        const approved = activeChecklistsState.filter((c) => String(c.status).toLowerCase() === 'approved').length
         return fulfillJson(route, {
-          total_templates: 1,
-          active_checklists: 1,
-          approved_checklists: 0,
+          total_templates: templatesState.length,
+          active_checklists: activeChecklistsState.length,
+          approved_checklists: approved,
           avg_completion_rate: 40,
         })
       }
+      if (path.includes('/checklists/active') && path.includes('/completion')) {
+        return fulfillJson(route, { progress: 2, total: 5, completion_percent: 40 })
+      }
+      if (/\/checklists\/active\/[^/]+$/.test(path) && !path.endsWith('/active')) {
+        const id = path.split('/').pop()
+        const found = activeChecklistsState.find((c) => String(c.id) === String(id))
+        if (!found) return fulfillJson(route, { detail: 'Not found' }, 404)
+        return fulfillJson(route, found)
+      }
+      if (path.includes('/checklists/templates/') && /\/templates\/[^/]+$/.test(path)) {
+        const id = path.split('/').pop()
+        const found = templatesState.find((t) => String(t.id) === String(id))
+        if (!found) return fulfillJson(route, { detail: 'Not found' }, 404)
+        return fulfillJson(route, found)
+      }
       if (path.includes('/checklists/templates')) {
-        return fulfillJson(route, [MOCK.template, MOCK.torTemplate])
+        return fulfillJson(route, templatesState)
       }
       if (path.includes('/checklists/active')) {
-        return fulfillJson(route, [MOCK.activeChecklist])
+        return fulfillJson(route, activeChecklistsState)
       }
       // Linkable checklists for project details modal
       if (path.includes('/checklists')) {
@@ -424,7 +448,57 @@ export async function seedFeatureData(page: Page) {
         return fulfillJson(route, { ...MOCK.company, id: 99, name: 'Created Company' })
       }
       if (path.includes('/checklists/templates')) {
-        return fulfillJson(route, { ...MOCK.template, id: 99, name: 'Created Template' })
+        let body: Record<string, unknown> = {}
+        try {
+          body = req.postDataJSON() as Record<string, unknown>
+        } catch {
+          /* ignore */
+        }
+        const created = {
+          ...MOCK.template,
+          id: 900 + templatesState.length,
+          name: String(body.name || 'Created Template'),
+          description: String(body.description || ''),
+          items: Array.isArray(body.items) ? body.items : MOCK.template.items,
+        }
+        templatesState.push(created)
+        return fulfillJson(route, created)
+      }
+      if (path.includes('/checklists/active') && path.includes('/approve')) {
+        const parts = path.split('/')
+        const id = parts[parts.indexOf('active') + 1]
+        const idx = activeChecklistsState.findIndex((c) => String(c.id) === String(id))
+        if (idx === -1) return fulfillJson(route, { detail: 'Not found' }, 404)
+        activeChecklistsState[idx] = {
+          ...activeChecklistsState[idx],
+          status: 'approved',
+          is_approved: true,
+          approved_by: 'E2E Tester',
+          approved_by_email: 'e2e@tapeoutops.com',
+        }
+        return fulfillJson(route, activeChecklistsState[idx])
+      }
+      if (path.endsWith('/checklists/active') || /\/checklists\/active$/.test(path)) {
+        let body: Record<string, unknown> = {}
+        try {
+          body = req.postDataJSON() as Record<string, unknown>
+        } catch {
+          /* ignore */
+        }
+        const templateId = body.template_id
+        const tpl =
+          templatesState.find((t) => String(t.id) === String(templateId)) || MOCK.template
+        const created = {
+          id: nextActiveId++,
+          template_id: tpl.id,
+          template_name: tpl.name,
+          name: String(tpl.name || 'Active Checklist'),
+          status: 'pending',
+          completion_percent: 0,
+          items: tpl.items || [],
+        }
+        activeChecklistsState.push(created)
+        return fulfillJson(route, created)
       }
       if (path.includes('/lint-results/speclint/rules') || path.includes('/speclint/rules')) {
         return fulfillJson(route, { id: 2, pattern: 'TODO', type: 'warning' })

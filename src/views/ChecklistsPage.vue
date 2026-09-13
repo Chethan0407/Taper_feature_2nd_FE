@@ -132,7 +132,7 @@
 
                     <div class="flex items-center gap-2">
                       <button
-                        v-if="checklist.status === 'pending'"
+                        v-if="canApproveChecklist(checklist)"
                         class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                         @click="approveChecklist(checklist.id)"
                         :disabled="approving === checklist.id"
@@ -402,6 +402,13 @@ const isChecklistPending = (checklist: Checklist) => {
   return status === 'pending' || !status
 }
 
+/** BE create may return status "active"; list often uses "pending" — both are approvable */
+const canApproveChecklist = (checklist: Checklist) => {
+  if (isChecklistApproved(checklist) || isChecklistRejected(checklist)) return false
+  const status = (checklist.status || '').toLowerCase()
+  return status === 'pending' || status === 'active' || !status
+}
+
 // Computed property to filter out deleted checklists - ensures they never appear in UI
 const visibleActiveChecklists = computed(() => {
   return activeChecklists.value.filter(
@@ -549,26 +556,47 @@ const fetchActiveChecklists = async (opts?: { silent?: boolean }) => {
 }
 
 const fetchChecklistCompletion = async (checklistId: string) => {
-  checklistCompletion.value[checklistId] = { progress: 0, total: 0, percent: 0, loading: true }
+  const existing = checklistCompletion.value[checklistId]
+  checklistCompletion.value[checklistId] = {
+    progress: existing?.progress ?? 0,
+    total: existing?.total ?? 0,
+    percent: existing?.percent ?? 0,
+    loading: true,
+  }
   try {
-    // Remove trailing slash - backend doesn't accept trailing slashes
+    // BE: GET /completion (no trailing slash) returns { completion_percent } and/or { progress, total }
     const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion`)
     if (!res.ok) {
       console.error(`Failed to fetch completion for checklist ${checklistId}:`, res.status, res.statusText)
       throw new Error('Failed to fetch completion')
     }
     const data = await res.json()
-    console.log(`Completion data for checklist ${checklistId}:`, data)
-    const percent = data.total > 0 ? Math.round((data.progress / data.total) * 100) : 0
+    let percent = 0
+    let progress = 0
+    let total = 0
+    if (typeof data.completion_percent === 'number') {
+      percent = Math.round(data.completion_percent)
+      progress = percent
+      total = 100
+    } else if (typeof data.total === 'number' && data.total > 0) {
+      progress = Number(data.progress || 0)
+      total = Number(data.total)
+      percent = Math.round((progress / total) * 100)
+    }
     checklistCompletion.value[checklistId] = {
-      progress: data.progress || 0,
-      total: data.total || 0,
+      progress,
+      total,
       percent,
-      loading: false
+      loading: false,
     }
   } catch (e: any) {
     console.error(`Error fetching completion for checklist ${checklistId}:`, e)
-    checklistCompletion.value[checklistId] = { progress: 0, total: 0, percent: 0, loading: false }
+    checklistCompletion.value[checklistId] = {
+      progress: existing?.progress ?? 0,
+      total: existing?.total ?? 0,
+      percent: existing?.percent ?? 0,
+      loading: false,
+    }
   }
 }
 
@@ -823,11 +851,18 @@ const getCompletionText = (checklist: Checklist): string => {
   
   // Fallback to checklistCompletion if available
   const completion = checklistCompletion.value[checklist.id]
-  if (completion && !completion.loading) {
+  if (completion && !completion.loading && completion.total > 0) {
+    if (completion.total === 100 && completion.progress === completion.percent) {
+      return `${completion.percent}% complete`
+    }
     return `${completion.progress}/${completion.total} completed`
   }
+
+  if (checklist.completion_percent !== undefined && checklist.completion_percent !== null) {
+    return `${Math.round(checklist.completion_percent)}% complete`
+  }
   
-  return '0/0 completed'
+  return 'No items yet'
 }
 
 // Legacy function for backward compatibility (if used elsewhere)
