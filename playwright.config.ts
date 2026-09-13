@@ -9,8 +9,11 @@ import { allureReporterConfig } from './automation/reporters/allure'
  * Specs: ./automation/specs
  * Tags:  @sanity | @regression | @integration | @critical | @bva | @ecp | @roles | @network
  * Reports: Allure (primary) — never commit report folders to git
+ *
+ * Local: Vite (live source). CI: preview of `dist` from build:ci.
+ * Do not gate on existsSync('dist') locally — a stale dist masks source fixes.
  */
-const usePreview = Env.isCi || existsSync('dist')
+const usePreview = Env.isCi && existsSync('dist')
 
 export default defineConfig({
   testDir: './automation/specs',

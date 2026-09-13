@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures'
+import { authForModule } from '../helpers'
 
 test.describe('SpecLint — builder & run @authenticated', () => {
   test('loads engine UI', async ({ authenticated, specLintPage }) => {
@@ -45,5 +46,20 @@ test.describe('SpecLint — builder & run @authenticated', () => {
     await specLintPage.goto()
     await specLintPage.expectLoaded()
     await specLintPage.expectRunDisabledWithoutSpec()
+  })
+})
+
+test.describe('SpecLint — live add rule', () => {
+  test('add rule with type + severity + pattern', {
+    tag: ['@critical', '@integration', '@regression'],
+  }, async ({ page, specLintPage }) => {
+    test.setTimeout(120_000)
+    await authForModule(page)
+    const pattern = `E2EFIXME_${Date.now()}`
+
+    await specLintPage.goto()
+    await specLintPage.expectLoaded()
+    await specLintPage.addRuleWithAllFields(pattern)
+    await expect(page.getByText(pattern).first()).toBeVisible({ timeout: 20_000 })
   })
 })

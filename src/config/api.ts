@@ -1,10 +1,9 @@
 /**
- * Browser API base. In dev, defaults to FastAPI on :8000 so requests hit the backend directly.
- * Production: same-origin `/api/...` unless VITE_API_ORIGIN is set.
+ * Browser API base.
+ * Default: same-origin `/api/...` (Vite proxies to FastAPI in dev).
+ * Override with VITE_API_ORIGIN when you need a direct backend URL.
  */
-const raw =
-  import.meta.env.VITE_API_ORIGIN ??
-  (import.meta.env.DEV ? 'http://localhost:8000' : '')
+const raw = import.meta.env.VITE_API_ORIGIN ?? ''
 
 export const API_ORIGIN = String(raw).replace(/\/$/, '')
 

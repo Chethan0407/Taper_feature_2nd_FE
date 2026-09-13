@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <Sidebar />
     
     <div class="ml-64">
@@ -52,6 +52,42 @@
 
         <!-- Project Content - Show if project exists OR if we have route params (fallback) -->
         <template v-if="project || route.params.id">
+        <!-- Tabs -->
+        <div class="mb-6 flex flex-wrap gap-2 border-b border-slate-200 dark:border-dark-700" data-testid="project-detail-tabs">
+          <button
+            type="button"
+            class="border-b-2 px-4 py-2.5 text-sm font-semibold transition"
+            :class="activeProjectTab === 'overview'
+              ? 'border-neon-blue text-neon-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200'"
+            data-testid="project-tab-overview"
+            @click="activeProjectTab = 'overview'"
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            class="border-b-2 px-4 py-2.5 text-sm font-semibold transition"
+            :class="activeProjectTab === 'readiness'
+              ? 'border-neon-blue text-neon-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200'"
+            data-testid="project-tab-readiness"
+            @click="activeProjectTab = 'readiness'"
+          >
+            Tapeout Readiness
+          </button>
+        </div>
+
+        <TapeoutReadinessTab
+          v-if="activeProjectTab === 'readiness'"
+          :project-id="String(project?.id || route.params.id)"
+          :foundry="project?.foundry"
+          :process-node="project?.process_node"
+          :pdk-version="project?.pdk_version"
+          :project-tapeout-status="project?.tapeout_status"
+        />
+
+        <div v-show="activeProjectTab === 'overview'">
         <!-- Quality Score Breakdown at the very top -->
         <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-lg p-6 mb-8">
           <div class="flex items-center justify-between mb-6">
@@ -254,7 +290,7 @@
                       <!-- Status Badge with Icon -->
                       <span 
                         v-if="typeof checklist === 'object' && checklist !== null && checklist.status" 
-                        :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getChecklistStatusBadgeClass(checklist.status)]"
+                        :class="getChecklistStatusBadgeClass(checklist.status)"
                         :key="`badge-${checklist.id || checklist.template_id}-${checklist.status}`"
                       >
                         <svg 
@@ -466,7 +502,7 @@
                     </div>
                       <span 
                         v-if="lint.status"
-                        :class="['inline-block px-3 py-1 rounded text-xs font-medium capitalize', getLintStatusBadge(lint.status)]"
+                        :class="getLintStatusBadge(lint.status)"
                       >
                         {{ lint.status }}
                       </span>
@@ -499,6 +535,7 @@
             </div>
           </div>
           </div>
+        </div>
         </template>
       </main>
             </div>
@@ -672,7 +709,7 @@
                 {{ selectedLintResult.spec_name || selectedLintResult.name || `Spec Lint ${selectedLintResult.id}` }}
               </h3>
               <span 
-                :class="['px-3 py-1 rounded text-sm font-medium', getLintStatusBadge(selectedLintResult.status)]"
+                :class="getLintStatusBadge(selectedLintResult.status)"
               >
                 {{ selectedLintResult.status || 'Pending' }}
               </span>
@@ -739,9 +776,9 @@
                         💡 {{ issue.recommendation }}
                       </p>
                     </div>
-                    <span :class="['px-2 py-1 rounded text-xs font-medium', getSeverityBadge(issue.severity)]">
+                    <span :class="getSeverityBadge(issue.severity)">
                       {{ issue.severity }}
-                      </span>
+                    </span>
                     </div>
                   </div>
                 </div>
@@ -767,7 +804,7 @@
                         💡 {{ issue.recommendation }}
                       </p>
             </div>
-                    <span :class="['px-2 py-1 rounded text-xs font-medium', getSeverityBadge(issue.severity)]">
+                    <span :class="getSeverityBadge(issue.severity)">
                       {{ issue.severity }}
                     </span>
           </div>
@@ -795,7 +832,7 @@
                         💡 {{ issue.recommendation }}
                       </p>
                     </div>
-                    <span :class="['px-2 py-1 rounded text-xs font-medium', getSeverityBadge(issue.severity)]">
+                    <span :class="getSeverityBadge(issue.severity)">
                       {{ issue.severity }}
                     </span>
                   </div>
@@ -1018,6 +1055,7 @@ import { onMounted, onBeforeUnmount, onActivated, ref, computed, nextTick, watch
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectsStore, type Project as BaseProject } from '@/stores/projects'
 import ProjectEditModal from '@/components/Projects/ProjectEditModal.vue'
+import TapeoutReadinessTab from '@/components/Projects/TapeoutReadinessTab.vue'
 import { useMetadataStore } from '@/stores/metadata'
 import { useAuthStore } from '@/stores/auth'
 import LinkModal from '@/components/LinkModal.vue'
@@ -1026,9 +1064,11 @@ import { fetchProjectDashboard, authenticatedFetch } from '@/utils/auth-requests
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { getLinkedContent, type LinkedSpecification } from '@/utils/spec-linking-api'
 import { validateToken, isTokenExpired } from '@/utils/token-utils'
+import { statusBadgeClass, severityBadgeClass } from '@/utils/status-badge'
 
 const route = useRoute()
 const router = useRouter()
+const activeProjectTab = ref<'overview' | 'readiness'>('overview')
 const projectsStore = useProjectsStore()
 const metadataStore = useMetadataStore()
 const authStore = useAuthStore()
@@ -1948,49 +1988,11 @@ const getStatusColor = (status: string) => {
   }
 }
 
-// Get status badge class for checklists
-// Approved: Green, Pending: Yellow/Orange, Rejected/Declined: Red
-const getChecklistStatusBadgeClass = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'approved':
-      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
-    case 'rejected':
-    case 'declined':
-      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
-    case 'pending':
-    default:
-      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
-  }
-}
+const getChecklistStatusBadgeClass = (status: string) => statusBadgeClass(status)
 
-// Get status badge class for lint results
-// Approved: Green, Pending: Yellow/Orange, Declined: Red
-const getLintStatusBadge = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'approved':
-      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
-    case 'declined':
-      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
-    case 'pending':
-      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
-    default:
-      return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border border-gray-300 dark:border-gray-700'
-  }
-}
+const getLintStatusBadge = (status: string) => statusBadgeClass(status)
 
-// Get severity badge class
-const getSeverityBadge = (severity: string) => {
-  switch (severity?.toLowerCase()) {
-    case 'error':
-      return 'bg-red-500/20 text-red-400 border border-red-500/30'
-    case 'warning':
-      return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-    case 'info':
-      return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-    default:
-      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-  }
-}
+const getSeverityBadge = (severity: string) => severityBadgeClass(severity)
 
 // Helper function to format dates
 const formatDate = (dateString: string) => {

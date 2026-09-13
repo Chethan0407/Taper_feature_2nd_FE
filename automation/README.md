@@ -45,6 +45,7 @@ specs  →  fixtures  →  pages  →  core
 | `npm run test:automation:roles` | Admin vs engineer |
 | `npm run test:automation:network` | API failure UI |
 | `npm run test:automation:bva` | BVA + ECP |
+| `npm run test:automation:ddt` | Data-driven same/cross domain visibility |
 | `npm run test:automation:headed` | Watch browser |
 | `npm run test:automation:report` | Open Allure (local only) |
 
@@ -77,6 +78,8 @@ test.describe('My feature @regression', () => {
 | Local | `allure-results/`, `allure-report/`, `test-results/` (**gitignored**) |
 | CI | Artifact `automation-report-<run_id>` |
 | Open | `npm run test:automation:report` |
+
+**Full suite = full report.** `npm run test:automation` wipes `allure-results` first so you never see fake “178 skipped” from mixing an old full run with a filtered 12-test run. Always open the report **after** a full run.
 
 ## Branch / review
 

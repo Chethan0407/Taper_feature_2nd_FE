@@ -430,14 +430,21 @@ export async function authenticatedFetch(
     return response
   } catch (fetchError: any) {
     console.error('❌ authenticatedFetch - Network error:', fetchError)
-    // Create a mock response for network errors
+    // Response status MUST be 200–599. status: 0 throws TypeError and surfaces as
+    // "Failed to construct 'Response'..." in SpecLint / other UI (e.g. Add Rule).
     const errorResponse = new Response(
-      JSON.stringify({ detail: 'Network error: ' + (fetchError.message || 'Failed to fetch') }),
-      { status: 0, statusText: 'Network Error' }
+      JSON.stringify({
+        detail: 'Network error: ' + (fetchError.message || 'Failed to fetch'),
+      }),
+      {
+        status: 503,
+        statusText: 'Network Error',
+        headers: { 'Content-Type': 'application/json' },
+      }
     )
     ;(errorResponse as any).errorDetail = fetchError.message || 'Network error'
     ;(errorResponse as any).isNetworkError = true
-    throw errorResponse
+    return errorResponse
   }
 }
 

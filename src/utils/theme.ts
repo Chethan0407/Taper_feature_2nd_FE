@@ -1,49 +1,37 @@
 /**
- * Theme: localStorage.theme is 'light' | 'dark' when set; omitted = follow system (prefers-color-scheme).
- * Keep sync logic in sync with the inline script in index.html (FOUC prevention).
+ * App is dark-only. Legacy light/system prefs in localStorage are cleared on init.
+ * Keep sync logic aligned with the inline script in index.html (FOUC prevention).
  */
 
-export type ThemePreference = 'light' | 'dark' | 'system'
+export type ThemePreference = 'dark'
 
 export function getThemePreference(): ThemePreference {
-  if (!('theme' in localStorage)) return 'system'
-  const t = localStorage.getItem('theme')
-  if (t === 'dark' || t === 'light') return t
-  return 'system'
+  return 'dark'
 }
 
-/** Apply localStorage + system preference to <html class="dark"> */
+/** Always apply dark class on <html>. */
 export function syncDarkClass(): void {
   if (typeof document === 'undefined') return
   const root = document.documentElement
-  let dark = false
-  if (localStorage.theme === 'dark') dark = true
-  else if (localStorage.theme === 'light') dark = false
-  else dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-
-  if (dark) root.classList.add('dark')
-  else root.classList.remove('dark')
+  root.classList.add('dark')
+  root.style.backgroundColor = '#0e0e0e'
+  root.style.colorScheme = 'dark'
+  // Drop any leftover light preference so reloads stay dark
+  if (typeof localStorage !== 'undefined') {
+    localStorage.theme = 'dark'
+  }
 }
 
-export function applyThemePreference(pref: ThemePreference): void {
-  if (pref === 'system') {
-    localStorage.removeItem('theme')
-  } else {
-    localStorage.theme = pref
+export function applyThemePreference(_pref?: ThemePreference): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.theme = 'dark'
   }
   syncDarkClass()
 }
 
 /**
- * Call once at app bootstrap: applies theme and listens for OS changes when in "system" mode.
+ * Call once at app bootstrap: forces dark mode.
  */
 export function initTheme(): void {
   syncDarkClass()
-  if (typeof window === 'undefined') return
-
-  const mq = window.matchMedia('(prefers-color-scheme: dark)')
-  const onSchemeChange = () => {
-    if (!('theme' in localStorage)) syncDarkClass()
-  }
-  mq.addEventListener('change', onSchemeChange)
 }

@@ -11,13 +11,21 @@ interface User {
   is_superuser?: boolean
 }
 
+/** Accept boolean / 1 / "true" from varied backend payloads. */
+function isTruthyFlag(v: unknown): boolean {
+  if (v === true || v === 1) return true
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase()
+    return s === 'true' || s === '1' || s === 'yes'
+  }
+  return false
+}
+
 /** Backend role / flags vary; normalize so /admin/usage works in prod. */
 function userHasAdminAccess(u: Record<string, unknown> | null | undefined): boolean {
   if (!u) return false
-  const su = u.is_superuser
-  if (su === true || su === 1 || su === '1') return true
-  const ia = u.is_admin
-  if (ia === true || ia === 1 || ia === '1') return true
+  if (isTruthyFlag(u.is_superuser)) return true
+  if (isTruthyFlag(u.is_admin)) return true
   const r = u.role
   if (r == null || r === '') return false
   const role = String(r).toLowerCase().trim()
@@ -28,6 +36,14 @@ function userHasAdminAccess(u: Record<string, unknown> | null | undefined): bool
     role === 'superadmin' ||
     role === 'administrator'
   )
+}
+
+function normalizeUser(raw: Record<string, unknown> | null | undefined): User | null {
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    ...(raw as unknown as User),
+    is_superuser: isTruthyFlag(raw.is_superuser),
+  }
 }
 
 const API_BASE = resolveApiUrl('/api/v1/auth')
@@ -58,6 +74,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** True if user has admin or super-admin role (for admin-only routes like System Usage). */
   const isAdmin = computed(() => userHasAdminAccess(user.value as Record<string, unknown> | null))
+
+  /** True when /me reports is_superuser (System Usage). */
+  const isSuperuser = computed(() => user.value?.is_superuser === true)
+
+  /**
+   * Bulk export / import (Settings → Data transfer).
+   * Gate: profile.role === "admin" || profile.is_superuser === true
+   */
+  const canManageDataTransfer = computed(() => {
+    if (!user.value) return false
+    if (user.value.is_superuser === true) return true
+    return String(user.value.role || '').toLowerCase().trim() === 'admin'
+  })
 
   function getAuthHeader(): HeadersInit | undefined {
     if (token.value && token.value !== 'undefined' && token.value !== 'null') {
@@ -166,8 +195,8 @@ export const useAuthStore = defineStore('auth', () => {
         const errorText = await profileRes.text()
         throw new Error(`Failed to fetch profile: ${errorText}`)
       }
-      user.value = await profileRes.json()
-      console.log('✅ User profile loaded after login:', user.value?.email)
+      user.value = normalizeUser(await profileRes.json())
+      console.log('✅ User profile loaded after login:', user.value?.email, 'superuser:', user.value?.is_superuser)
       
       return { success: true }
     } catch (error: any) {
@@ -230,14 +259,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Set user data from response
       if (data.user) {
-        user.value = data.user
+        user.value = normalizeUser(data.user)
         console.log('✅ User data set after email verification:', user.value?.email)
       } else {
         // Fetch user profile if not included in response
         const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
         const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
         if (profileRes.ok) {
-          user.value = await profileRes.json()
+          user.value = normalizeUser(await profileRes.json())
           console.log('✅ User profile loaded after verification')
         }
       }
@@ -298,7 +327,7 @@ export const useAuthStore = defineStore('auth', () => {
         const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
         const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
         if (!profileRes.ok) throw new Error('Failed to fetch profile')
-        user.value = await profileRes.json()
+        user.value = normalizeUser(await profileRes.json())
         return { success: true }
       } else {
         throw new Error('No valid token received')
@@ -387,7 +416,8 @@ export const useAuthStore = defineStore('auth', () => {
       
       const userData = await response.json()
       console.log('✅ Auth check successful, user data:', userData)
-      user.value = userData
+      user.value = normalizeUser(userData)
+      console.log('🔑 is_superuser normalized:', user.value?.is_superuser)
       authCheckInProgress = false
       return true
     } catch (error: any) {
@@ -444,6 +474,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     isAuthenticated,
     isAdmin,
+    isSuperuser,
+    canManageDataTransfer,
     login,
     loginWithGoogle,
     logout,

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <Sidebar />
     
     <div class="ml-64">
@@ -7,33 +7,35 @@
       
       <main class="p-8">
         <!-- Page Header -->
-        <div class="mb-8 flex items-center justify-between">
+        <div class="mb-8 flex items-center justify-between page-enter">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2 dark:text-white">Specifications</h1>
-            <p class="text-gray-500 dark:text-gray-400">Upload, manage and review your tapeout specifications</p>
+            <h1 class="page-title-gradient mb-1">Specifications</h1>
+            <p class="page-subtitle">Upload, manage and review your tapeout specifications</p>
           </div>
-          <button
-            class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-            @click="showCreateModal = true"
-          >
-            + Create Spec
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              class="btn-primary px-6 py-3 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-neon-blue/40 focus:ring-offset-2 focus:ring-offset-transparent"
+              @click="showCreateModal = true"
+            >
+              + Create Spec
+            </button>
+          </div>
         </div>
 
         <!-- Drag-and-Drop Upload Area -->
         <div
-          class="mb-8 bg-white dark:bg-dark-900 border-2 border-dashed border-gray-300 dark:border-dark-700 rounded-xl p-8 flex flex-col items-center justify-center text-center shadow-lg transition-colors duration-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-800"
+          class="mb-8 module-panel flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 p-8 text-center transition-colors duration-200 hover:border-neon-blue/40 hover:bg-slate-50 dark:border-dark-600 dark:hover:border-neon-blue/35 dark:hover:bg-dark-800/60"
           @click="triggerFileInput"
           @dragover.prevent="dragActive = true"
           @dragleave.prevent="dragActive = false"
           @drop.prevent="onDropFile"
-          :class="{ 'ring-2 ring-blue-400': dragActive }"
+          :class="{ 'border-neon-blue ring-2 ring-neon-blue/30': dragActive }"
         >
-          <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="mb-4 h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-4 4h-4a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2z" />
               </svg>
-          <p class="text-gray-600 dark:text-gray-400 mb-2 text-sm">Drag and drop a spec file here, or <span class="text-blue-600 underline">browse</span> to upload</p>
-          <p class="text-xs text-gray-400">PDF, DOCX, PPT, XLS, PPTX, XLSX up to 50MB</p>
+          <p class="mb-2 text-sm text-slate-600 dark:text-gray-400">Drag and drop a spec file here, or <span class="font-medium text-neon-blue underline">browse</span> to upload</p>
+          <p class="text-xs text-slate-400">PDF, DOCX, PPT, XLS, PPTX, XLSX up to 50MB</p>
           <input ref="dragDropFileInput" type="file" class="hidden" @change="onDragDropFileChange" accept=".pdf,.docx,.ppt,.xls,.pptx,.xlsx" />
         </div>
 
@@ -44,15 +46,15 @@
         />
 
         <!-- Specs Table -->
-        <div class="card overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-900">
+        <div class="module-panel module-panel-accent overflow-hidden">
           <div class="border-b border-gray-200 bg-gradient-to-r from-gray-100 to-gray-50 px-6 py-3 dark:border-dark-600 dark:from-dark-800 dark:to-dark-700">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <div class="flex items-center gap-1">
-                  <svg class="h-4 w-4 animate-pulse text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                   </svg>
-                  <svg class="h-4 w-4 animate-pulse text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 13l5-5m0 0l5 5m-5-5H18"/>
                   </svg>
                 </div>
@@ -156,15 +158,9 @@
                   <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                     {{ getFileTypeLabel(spec.mime_type || spec.file_type || spec.type || '') }}
                   </td>
-                  <td class="py-3 px-4">
-                    <span 
-                      :class="{
-                        'text-green-400': spec.status === 'Approved',
-                        'text-yellow-400': spec.status === 'Pending Review',
-                        'text-red-400': spec.status === 'Rejected'
-                      }"
-                    >
-                      {{ spec.status }}
+                  <td class="px-4 py-3">
+                    <span :class="statusBadgeClass(spec.status)">
+                      {{ spec.status || 'Unknown' }}
                     </span>
                   </td>
                   <td class="px-4 py-3 text-gray-900 dark:text-gray-100">{{ spec.assigned_to || '—' }}</td>
@@ -295,9 +291,14 @@
     </div>
 
     <!-- Create Spec Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white dark:bg-dark-900 rounded-2xl p-8 shadow-2xl w-full max-w-md relative">
-        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-200 text-2xl font-bold" @click="closeCreateModal">&times;</button>
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50 p-4">
+      <div class="relative my-8 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl dark:bg-dark-900">
+        <button
+          type="button"
+          class="absolute right-4 top-4 text-2xl font-bold text-gray-400 hover:text-gray-200"
+          aria-label="Close"
+          @click="closeCreateModal"
+        >&times;</button>
         <h2 class="text-2xl font-bold mb-6 text-center text-gradient">Create New Spec</h2>
         <form class="space-y-4" @submit.prevent="handleCreateSpec">
           <input class="input-field w-full" v-model="createSpecForm.name" placeholder="Spec Name" required />
@@ -519,6 +520,7 @@ import { useSpecificationsStore } from '@/stores/specifications'
 import { useProjectsStore } from '@/stores/projects'
 import { batchLinkSpecsToProject } from '@/utils/spec-linking-api'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import { statusBadgeClass } from '@/utils/status-badge'
 
 const route = useRoute()
 const router = useRouter()
@@ -1097,32 +1099,16 @@ function getFileTypeLabel(mimeType: string) {
   return mimeType.split('/').pop()?.toUpperCase() || 'Unknown';
 }
 
-// Format spec name with proper truncation preserving file extension
+// Prefer CSS truncation in the table cell; only collapse true UUID-like ids here.
 function formatSpecName(name: string) {
-  if (!name) return 'Unnamed Spec';
-  
-  // If it's a UUID-like string (no extension), return as is
-  if (name.length > 20 && !name.includes('.')) {
-    return name.substring(0, 16) + '...';
+  if (!name) return 'Unnamed Spec'
+
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name)
+  if (uuidLike) {
+    return `${name.substring(0, 8)}…${name.substring(name.length - 4)}`
   }
-  
-  // If it has an extension, preserve it
-  const lastDotIndex = name.lastIndexOf('.');
-  if (lastDotIndex !== -1) {
-    const nameWithoutExt = name.substring(0, lastDotIndex);
-    const extension = name.substring(lastDotIndex);
-    
-    if (nameWithoutExt.length > 12) {
-      return nameWithoutExt.substring(0, 12) + '...' + extension;
-    }
-  }
-  
-  // If no extension or short name, truncate normally
-  if (name.length > 15) {
-    return name.substring(0, 15) + '...';
-  }
-  
-  return name;
+
+  return name
 }
 
 // Multi-selection functionality
@@ -1345,8 +1331,9 @@ const linkSpecsToProject = async () => {
     await batchLinkSpecsToProject(projectId, selectedSpecs.value)
     console.log('🔍 DEBUG - Successfully linked all specs')
     
-    // Get the count and project name before clearing
+    // Get the count, project name, and linked IDs before clearing selection
     const specsCount = selectedSpecs.value.length
+    const linkedSpecIds = selectedSpecs.value.map((id) => String(id))
     const projectName = projectContext.value?.name || projectsStore.projects.find(p => String(p.id) === String(projectId))?.name || 'project'
     
     // Clear selection and close modal
@@ -1361,7 +1348,6 @@ const linkSpecsToProject = async () => {
     await refreshProjectLinkedContent(projectId)
     
     // Update alreadyLinkedSpecIds to include the newly linked specs immediately
-    const linkedSpecIds = selectedSpecs.value.map(id => String(id))
     linkedSpecIds.forEach(specId => {
       alreadyLinkedSpecIds.value.add(specId)
     })

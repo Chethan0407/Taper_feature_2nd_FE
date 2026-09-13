@@ -1,12 +1,11 @@
 import { test, expect } from '../fixtures'
 
 /**
- * Roles / permissions — admin vs engineer.
- * Note: System Usage nav is admin-only in production builds (preview/CI).
- * In vite-dev, DEV flag also shows the link — assertions adapt.
+ * Roles / permissions — superuser vs engineer.
+ * System Usage nav + route require profile.is_superuser === true (no DEV bypass).
  */
 test.describe('Roles & permissions @roles @regression', () => {
-  test('admin can open System Usage', { tag: ['@roles', '@regression'] }, async ({
+  test('superuser can open System Usage', { tag: ['@roles', '@regression'] }, async ({
     authenticated,
     adminUsagePage,
     dashboardPage,
@@ -15,11 +14,13 @@ test.describe('Roles & permissions @roles @regression', () => {
     void authenticated
     await dashboardPage.goto()
     await dashboardPage.expectLoaded()
-    const usage = page.locator('nav').getByRole('link', { name: /system usage/i })
+    const usage = page.locator('nav').getByRole('link', { name: /system usage/i, includeHidden: true })
+    await usage.scrollIntoViewIfNeeded()
     await expect(usage).toBeVisible({ timeout: 15_000 })
     await usage.click()
     await expect(page).toHaveURL(/\/admin\/usage/)
     await adminUsagePage.expectLoaded()
+    await expect(page.getByText(/development mode/i)).toHaveCount(0)
   })
 
   test('engineer still reaches core product pages', { tag: ['@roles', '@regression'] }, async ({
@@ -32,7 +33,12 @@ test.describe('Roles & permissions @roles @regression', () => {
     void authenticatedEngineer
     await dashboardPage.goto()
     await dashboardPage.expectLoaded()
-    await expect(page.getByText(/E2E Engineer/i).first()).toBeVisible({ timeout: 15_000 })
+    await expect(
+      page.getByText(/E2E Engineer|engineer@tapeoutops\.com/i).first(),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(
+      page.locator('nav').getByRole('link', { name: /system usage/i, includeHidden: true }),
+    ).toHaveCount(0)
 
     await projectsPage.goto()
     await projectsPage.expectLoaded()
@@ -40,7 +46,7 @@ test.describe('Roles & permissions @roles @regression', () => {
     await specsPage.expectLoaded()
   })
 
-  test('engineer admin-usage gate (prod build)', { tag: ['@roles', '@regression'] }, async ({
+  test('engineer is redirected away from /admin/usage', { tag: ['@roles', '@regression'] }, async ({
     authenticatedEngineer,
     page,
     dashboardPage,
@@ -50,18 +56,9 @@ test.describe('Roles & permissions @roles @regression', () => {
     await dashboardPage.expectLoaded()
 
     await page.goto('/admin/usage')
-    await page.waitForLoadState('networkidle').catch(() => undefined)
-
-    // Production preview: non-admin → /dashboard(?notice=admin_required)
-    // Vite-dev: DEV flag may still allow /admin/usage
-    if (/\/dashboard/.test(page.url())) {
-      await expect(page).toHaveURL(/\/dashboard/)
-      const notice = page.getByText(/system usage is admin-only/i)
-      if (await notice.isVisible().catch(() => false)) {
-        await expect(notice).toBeVisible()
-      }
-    } else {
-      await expect(page).not.toHaveURL(/\/login/)
-    }
+    await page.waitForURL(/\/dashboard/, { timeout: 15_000 })
+    await expect(page).toHaveURL(/\/dashboard/)
+    const notice = page.getByText(/system usage is superuser-only|system usage is admin-only/i)
+    await expect(notice).toBeVisible({ timeout: 10_000 })
   })
 })

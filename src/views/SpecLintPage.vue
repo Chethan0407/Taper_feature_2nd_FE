@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <!-- Debug: Component loaded indicator -->
     <div v-if="false" style="position: fixed; top: 0; right: 0; background: red; color: white; padding: 10px; z-index: 9999;">
       SpecLintPage Component Loaded
@@ -8,19 +8,32 @@
     <div class="ml-64">
       <Header />
       <main class="p-8">
-        <div class="mb-10">
-          <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">SpecLint Engine</h1>
-          <p class="text-lg text-gray-600 dark:text-gray-400">Automate spec quality checks and validation</p>
+        <div class="mb-8 page-enter">
+          <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700/80 dark:text-teal-300/80">Quality automation</p>
+          <h1 class="page-title-gradient mb-1">SpecLint Engine</h1>
+          <p class="page-subtitle">Define rules, pick a spec, run validation — one clear flow</p>
         </div>
-        <!-- Top Section: Two-Column Split -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12 items-start">
-          <!-- Rule Builder (Left) -->
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 flex flex-col gap-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Rule Builder</h2>
-            <form @submit.prevent="addRule" class="space-y-6">
-          <div>
-                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Rule Type</label>
-                <select v-model="ruleForm.ruleType" class="input-field w-full rounded-full px-4 py-2" required>
+
+        <!-- Workflow workspace (structure change: not two identical blue cards) -->
+        <section class="module-panel mb-10 overflow-hidden page-enter">
+          <div class="flex flex-wrap items-center gap-2 border-b border-gray-200 px-5 py-3 dark:border-dark-700">
+            <span class="rounded-full bg-teal-600/15 px-2.5 py-1 text-[11px] font-semibold text-teal-700 dark:text-teal-300">1 · Rules</span>
+            <span class="text-gray-400">→</span>
+            <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">2 · Spec</span>
+            <span class="text-gray-400">→</span>
+            <span class="rounded-full bg-gray-500/10 px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">3 · Run</span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12">
+            <!-- Rule Builder -->
+            <div class="lg:col-span-7 border-b border-gray-200 p-6 lg:border-b-0 lg:border-r dark:border-dark-700">
+              <h2 class="module-section-title mb-1 text-lg">Rule Builder</h2>
+              <p class="mb-5 text-sm text-gray-500 dark:text-gray-400">Add patterns the linter should enforce</p>
+              <form @submit.prevent="addRule" class="space-y-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Rule Type</label>
+                    <select v-model="ruleForm.ruleType" class="input-field w-full" required>
                       <option value="">Select type</option>
                       <option value="ForbiddenKeyword">Forbidden Keyword</option>
                       <option value="RegexMatch">Regex Match</option>
@@ -28,33 +41,36 @@
                     </select>
                   </div>
                   <div>
-                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Pattern</label>
-                <input v-model="ruleForm.pattern" class="input-field w-full rounded-full px-4 py-2" placeholder="Pattern or keyword" required />
-                  </div>
-                  <div>
-                <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Severity</label>
-                <select v-model="ruleForm.severity" class="input-field w-full rounded-full px-4 py-2" required>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Severity</label>
+                    <select v-model="ruleForm.severity" class="input-field w-full" required>
                       <option value="error">Error</option>
                       <option value="warning">Warning</option>
                     </select>
-              </div>
-              <button class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95" type="submit" :disabled="ruleLoading">
-                <span>➕</span> <span>{{ ruleLoading ? 'Adding...' : 'Add Rule' }}</span>
-              </button>
-              <transition name="fade">
-                <div v-if="ruleError || ruleSuccess" class="min-h-[40px]">
-                  <div v-if="ruleError" class="text-red-500 mt-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-sm font-medium">{{ ruleError }}</div>
-                  <div v-if="ruleSuccess" class="text-green-600 mt-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">{{ ruleSuccess }}</div>
+                  </div>
                 </div>
-              </transition>
-            </form>
-          </div>
-          <!-- Validate Spec (Right) -->
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 flex flex-col gap-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Validate Spec</h2>
-            <div>
-              <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Spec ID</label>
-              <select v-model="specId" class="input-field w-full rounded-full px-4 py-2" :disabled="loadingSpecs">
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Pattern</label>
+                  <input v-model="ruleForm.pattern" class="input-field w-full" placeholder="Pattern or keyword" required />
+                </div>
+                <button class="btn-primary flex w-full items-center justify-center gap-2 py-2.5 text-sm font-semibold sm:w-auto sm:px-6" type="submit" :disabled="ruleLoading">
+                  {{ ruleLoading ? 'Adding…' : 'Add Rule' }}
+                </button>
+                <transition name="fade">
+                  <div v-if="ruleError || ruleSuccess" class="min-h-[36px]">
+                    <div v-if="ruleError" class="rounded-lg bg-red-100 p-2 text-sm font-medium text-red-600 dark:bg-red-900/30">{{ ruleError }}</div>
+                    <div v-if="ruleSuccess" class="rounded-lg bg-emerald-100 p-2 text-sm font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{{ ruleSuccess }}</div>
+                  </div>
+                </transition>
+              </form>
+            </div>
+
+            <!-- Validate Spec -->
+            <div class="lg:col-span-5 bg-gradient-to-b from-amber-500/[0.06] to-transparent p-6 dark:from-amber-500/[0.08]">
+              <h2 class="module-section-title mb-1 text-lg">Validate Spec</h2>
+              <p class="mb-5 text-sm text-gray-500 dark:text-gray-400">Choose a specification and run the linter</p>
+              <div class="mb-4">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Spec</label>
+                <select v-model="specId" class="input-field w-full" :disabled="loadingSpecs">
                   <option value="">Select a spec...</option>
                   <option v-if="loadingSpecs" value="" disabled>Loading specs...</option>
                   <option v-for="spec in allAvailableSpecs" :key="spec.id" :value="spec.id">
@@ -62,19 +78,19 @@
                   </option>
                 </select>
               </div>
-            <button
-              class="btn-primary w-full text-base font-semibold py-3 flex items-center justify-center gap-2 transition-transform active:scale-95 mb-2"
-              @click="runLinter"
-              :disabled="runningLint || !specId || selectedSpecFileMissing"
-            >
-              <span>🧪</span> <span>{{ runningLint ? 'Running...' : 'Run Linter' }}</span>
-            </button>
-            <transition name="fade">
+              <button
+                class="btn-primary mb-3 flex w-full items-center justify-center gap-2 py-3 text-base font-semibold"
+                @click="runLinter"
+                :disabled="runningLint || !specId || selectedSpecFileMissing"
+              >
+                {{ runningLint ? 'Running…' : 'Run Linter' }}
+              </button>
+              <transition name="fade">
               <div v-if="lintError || lintSuccess || linkingToProject || linkingError" class="min-h-[40px]">
                 <div v-if="lintError" class="text-red-500 mb-2 p-2 rounded bg-red-100 dark:bg-red-900/30 text-sm font-medium">{{ lintError }}</div>
                 
                 <!-- Linking Status -->
-                <div v-if="linkingToProject" class="text-blue-600 mb-2 p-2 rounded bg-blue-100 dark:bg-blue-900/30 text-sm font-medium flex items-center gap-2">
+                <div v-if="linkingToProject" class="text-teal-700 mb-2 p-2 rounded bg-teal-100 dark:bg-teal-900/30 dark:text-teal-200 text-sm font-medium flex items-center gap-2">
                   <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -95,7 +111,7 @@
                 </div>
                 
                 <!-- Success Message -->
-                <div v-if="lintSuccess && !linkingToProject" class="text-green-600 mb-2 p-2 rounded bg-green-100 dark:bg-green-900/30 text-sm font-medium">
+                <div v-if="lintSuccess && !linkingToProject" class="text-emerald-700 mb-2 p-2 rounded bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 text-sm font-medium">
                   <p>{{ lintSuccess }}</p>
                   
                   <!-- Lint Result Summary Preview -->
@@ -121,7 +137,7 @@
                   <div v-if="projectId && createdLintResultId" class="mt-3 space-y-2">
                     <button 
                       @click="goBackToProject" 
-                      class="w-full px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                      class="w-full px-4 py-2 text-sm btn-primary rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -132,13 +148,18 @@
                     <!-- Auto-navigate countdown -->
                     <div v-if="autoNavigateCountdown !== null && autoNavigateCountdown > 0" class="text-center text-xs text-gray-500 dark:text-gray-400">
                       Auto-navigating in {{ autoNavigateCountdown }}s... 
-                      <button @click="cancelAutoNavigate" class="text-blue-600 hover:underline">Cancel</button>
+                      <button @click="cancelAutoNavigate" class="text-teal-600 hover:underline dark:text-teal-300">Cancel</button>
                     </div>
                   </div>
                 </div>
               </div>
             </transition>
-            <div v-if="lintResults.length > 0" class="space-y-3 mt-4">
+            </div>
+          </div>
+        </section>
+
+        <!-- Keep inline lint results that lived under Validate card -->
+        <div v-if="lintResults.length > 0" class="module-panel mb-10 space-y-3 p-6">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="font-semibold text-gray-900 dark:text-white">Lint Results ({{ lintResults.length }} issue{{ lintResults.length !== 1 ? 's' : '' }})</h3>
               </div>
@@ -179,7 +200,7 @@
                     <div class="text-xs text-gray-500 dark:text-gray-400">Warnings</div>
                   </div>
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-600">{{ new Set(filteredAndSortedResults.map(r => r.ruleType)).size }}</div>
+                    <div class="text-2xl font-bold text-teal-600">{{ new Set(filteredAndSortedResults.map(r => r.ruleType)).size }}</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">Rule Types</div>
                   </div>
                 </div>
@@ -271,7 +292,6 @@
                   <option value="severity">Sort by Severity</option>
                   <option value="ruleType">Sort by Rule Type</option>
                 </select>
-              </div>
               </div>
               </div>
 
@@ -370,9 +390,9 @@
                   </div>
                       </div>
                       <div class="flex items-center gap-2">
-                        <span :class="getResultBadgeClass(result.severity || severity)" class="px-2 py-1 rounded text-xs font-medium">
+                        <span :class="getResultBadgeClass(result.severity || severity)">
                           {{ result.severity || severity }}
-                  </span>
+                        </span>
                         <!-- Action buttons for each issue -->
                         <div class="flex items-center gap-1">
                           <button
@@ -498,7 +518,6 @@
                   </div>
                 </div>
               </div>
-          </div>
         </div>
 
         <!-- Comparison Modal -->
@@ -565,7 +584,7 @@
         </div>
 
         <!-- All Rules Section -->
-        <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 w-full">
+        <div class="module-panel w-full p-6">
           <EnterpriseFilterBar
             :filters="filterConfig"
             :activeFilters="ruleFilters"
@@ -602,7 +621,7 @@
                       {{ rule.pattern }}
                     </td>
                     <td class="p-4">
-                      <span :class="rule.severity === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded text-xs font-semibold' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded text-xs font-semibold'">
+                      <span :class="rule.severity === 'error' ? severityBadgeClass('error') : severityBadgeClass(rule.severity)">
                         {{ rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1) }}
                       </span>
                     </td>
@@ -708,6 +727,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useSpecificationsStore } from '@/stores/specifications'
 import { authenticatedFetch } from '@/utils/auth-requests'
 import { apiClient, parseApiError } from '@/utils/api-client'
+import { severityBadgeClass } from '@/utils/status-badge'
 
 interface LintResult {
   id?: string
@@ -989,13 +1009,24 @@ const addRule = async () => {
     })
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}))
-      throw new Error(errorData.detail || 'Failed to add rule')
+      const detail = errorData.detail || 'Failed to add rule'
+      if ((res as any).isNetworkError || res.status === 503) {
+        throw new Error(
+          typeof detail === 'string' && detail.toLowerCase().includes('network')
+            ? 'Cannot reach the server. Check that the API is running, then try again.'
+            : detail
+        )
+      }
+      throw new Error(detail)
     }
     ruleSuccess.value = 'Rule added!'
     ruleForm.value = { ruleType: '', pattern: '', severity: 'error' }
     await fetchRules()
   } catch (e: any) {
-    ruleError.value = e.message || 'Failed to add rule'
+    const raw = e?.message || (typeof e?.detail === 'string' ? e.detail : '') || 'Failed to add rule'
+    ruleError.value = /Failed to construct ['"]Response['"]/i.test(raw)
+      ? 'Cannot reach the server. Check that the API is running, then try again.'
+      : raw
   } finally {
     ruleLoading.value = false
     setTimeout(() => { ruleSuccess.value = '' }, 2000)
@@ -1770,14 +1801,7 @@ const getResultTextClass = (type: string) => {
   }
 }
 
-const getResultBadgeClass = (type: string) => {
-  switch (type?.toLowerCase()) {
-    case 'error': return 'bg-red-500/20 text-red-400 border border-red-500/30'
-    case 'warning': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-    case 'info': return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-    default: return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-  }
-}
+const getResultBadgeClass = (type: string) => severityBadgeClass(type)
 
 // Filtered and sorted results
 const filteredAndSortedResults = computed(() => {

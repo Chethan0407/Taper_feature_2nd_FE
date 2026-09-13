@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <Sidebar />
     
     <div class="ml-64">
@@ -7,20 +7,23 @@
       
       <main class="p-8">
         <!-- Page Header -->
-        <div class="mb-8 flex items-center justify-between">
+        <div class="mb-8 flex items-center justify-between page-enter">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Companies</h1>
-            <p class="text-gray-500 dark:text-gray-400">Manage your organization's companies and subsidiaries</p>
+            <h1 class="page-title-gradient mb-1">Companies</h1>
+            <p class="page-subtitle">Manage your organization's companies and subsidiaries</p>
           </div>
-          <button 
-            @click="openCreateModal"
-            class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow rounded-xl"
-          >
-            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Company
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="btn-primary rounded-xl px-6 py-3 text-lg font-semibold"
+              @click="openCreateModal"
+            >
+              <svg class="mr-2 inline h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              New Company
+            </button>
+          </div>
         </div>
 
         <!-- Search Bar -->
@@ -94,7 +97,7 @@
         </div>
 
         <!-- Companies Table -->
-        <div v-else-if="(searchQuery ? searchResults.length > 0 : companiesStore.companies.length > 0)" class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl">
+        <div v-else-if="(searchQuery ? searchResults.length > 0 : companiesStore.companies.length > 0)" class="module-panel module-panel-accent">
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead>
@@ -132,7 +135,7 @@
                     <p class="text-gray-700 dark:text-gray-300">{{ company.createdBy || (company as any).created_by || 'Unknown' }}</p>
                   </td>
                   <td class="p-6">
-                    <span :class="getStatusClass(company.status)" class="px-3 py-1 rounded-full text-xs font-medium">
+                    <span :class="getStatusClass(company.status)">
                       {{ company.status }}
                     </span>
                   </td>
@@ -296,7 +299,7 @@
             <button 
               type="submit"
               :disabled="submitting"
-              class="btn-primary px-8 py-3 rounded-lg font-semibold shadow-xl animate-glow"
+              class="btn-primary rounded-lg px-8 py-3 font-semibold"
             >
               <svg v-if="submitting" class="w-5 h-5 mr-2 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -340,7 +343,7 @@
             <div>
               <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">STATUS</label>
               <div class="flex items-center gap-3">
-                <span :class="getStatusClass(selectedCompany.status)" class="px-3 py-1 rounded-full text-sm font-medium">
+                <span :class="getStatusClass(selectedCompany.status)">
                   {{ selectedCompany.status }}
                 </span>
               </div>
@@ -423,6 +426,7 @@ import Header from '@/components/Layout/Header.vue'
 import { onMounted, ref, reactive, computed, watch } from 'vue'
 import { useCompaniesStore, type Company, type CreateCompanyData, type UpdateCompanyData } from '@/stores/companies'
 import { useRoute } from 'vue-router'
+import { statusBadgeClass } from '@/utils/status-badge'
 
 const companiesStore = useCompaniesStore()
 
@@ -485,21 +489,7 @@ watch(() => [route.query.search, route.query.status], () => {
 })
 
 // Utility functions
-const getStatusClass = (status: string) => {
-  if (!status) return 'bg-gray-500 text-white border border-gray-500'
-  switch (status.toLowerCase()) {
-    case 'active':
-      return 'bg-green-500 text-white border border-green-500'
-    case 'inactive':
-      return 'bg-gray-500 text-white border border-gray-500'
-    case 'pending':
-      return 'bg-yellow-500 text-white border border-yellow-500'
-    case 'blocked':
-      return 'bg-red-500 text-white border border-red-500'
-    default:
-      return 'bg-gray-500 text-white border border-gray-500'
-  }
-}
+const getStatusClass = (status: string) => statusBadgeClass(status)
 
 const formatDate = (dateString: string) => {
   if (!dateString) return '—';

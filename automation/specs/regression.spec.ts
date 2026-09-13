@@ -12,6 +12,13 @@ test.describe('Regression — module smoke matrix @regression', () => {
     await dashboardPage.expectLoaded()
   })
 
+  test('stats page loads', { tag: ['@regression'] }, async ({ authenticated, statsPage }) => {
+    void authenticated
+    await statsPage.goto()
+    await statsPage.expectLoaded()
+    await statsPage.expectKpis()
+  })
+
   test('projects page loads', { tag: ['@regression'] }, async ({ authenticated, projectsPage }) => {
     void authenticated
     await projectsPage.goto()
@@ -83,15 +90,12 @@ test.describe('Regression — theme persistence @regression', () => {
     void authenticated
     await settingsPage.goto()
     await settingsPage.expectLoaded()
-    if (await settingsPage.darkButton().isVisible().catch(() => false)) {
-      await settingsPage.setTheme('dark')
-      await expect(page.locator('html')).toHaveClass(/dark/)
-      await projectsPage.goto()
-      await projectsPage.expectLoaded()
-      await expect(page.locator('html')).toHaveClass(/dark/)
-      await settingsPage.goto()
-      await settingsPage.setTheme('light')
-    }
+    await expect(page.locator('html')).toHaveClass(/dark/)
+    await projectsPage.goto()
+    await projectsPage.expectLoaded()
+    await expect(page.locator('html')).toHaveClass(/dark/)
+    await settingsPage.goto()
+    await expect(page.locator('html')).toHaveClass(/dark/)
   })
 })
 
@@ -102,7 +106,7 @@ test.describe('Regression — auth session edges @regression', () => {
   }) => {
     void authenticated
     test.setTimeout(120_000)
-    for (const path of ['/dashboard', '/projects', '/specs', '/vendors', '/settings']) {
+    for (const path of ['/dashboard', '/stats', '/projects', '/specs', '/vendors', '/settings']) {
       await page.goto(path)
       await page.reload()
       await expect(page).toHaveURL(new RegExp(path.replace('/', '\\/')))

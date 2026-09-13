@@ -11,3 +11,6 @@ export {
   abortApi,
   type MockUser,
 } from '../fixtures/api'
+
+export { loginLive, type LiveSession } from './live-auth'
+export { authForModule } from './module-auth'

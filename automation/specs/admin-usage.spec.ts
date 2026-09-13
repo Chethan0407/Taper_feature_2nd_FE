@@ -15,6 +15,20 @@ test.describe('Admin System Usage @authenticated', () => {
     await adminUsagePage.expectSectionsVisible()
   })
 
+  test('overview shows all colorful KPI labels', async ({ authenticated, adminUsagePage }) => {
+    void authenticated
+    await adminUsagePage.goto()
+    await adminUsagePage.expectLoaded()
+    await adminUsagePage.expectColorfulOverviewKpis()
+  })
+
+  test('Export menu is not on System Usage (lives on Settings)', async ({ authenticated, adminUsagePage, page }) => {
+    void authenticated
+    await adminUsagePage.goto()
+    await adminUsagePage.expectLoaded()
+    await expect(page.getByTestId('admin-exports-menu')).toHaveCount(0)
+  })
+
   test('edge: empty leads / browser section messaging', async ({ authenticated, adminUsagePage }) => {
     void authenticated
     await adminUsagePage.goto()

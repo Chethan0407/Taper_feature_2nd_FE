@@ -15,4 +15,9 @@ export {
   SIDEBAR_FEATURES,
 } from '../fixtures/test-data'
 
-export { MOCK, seedFeatureData } from '../fixtures/seed'
+export { MOCK, DOMAIN_SHARED, seedFeatureData, seedDomainSharedData } from '../fixtures/seed'
+export {
+  SAME_DOMAIN_SHARED,
+  CROSS_DOMAIN_HIDDEN,
+  type DomainVisibilityRow,
+} from './domain-visibility'

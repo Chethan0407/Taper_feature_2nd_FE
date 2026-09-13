@@ -13,7 +13,7 @@ export class SettingsPage extends AppShellPage {
   }
 
   appearanceSection(): Locator {
-    return this.page.getByText(/appearance/i).first()
+    return this.page.getByRole('heading', { name: /^appearance$/i })
   }
 
   lightButton(): Locator {
@@ -26,6 +26,26 @@ export class SettingsPage extends AppShellPage {
 
   systemButton(): Locator {
     return this.button(/^system$/i)
+  }
+
+  colorSchemeHeading(): Locator {
+    return this.page.getByRole('heading', { name: /color scheme/i })
+  }
+
+  primaryColorLabel(): Locator {
+    return this.page.getByText(/^primary( color)?$/i)
+  }
+
+  secondaryColorLabel(): Locator {
+    return this.page.getByText(/^secondary( color)?$/i)
+  }
+
+  colorPreviewBlock(): Locator {
+    return this.page.getByText(/^preview$/i).filter({ has: this.page.getByText(/primary button|gradient element/i) })
+  }
+
+  headerAppearanceLink(): Locator {
+    return this.page.getByRole('link', { name: /^appearance$/i })
   }
 
   updateProfileButton(): Locator {
@@ -46,18 +66,31 @@ export class SettingsPage extends AppShellPage {
 
   async expectLoaded() {
     await this.expectVisible(this.title())
-    await this.expectVisible(this.appearanceSection())
+    await this.expectVisible(this.profileSection())
   }
 
-  async setTheme(theme: 'light' | 'dark' | 'system') {
-    if (theme === 'light') await this.lightButton().click()
-    else if (theme === 'dark') await this.darkButton().click()
-    else await this.systemButton().click()
+  async expectThemeControlsRemoved() {
+    await expect(this.appearanceSection()).toHaveCount(0)
+    await expect(this.lightButton()).toHaveCount(0)
+    await expect(this.darkButton()).toHaveCount(0)
+    await expect(this.systemButton()).toHaveCount(0)
+    await expect(this.headerAppearanceLink()).toHaveCount(0)
   }
 
-  async expectThemeClass(theme: 'light' | 'dark') {
-    if (theme === 'dark') await expect(this.page.locator('html')).toHaveClass(/dark/)
-    else await expect(this.page.locator('html')).not.toHaveClass(/dark/)
+  async expectColorSchemeRemoved() {
+    await expect(this.colorSchemeHeading()).toHaveCount(0)
+    await expect(this.page.getByText(/main brand color for buttons/i)).toHaveCount(0)
+    await expect(this.page.getByText(/gradient element/i)).toHaveCount(0)
+    await expect(this.page.getByText(/primary button/i)).toHaveCount(0)
+    await expect(this.page.locator('input[type="color"]')).toHaveCount(0)
+  }
+
+  async setTheme(_theme: 'light' | 'dark' | 'system') {
+    // App is dark-only; no-op for backward-compatible callers
+  }
+
+  async expectThemeClass(_theme: 'light' | 'dark' = 'dark') {
+    await expect(this.page.locator('html')).toHaveClass(/dark/)
   }
 }
 
@@ -114,6 +147,27 @@ export class BrandingPage extends AppShellPage {
     const file = await this.fileInput().count()
     expect(hint || file > 0).toBeTruthy()
   }
+
+  colorSchemeHeading(): Locator {
+    return this.page.getByRole('heading', { name: /color scheme/i })
+  }
+
+  primaryColorLabel(): Locator {
+    return this.page.getByText(/primary color/i)
+  }
+
+  secondaryColorLabel(): Locator {
+    return this.page.getByText(/secondary color/i)
+  }
+
+  async expectColorSchemeRemoved() {
+    await expect(this.colorSchemeHeading()).toHaveCount(0)
+    await expect(this.primaryColorLabel()).toHaveCount(0)
+    await expect(this.secondaryColorLabel()).toHaveCount(0)
+    await expect(this.page.getByText(/gradient element/i)).toHaveCount(0)
+    await expect(this.page.getByText(/primary button/i)).toHaveCount(0)
+    await expect(this.page.locator('input[type="color"]')).toHaveCount(0)
+  }
 }
 
 export class AdminUsagePage extends AppShellPage {
@@ -133,6 +187,119 @@ export class AdminUsagePage extends AppShellPage {
 
   totalUsersKpi(): Locator {
     return this.page.getByText(/total users/i).first()
+  }
+
+  activeUsersKpi(): Locator {
+    return this.page.getByText(/active users/i).first()
+  }
+
+  signupsKpi(): Locator {
+    return this.page.getByText(/signups \(7d\)/i).first()
+  }
+
+  companiesKpi(): Locator {
+    return this.page.getByText(/^companies$/i).first()
+  }
+
+  projectsKpi(): Locator {
+    return this.page.getByText(/^projects$/i).first()
+  }
+
+  specificationsKpi(): Locator {
+    return this.page.getByText(/^specifications$/i).first()
+  }
+
+  exportMenu(): Locator {
+    return this.page.getByTestId('admin-exports-menu')
+  }
+
+  async expectColorfulOverviewKpis() {
+    await expect(this.totalUsersKpi()).toBeVisible()
+    await expect(this.activeUsersKpi()).toBeVisible()
+    await expect(this.signupsKpi()).toBeVisible()
+    await expect(this.companiesKpi()).toBeVisible()
+    await expect(this.projectsKpi()).toBeVisible()
+    await expect(this.specificationsKpi()).toBeVisible()
+  }
+
+  usageTrendsHeading(): Locator {
+    return this.page.getByRole('heading', { name: /usage trends/i }).first()
+  }
+
+  trendsDaysSelect(): Locator {
+    return this.page.locator('select').filter({ has: this.page.locator('option', { hasText: '30 days' }) }).first()
+  }
+
+  signupsTrendChart(): Locator {
+    return this.page.getByTestId('signups-trend-chart')
+  }
+
+  signupsTrendStart(): Locator {
+    return this.page.getByTestId('signups-trend-start')
+  }
+
+  signupsTrendEnd(): Locator {
+    return this.page.getByTestId('signups-trend-end')
+  }
+
+  usersHeading(): Locator {
+    return this.page.getByRole('heading', { name: /^users$/i }).first()
+  }
+
+  usersPagination(): Locator {
+    return this.page.getByText(/showing\s+\d+/i).first()
+  }
+
+  usersNextButton(): Locator {
+    return this.page.getByRole('button', { name: /^next$/i }).first()
+  }
+
+  usersPrevButton(): Locator {
+    return this.page.getByRole('button', { name: /^previous$/i }).first()
+  }
+
+  domainsSection(): Locator {
+    return this.page.getByTestId('usage-by-domain')
+  }
+
+  domainsPagination(): Locator {
+    return this.page.getByTestId('domains-pagination')
+  }
+
+  domainsNextButton(): Locator {
+    return this.page.getByTestId('domains-next')
+  }
+
+  domainsPageSize(): Locator {
+    return this.page.getByTestId('domains-page-size')
+  }
+
+  signupLeadsSection(): Locator {
+    return this.page.getByTestId('signup-leads')
+  }
+
+  localSignupLeadsTable(): Locator {
+    return this.page.getByTestId('local-signup-leads-table')
+  }
+
+  localLeadsPagination(): Locator {
+    return this.page.getByTestId('local-leads-pagination')
+  }
+
+  localLeadsNext(): Locator {
+    return this.page.getByTestId('local-leads-next')
+  }
+
+  serverSignupLeadsTable(): Locator {
+    return this.page.getByTestId('server-signup-leads-table')
+  }
+
+  serverLeadsPagination(): Locator {
+    return this.page.getByTestId('server-leads-pagination')
+  }
+
+  serverLeadsNext(): Locator {
+    return this.page.getByTestId('server-leads-next')
   }
 
   emptyLeadsHint(): Locator {

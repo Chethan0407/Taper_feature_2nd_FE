@@ -1,23 +1,19 @@
 import { test, expect } from '../fixtures'
 
 test.describe('Settings / profile / branding @authenticated', () => {
-  test('settings loads with appearance controls', async ({ authenticated, settingsPage }) => {
+  test('settings loads with profile controls', async ({ authenticated, settingsPage }) => {
     void authenticated
     await settingsPage.goto()
     await settingsPage.expectLoaded()
-    await expect(settingsPage.appearanceSection()).toBeVisible()
+    await expect(settingsPage.profileSection()).toBeVisible()
   })
 
-  test('theme toggles light/dark/system', async ({ authenticated, settingsPage, page }) => {
+  test('app stays dark (light theme removed)', async ({ authenticated, settingsPage, page }) => {
     void authenticated
     await settingsPage.goto()
     await expect(settingsPage.title()).toBeVisible({ timeout: 15_000 })
-    if (await settingsPage.lightButton().isVisible().catch(() => false)) {
-      await settingsPage.setTheme('light')
-      await expect(page.locator('html')).not.toHaveClass(/dark/)
-      await settingsPage.setTheme('dark')
-      await expect(page.locator('html')).toHaveClass(/dark/)
-    }
+    await expect(page.locator('html')).toHaveClass(/dark/)
+    await settingsPage.expectThemeControlsRemoved()
   })
 
   test('profile page save control visible', async ({ authenticated, profilePage }) => {
@@ -42,18 +38,14 @@ test.describe('Settings / profile / branding @authenticated', () => {
     }
   })
 
-  test('edge: appearance theme persists across reload', async ({ authenticated, settingsPage, page }) => {
+  test('edge: dark theme persists across reload', async ({ authenticated, settingsPage, page }) => {
     void authenticated
     await settingsPage.goto()
     await settingsPage.expectLoaded()
-    if (await settingsPage.darkButton().isVisible().catch(() => false)) {
-      await settingsPage.setTheme('dark')
-      await settingsPage.expectThemeClass('dark')
-      await page.reload()
-      await settingsPage.expectLoaded()
-      await settingsPage.expectThemeClass('dark')
-      await settingsPage.setTheme('light')
-    }
+    await settingsPage.expectThemeClass('dark')
+    await page.reload()
+    await settingsPage.expectLoaded()
+    await settingsPage.expectThemeClass('dark')
   })
 
   test('edge: branding upload control visible', async ({ authenticated, brandingPage }) => {
@@ -61,6 +53,17 @@ test.describe('Settings / profile / branding @authenticated', () => {
     await brandingPage.goto()
     await brandingPage.expectLoaded()
     await brandingPage.expectUploadControlVisible()
+  })
+
+  test('branding page loads company and logo controls without color scheme', async ({
+    authenticated,
+    brandingPage,
+  }) => {
+    void authenticated
+    await brandingPage.goto()
+    await brandingPage.expectLoaded()
+    await brandingPage.expectUploadControlVisible()
+    await brandingPage.expectColorSchemeRemoved()
   })
 
   test('edge: profile empty name blocked by required', async ({ authenticated, profilePage }) => {

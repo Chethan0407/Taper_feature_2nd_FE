@@ -62,6 +62,23 @@ test.describe('Critical E2E journeys @critical @integration', () => {
     await expect(page.getByText(/E2E Template/i).first()).toBeVisible({ timeout: 15_000 })
   })
 
+  test('dashboard → Stats → SpecLint round-trip', { tag: ['@critical', '@integration'] }, async ({
+    authenticated,
+    dashboardPage,
+    statsPage,
+    page,
+  }) => {
+    void authenticated
+    await dashboardPage.goto()
+    await dashboardPage.expectLoaded()
+    await dashboardPage.viewStats().click()
+    await expect(page).toHaveURL(/\/stats/)
+    await statsPage.expectLoaded()
+    await statsPage.expectKpis()
+    await statsPage.runSpecLint().click()
+    await expect(page).toHaveURL(/\/speclint/)
+  })
+
   test('dashboard CTAs → SpecLint and Checklists round-trip', { tag: ['@critical', '@integration'] }, async ({
     authenticated,
     dashboardPage,

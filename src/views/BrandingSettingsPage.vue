@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <!-- Header and Sidebar -->
     <Header />
     <Sidebar />
@@ -8,13 +8,13 @@
     <main class="ml-64 p-8">
       <div class="max-w-4xl mx-auto">
         <!-- Page Header -->
-        <div class="mb-8">
-          <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">Branding & Organization Settings</h1>
-          <p class="text-lg text-gray-600 dark:text-gray-400">Customize your company branding and appearance</p>
+        <div class="mb-8 page-enter">
+          <h1 class="page-title-gradient mb-1">Branding & Organization</h1>
+          <p class="page-subtitle">Customize your company logo and organization details</p>
         </div>
 
         <!-- Settings Form -->
-        <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8">
+        <div class="module-panel module-panel-accent p-8">
           <form @submit.prevent="saveBranding" class="space-y-8">
             <!-- Company Information Section -->
             <div>
@@ -117,86 +117,6 @@
               </div>
             </div>
 
-            <!-- Color Customization Section -->
-            <div>
-              <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Color Scheme</h2>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Primary Color -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Primary Color
-                  </label>
-                  <div class="flex items-center space-x-3">
-                    <input
-                      v-model="form.primary_color"
-                      type="color"
-                      :disabled="loading"
-                      class="w-12 h-12 rounded-lg border border-gray-300 dark:border-dark-600 cursor-pointer"
-                    />
-                    <input
-                      v-model="form.primary_color"
-                      type="text"
-                      :disabled="loading"
-                      class="input-field flex-1 rounded-xl px-4 py-2 font-mono text-sm"
-                      placeholder="#3B82F6"
-                      pattern="^#[0-9A-Fa-f]{6}$"
-                    />
-                  </div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Main brand color for buttons and accents
-                  </p>
-                </div>
-
-                <!-- Secondary Color -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Secondary Color
-                  </label>
-                  <div class="flex items-center space-x-3">
-                    <input
-                      v-model="form.secondary_color"
-                      type="color"
-                      :disabled="loading"
-                      class="w-12 h-12 rounded-lg border border-gray-300 dark:border-dark-600 cursor-pointer"
-                    />
-                    <input
-                      v-model="form.secondary_color"
-                      type="text"
-                      :disabled="loading"
-                      class="input-field flex-1 rounded-xl px-4 py-2 font-mono text-sm"
-                      placeholder="#8B5CF6"
-                      pattern="^#[0-9A-Fa-f]{6}$"
-                    />
-                  </div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Secondary color for highlights and gradients
-                  </p>
-                </div>
-              </div>
-
-              <!-- Color Preview -->
-              <div class="mt-6 p-4 bg-gray-50 dark:bg-dark-800 rounded-xl">
-                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Preview</h3>
-                <div class="flex items-center space-x-4">
-                  <button 
-                    class="px-4 py-2 rounded-lg text-white font-medium transition-colors"
-                    :style="{ backgroundColor: form.primary_color || '#3B82F6' }"
-                  >
-                    Primary Button
-                  </button>
-                  <div 
-                    class="px-4 py-2 rounded-lg text-white font-medium"
-                    :style="{ 
-                      background: `linear-gradient(135deg, ${form.primary_color || '#3B82F6'}, ${form.secondary_color || '#8B5CF6'})`
-                    }"
-                  >
-                    Gradient Element
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- Save Button -->
             <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-dark-700">
               <div class="flex items-center space-x-4">
@@ -220,14 +140,9 @@
                   Reset
                 </button>
               </div>
-
-              <!-- Auto-save indicator -->
-              <div v-if="autoSaveStatus" class="text-sm text-gray-500 dark:text-gray-400">
-                {{ autoSaveStatus }}
-              </div>
             </div>
 
-            <!-- Success/Error Messages -->
+            <!-- Success/Error Messages — only after Save Changes -->
             <transition name="fade">
               <div v-if="success" class="p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl">
                 <p class="text-green-600 dark:text-green-400 font-medium">✅ Branding settings saved successfully!</p>
@@ -247,12 +162,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Header from '@/components/Layout/Header.vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiClient } from '@/utils/api-client'
 import { useBrandingStore } from '@/stores/branding'
+import { applyBrandTheme } from '@/utils/brand-theme'
 
 interface BrandingSettings {
   company_name: string
@@ -268,8 +184,8 @@ const brandingStore = useBrandingStore()
 const form = ref<BrandingSettings>({
   company_name: '',
   logo_url: '',
-  primary_color: '#3B82F6',
-  secondary_color: '#8B5CF6'
+  primary_color: '#0f766e',
+  secondary_color: '#d97706'
 })
 
 // UI state
@@ -285,10 +201,6 @@ const fileInput = ref<HTMLInputElement>()
 const selectedLogoFile = ref<File | null>(null)
 const logoPreview = ref<string | null>(null) // Preview URL for selected file
 
-// Auto-save state
-const autoSaveStatus = ref('')
-let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null
-
 // Original values for change detection
 const originalValues = ref<BrandingSettings | null>(null)
 const currentLogo = ref('')
@@ -297,9 +209,8 @@ const currentLogo = ref('')
 const hasChanges = computed(() => {
   if (!originalValues.value) return false
   return (
-    form.value.primary_color !== originalValues.value.primary_color ||
-    form.value.secondary_color !== originalValues.value.secondary_color ||
-    selectedLogoFile.value !== null // Logo file selected but not saved
+    selectedLogoFile.value !== null ||
+    form.value.logo_url !== (originalValues.value.logo_url || '')
   )
 })
 
@@ -337,8 +248,8 @@ const fetchBrandingSettings = async () => {
     form.value = {
       company_name: data.company_name || '',
       logo_url: data.logo_url || '',
-      primary_color: data.primary_color || '#3B82F6',
-      secondary_color: data.secondary_color || '#8B5CF6'
+      primary_color: data.primary_color || '#0f766e',
+      secondary_color: data.secondary_color || '#d97706'
     }
     
     originalValues.value = { ...form.value }
@@ -404,13 +315,8 @@ const saveBranding = async () => {
       }
     }
     
-    // Step 2: Update branding settings with all fields
-    const updateData: any = {
-      // NOTE: company_name is immutable once created and is managed by Companies,
-      // so we intentionally do NOT send it from this page.
-      primary_color: form.value.primary_color,
-      secondary_color: form.value.secondary_color
-    }
+    // Step 2: Update branding settings (logo only — color scheme UI removed)
+    const updateData: Record<string, string> = {}
     
     // Include logo_url if we have one (either existing or newly uploaded)
     if (logoUrl) {
@@ -476,19 +382,11 @@ const saveBranding = async () => {
 
 // Apply branding changes to UI immediately
 const applyBrandingToUI = (branding: BrandingSettings) => {
-  // Update CSS variables for colors
-  if (branding.primary_color) {
-    document.documentElement.style.setProperty('--primary-color', branding.primary_color)
-  }
-  if (branding.secondary_color) {
-    document.documentElement.style.setProperty('--secondary-color', branding.secondary_color)
-  }
-  
-  // Update logo in header/sidebar if needed
-  // This would require accessing header/sidebar components or using a global store
-  // For now, we'll update the store and let components react to it
-  
-  // Update company name in document title or other places
+  applyBrandTheme({
+    primary_color: branding.primary_color,
+    secondary_color: branding.secondary_color,
+  })
+
   if (branding.company_name) {
     document.title = `${branding.company_name} - TapeOutOps`
   }
@@ -499,7 +397,6 @@ const updateGlobalBranding = (branding: BrandingSettings) => {
   if (brandingStore) {
     brandingStore.company_name = branding.company_name
     brandingStore.logo_url = branding.logo_url || ''
-    // Update both brand_color (legacy) and primary_color/secondary_color
     if (branding.primary_color) {
       brandingStore.brand_color = branding.primary_color
       brandingStore.primary_color = branding.primary_color
@@ -507,6 +404,7 @@ const updateGlobalBranding = (branding: BrandingSettings) => {
     if (branding.secondary_color) {
       brandingStore.secondary_color = branding.secondary_color
     }
+    brandingStore.syncTheme()
   }
 }
 
@@ -594,28 +492,6 @@ const resetForm = () => {
     fileInput.value.value = ''
   }
 }
-
-// Auto-save functionality (only for colors/logo, not company_name)
-const triggerAutoSave = () => {
-  if (autoSaveTimeout) {
-    clearTimeout(autoSaveTimeout)
-  }
-  
-  autoSaveTimeout = setTimeout(async () => {
-    if (hasChanges.value) {
-      autoSaveStatus.value = 'Auto-saving...'
-      await saveBranding()
-      autoSaveStatus.value = 'Auto-saved'
-      setTimeout(() => {
-        autoSaveStatus.value = ''
-      }, 2000)
-    }
-  }, 1000)
-}
-
-// Watchers
-watch(() => form.value.primary_color, triggerAutoSave)
-watch(() => form.value.secondary_color, triggerAutoSave)
 
 // Lifecycle
 onMounted(() => {

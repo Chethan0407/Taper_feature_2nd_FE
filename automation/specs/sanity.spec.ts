@@ -23,6 +23,13 @@ test.describe('Sanity @sanity', () => {
     await dashboardPage.expectLoaded()
   })
 
+  test('authenticated stats loads with KPIs', { tag: ['@sanity'] }, async ({ authenticated, statsPage }) => {
+    void authenticated
+    await statsPage.goto()
+    await statsPage.expectLoaded()
+    await statsPage.expectKpis()
+  })
+
   test('core feature pages load', { tag: ['@sanity'] }, async ({
     authenticated,
     projectsPage,

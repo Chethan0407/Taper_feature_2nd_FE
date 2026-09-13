@@ -44,6 +44,43 @@ export class SpecLintPage extends AppShellPage {
     return this.page.getByText(/no rules found/i).first()
   }
 
+  ruleError(): Locator {
+    return this.page
+      .locator('div')
+      .filter({ hasText: /cannot reach the server|network error|failed to add rule|failed to fetch/i })
+      .first()
+  }
+
+  async fillMinimalRule(pattern = 'FIXME') {
+    await this.ruleTypeSelect().selectOption('ForbiddenKeyword').catch(async () => {
+      await this.ruleTypeSelect().selectOption({ index: 1 })
+    })
+    const severity = this.page.locator('select').nth(1)
+    if (await severity.isVisible().catch(() => false)) {
+      await severity.selectOption('error').catch(async () => {
+        await severity.selectOption({ index: 1 })
+      })
+    }
+    await this.patternInput().fill(pattern)
+  }
+
+  async addRuleWithAllFields(pattern: string) {
+    await this.fillMinimalRule(pattern)
+    await this.submitAddRule()
+  }
+
+  ruleRow(pattern: string | RegExp): Locator {
+    return this.page.getByText(pattern).first()
+  }
+
+  async submitAddRule() {
+    await this.addRuleButton().click()
+  }
+
+  async expectNoResponseConstructError() {
+    await expect(this.page.getByText(/Failed to construct ['"]Response['"]/i)).toHaveCount(0)
+  }
+
   async expectLoaded() {
     await this.expectVisible(this.title())
     await this.expectVisible(this.ruleBuilder())

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-8 dark:bg-dark-950">
+  <div class="min-h-screen app-page p-8">
     <div class="mb-8 flex items-center justify-between">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Lint Rules</h1>
       <button class="btn-primary" @click="showModal = true">Add Rule</button>

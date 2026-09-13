@@ -67,4 +67,67 @@ export class ProjectDetailsPage extends AppShellPage {
   async expectQualitySection() {
     await expect(this.qualityHeading()).toBeVisible({ timeout: 15_000 })
   }
+
+  overviewTab(): Locator {
+    return this.page.getByTestId('project-tab-overview')
+  }
+
+  readinessTab(): Locator {
+    return this.page.getByTestId('project-tab-readiness')
+  }
+
+  readinessPanel(): Locator {
+    return this.page.getByTestId('tapeout-readiness-tab')
+  }
+
+  async openReadinessTab() {
+    await this.readinessTab().click()
+    await expect(this.readinessPanel()).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectReadinessBoard() {
+    await expect(this.readinessPanel()).toBeVisible({ timeout: 15_000 })
+    await expect(this.page.getByTestId('readiness-blockers')).toBeVisible()
+    await expect(this.page.getByTestId('readiness-gaps')).toBeVisible()
+    await expect(this.page.getByTestId('readiness-gates')).toBeVisible()
+    await expect(this.page.getByTestId('readiness-freeze-btn')).toBeVisible()
+    await expect(this.page.getByTestId('tapeout-ops-extras')).toBeVisible()
+  }
+
+  linkModal(): Locator {
+    return this.page.getByTestId('link-modal')
+  }
+
+  async linkChecklistByName(name?: string | RegExp) {
+    await this.addChecklistButton().click()
+    await expect(this.linkModal()).toBeVisible({ timeout: 10_000 })
+
+    const options = this.linkModal().locator('[data-testid^="link-option-"]')
+    await expect(options.first()).toBeVisible({ timeout: 15_000 })
+
+    if (name) {
+      const named = options.filter({ hasText: name }).first()
+      if (await named.isVisible().catch(() => false)) {
+        await named.click()
+      } else {
+        await options.first().click()
+      }
+    } else {
+      await options.first().click()
+    }
+
+    await expect(this.linkModal().getByText(/^Selected$/i).first()).toBeVisible({ timeout: 5_000 })
+    await expect(this.page.getByTestId('link-modal-submit')).toBeEnabled()
+    await this.page.getByTestId('link-modal-submit').click()
+    await expect(this.linkModal()).toBeHidden({ timeout: 20_000 })
+  }
+
+  async linkSpecByName(name: string | RegExp) {
+    await this.addSpecButton().click()
+    await expect(this.linkModal()).toBeVisible({ timeout: 10_000 })
+    const option = this.linkModal().getByText(name).first()
+    await option.click()
+    await this.page.getByTestId('link-modal-submit').click()
+    await expect(this.linkModal()).toBeHidden({ timeout: 15_000 })
+  }
 }

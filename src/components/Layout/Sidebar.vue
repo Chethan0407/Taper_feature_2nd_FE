@@ -1,10 +1,17 @@
 <template>
-  <div class="fixed left-0 top-0 flex h-full w-64 flex-col border-r border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900">
+  <div class="fixed left-0 top-0 z-30 flex h-full w-64 flex-col border-r border-slate-300/70 bg-[#f7fafc]/95 shadow-[4px_0_24px_rgba(15,23,42,0.06)] backdrop-blur-xl dark:border-dark-700/80 dark:bg-dark-900/90 dark:shadow-none">
+    <!-- Soft brand wash behind nav -->
+    <div
+      class="pointer-events-none absolute inset-0 opacity-90 dark:opacity-70"
+      aria-hidden="true"
+      style="background: radial-gradient(ellipse 120% 60% at 0% 0%, rgb(var(--brand-primary-rgb) / 0.16), transparent 55%), linear-gradient(180deg, rgba(255,255,255,0.5), transparent 40%)"
+    />
+
     <!-- Logo -->
-    <div class="border-b border-gray-200 p-6 dark:border-dark-700">
+    <div class="relative border-b border-slate-300/70 p-6 dark:border-dark-700/80">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center">
-          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue to-neon-purple shadow-md ring-1 ring-black/5 dark:ring-white/10">
+          <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="6" height="6" rx="1"/>
             <rect x="15" y="3" width="6" height="6" rx="1"/>
             <rect x="3" y="15" width="6" height="6" rx="1"/>
@@ -15,46 +22,58 @@
             <line x1="6" y1="15" x2="18" y2="15"/>
           </svg>
         </div>
-        <span class="text-xl font-bold text-gray-900 dark:text-gradient">TapeOutOps</span>
+        <span class="font-display text-xl font-bold text-gradient">TapeOutOps</span>
       </div>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 p-4 space-y-2">
+    <nav class="relative flex-1 space-y-1.5 overflow-y-auto p-4">
       <router-link
         v-for="item in navigationItems"
         :key="item.name"
         :to="item.path"
-        class="flex items-center space-x-3 rounded-lg px-4 py-3 text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-dark-800 dark:hover:text-white"
-        :class="{ 'bg-primary-600/20 text-primary-600 dark:text-primary-400 border border-primary-600/30': $route.path === item.path }"
+        class="group relative flex items-center space-x-3 rounded-xl px-4 py-3 text-slate-600 transition-all duration-200 hover:translate-x-0.5 hover:bg-white hover:text-slate-900 hover:shadow-sm dark:text-gray-300 dark:hover:bg-dark-800/80 dark:hover:text-white dark:hover:shadow-none"
+        :class="{
+          'border border-neon-blue/30 bg-white text-neon-blue shadow-md shadow-neon-blue/10 dark:border-primary-600/25 dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-sm dark:shadow-primary-600/10':
+            $route.path === item.path || $route.path.startsWith(item.path + '/'),
+        }"
       >
-        <component :is="item.icon" class="w-5 h-5" />
+        <span
+          v-if="$route.path === item.path || $route.path.startsWith(item.path + '/')"
+          class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-neon-blue"
+          aria-hidden="true"
+        />
+        <component
+          :is="item.icon"
+          class="h-5 w-5 transition-transform duration-200 group-hover:scale-110"
+          :class="{ 'text-neon-blue': $route.path === item.path || $route.path.startsWith(item.path + '/') }"
+        />
         <span class="font-medium">{{ item.name }}</span>
       </router-link>
     </nav>
 
     <!-- User Profile -->
-    <div class="border-t border-gray-200 p-4 dark:border-dark-700">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-neon-green to-neon-blue rounded-full flex items-center justify-center">
+    <div class="relative border-t border-slate-300/70 p-4 dark:border-dark-700/80">
+      <div class="flex items-center space-x-3 rounded-xl border border-slate-200/80 bg-white p-2 shadow-sm dark:border-transparent dark:bg-dark-800/50 dark:shadow-none">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-neon-green to-neon-blue shadow-md shadow-neon-blue/20 ring-2 ring-white/40 dark:ring-dark-700">
           <span class="text-sm font-semibold text-white">
             {{ userInitials }}
           </span>
         </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium text-slate-800 dark:text-gray-200">
             {{ authStore.user?.name }}
           </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+          <p class="truncate text-xs text-slate-500 dark:text-gray-400">
             {{ authStore.user?.email }}
           </p>
         </div>
         <button
           @click="handleLogout"
-          class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+          class="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-gray-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
           title="Logout"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
           </svg>
         </button>
@@ -76,7 +95,8 @@ import {
   Settings,
   Folder,
   Building2,
-  BarChart3
+  BarChart3,
+  Activity,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -84,6 +104,7 @@ const authStore = useAuthStore()
 
 const mainNavItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Stats', path: '/stats', icon: Activity },
   { name: 'Projects', path: '/projects', icon: Folder },
   { name: 'Specs', path: '/specs', icon: FileText },
   { name: 'Checklists', path: '/checklists', icon: CheckSquare },
@@ -99,8 +120,7 @@ const adminNavItems = [
 
 const navigationItems = computed(() => {
   const items = [...mainNavItems]
-  const isDev = import.meta.env.DEV
-  if (authStore.isAdmin || isDev) {
+  if (authStore.isSuperuser === true) {
     items.push(...adminNavItems)
   }
   return items
@@ -115,4 +135,4 @@ const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
 }
-</script> 
+</script>

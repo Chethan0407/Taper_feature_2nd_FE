@@ -14,9 +14,20 @@ export abstract class BasePage {
 
   abstract readonly path: string
 
-  /** Navigate to this page path (+ optional query). */
+  /** Navigate to this page path (+ optional query). Retries once on transient webServer drops. */
   async goto(query = '') {
-    await this.page.goto(`${this.path}${query}`)
+    const url = `${this.path}${query}`
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.page.goto(url)
+        return
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        const transient = /ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|NS_ERROR_CONNECTION_REFUSED/i.test(msg)
+        if (!transient || attempt === 2) throw err
+        await this.page.waitForTimeout(750 * (attempt + 1))
+      }
+    }
   }
 
   async waitForUrl(pattern?: RegExp | string) {

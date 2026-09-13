@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/60">
     <div
-      class="relative w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-dark-700 dark:bg-dark-900"
+      class="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-dark-700 dark:bg-dark-900"
     >
       <button
         type="button"
@@ -75,6 +75,58 @@
         <div>
           <CompanySelector v-model="form.companyId" label="COMPANY" required />
         </div>
+
+        <div class="rounded-xl border border-slate-200 p-4 dark:border-dark-600">
+          <p class="mb-3 text-sm font-semibold text-slate-800 dark:text-gray-200">Tapeout profile</p>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">FOUNDRY</label>
+              <select v-model="form.foundry" class="input-field w-full">
+                <option value="">Select foundry</option>
+                <option
+                  v-for="f in (metadataStore.platforms.length ? metadataStore.platforms : ['TSMC', 'Samsung', 'GlobalFoundries', 'Intel'])"
+                  :key="f"
+                  :value="f"
+                >{{ f }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">PROCESS NODE</label>
+              <select v-model="form.process_node" class="input-field w-full">
+                <option value="">Select node</option>
+                <option
+                  v-for="n in (metadataStore.processNodes.length ? metadataStore.processNodes : ['N3', 'N5', 'N7', 'N16', 'N28'])"
+                  :key="n"
+                  :value="n"
+                >{{ n }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">PDK VERSION</label>
+              <input v-model="form.pdk_version" type="text" class="input-field w-full" placeholder="e.g. 1.2.3" />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">EDA TOOL VERSION</label>
+              <input v-model="form.eda_tool_version" type="text" class="input-field w-full" placeholder="e.g. 2024.1" />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">TARGET TAPEOUT DATE</label>
+              <input v-model="form.target_tapeout_date" type="date" class="input-field w-full" />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">TAPEOUT STATUS</label>
+              <select v-model="form.tapeout_status" class="input-field w-full">
+                <option value="">Select status</option>
+                <option
+                  v-for="s in (metadataStore.tapeoutStatuses.length ? metadataStore.tapeoutStatuses : ['planning', 'in_progress', 'frozen', 'submitted', 'fab'])"
+                  :key="s"
+                  :value="s"
+                >{{ s }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3 pt-4">
           <button type="button" class="btn-secondary rounded-lg px-6 py-3" @click="$emit('close')">Cancel</button>
           <button type="submit" class="btn-primary rounded-lg px-8 py-3 font-semibold" :disabled="submitting">
@@ -106,10 +158,23 @@ const form = reactive({
   edaTool: '',
   type: '',
   companyId: null as number | string | null,
+  foundry: '',
+  process_node: '',
+  pdk_version: '',
+  eda_tool_version: '',
+  target_tapeout_date: '',
+  tapeout_status: '',
 })
 
 const submitting = ref(false)
 const error = ref('')
+
+function toDateInput(value?: string) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value.slice(0, 10)
+  return d.toISOString().slice(0, 10)
+}
 
 function syncFromProject(p: Project) {
   form.name = p.name || ''
@@ -118,6 +183,12 @@ function syncFromProject(p: Project) {
   form.edaTool = p.eda_tool || p.edaTool || ''
   form.type = p.type || ''
   form.companyId = p.company_id ?? p.companyId ?? null
+  form.foundry = p.foundry || ''
+  form.process_node = p.process_node || ''
+  form.pdk_version = p.pdk_version || ''
+  form.eda_tool_version = p.eda_tool_version || ''
+  form.target_tapeout_date = toDateInput(p.target_tapeout_date)
+  form.tapeout_status = p.tapeout_status || ''
 }
 
 watch(
@@ -125,10 +196,11 @@ watch(
   (p) => {
     if (p) syncFromProject(p)
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 onMounted(() => {
+  if (!metadataStore.platforms.length) metadataStore.fetchMetadata()
   if (props.project) syncFromProject(props.project)
 })
 
@@ -136,13 +208,23 @@ const handleSubmit = async () => {
   submitting.value = true
   error.value = ''
   try {
+    const targetIso = form.target_tapeout_date
+      ? new Date(`${form.target_tapeout_date}T00:00:00Z`).toISOString()
+      : undefined
+
     await projectsStore.updateProject(props.project.id, {
       name: form.name,
       description: form.description || undefined,
-      platform: form.platform as Project['platform'],
-      edaTool: form.edaTool as Project['edaTool'],
-      type: form.type as Project['type'],
+      platform: form.platform,
+      edaTool: form.edaTool,
+      type: form.type,
       company_id: form.companyId != null ? Number(form.companyId) : undefined,
+      foundry: form.foundry || undefined,
+      process_node: form.process_node || undefined,
+      pdk_version: form.pdk_version || undefined,
+      eda_tool_version: form.eda_tool_version || undefined,
+      target_tapeout_date: targetIso,
+      tapeout_status: form.tapeout_status || undefined,
     })
     emit('updated')
     emit('close')

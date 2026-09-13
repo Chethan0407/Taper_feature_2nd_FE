@@ -66,4 +66,37 @@ export class CompaniesPage extends AppShellPage {
     const empty = await this.emptyState().isVisible().catch(() => false)
     expect(noMatch || empty).toBeTruthy()
   }
+
+  descriptionInput(): Locator {
+    return this.page.getByPlaceholder(/company description/i).first()
+  }
+
+  companyCard(name: string | RegExp): Locator {
+    return this.page.getByText(name).first()
+  }
+
+  deleteButtonFor(name: string | RegExp): Locator {
+    return this.page.locator('.group, tr, [class*="rounded"]').filter({ hasText: name }).getByTitle(/delete/i).first()
+      .or(this.page.locator('button').filter({ has: this.page.locator('svg') }).filter({ hasText: '' }).first())
+  }
+
+  async fillCreate(name: string, description = 'Automation company') {
+    await this.nameInput().fill(name)
+    if (await this.descriptionInput().isVisible().catch(() => false)) {
+      await this.descriptionInput().fill(description)
+    }
+  }
+
+  async createCompany(name: string, description?: string) {
+    await this.openCreateModal()
+    await this.fillCreate(name, description)
+    await this.submitCreate()
+  }
+
+  async openDeleteConfirm(name: string | RegExp) {
+    const card = this.page.locator('div, tr').filter({ hasText: name }).first()
+    await card.hover().catch(() => undefined)
+    const del = card.getByTitle(/delete/i).or(card.getByRole('button', { name: /delete/i })).first()
+    await del.click({ force: true })
+  }
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures'
+import { authForModule } from '../helpers'
 
 test.describe('Checklists — templates & active @authenticated', () => {
   test('loads templates and active sections', async ({ authenticated, checklistsPage }) => {
@@ -27,7 +28,6 @@ test.describe('Checklists — templates & active @authenticated', () => {
     await checklistsPage.goto()
     await checklistsPage.openCreateTemplateModal()
     await checklistsPage.submitEmptyTemplate()
-    // HTML5 required keeps modal open with name field still visible
     await expect(checklistsPage.templateNameInput()).toBeVisible()
     await expect(checklistsPage.createModalHeading()).toBeVisible()
   })
@@ -59,5 +59,23 @@ test.describe('Checklists — templates & active @authenticated', () => {
     if (cancelled) {
       await expect(checklistsPage.page.getByText(/E2E Template/i).first()).toBeVisible()
     }
+  })
+})
+
+test.describe('Checklists — live create template', () => {
+  test('create template with item → appears in list', {
+    tag: ['@critical', '@integration', '@regression'],
+  }, async ({ page, checklistsPage }) => {
+    test.setTimeout(120_000)
+    await authForModule(page)
+    const name = `E2E Tpl ${Date.now()}`
+
+    await checklistsPage.goto()
+    await checklistsPage.expectLoaded()
+    await checklistsPage.openCreateTemplateModal()
+    await checklistsPage.fillTemplateAndAddItem(name, 'Gate check item')
+    await checklistsPage.submitTemplate()
+
+    await expect(page.getByText(name).first()).toBeVisible({ timeout: 20_000 })
   })
 })

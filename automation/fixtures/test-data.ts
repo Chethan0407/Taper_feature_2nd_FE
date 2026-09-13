@@ -71,6 +71,7 @@ export const LOGIN_ECP = {
 /** Protected routes — integration / regression matrix */
 export const PROTECTED_ROUTES = [
   '/dashboard',
+  '/stats',
   '/projects',
   '/specs',
   '/checklists',
@@ -97,6 +98,7 @@ export const PUBLIC_ROUTES = [
 /** Sidebar feature matrix for regression */
 export const SIDEBAR_FEATURES: Array<{ label: RegExp; url: RegExp }> = [
   { label: /^Dashboard$/i, url: /\/dashboard/ },
+  { label: /^Stats$/i, url: /\/stats/ },
   { label: /^Projects$/i, url: /\/projects/ },
   { label: /^Specs$/i, url: /\/specs/ },
   { label: /^Checklists$/i, url: /\/checklists/ },

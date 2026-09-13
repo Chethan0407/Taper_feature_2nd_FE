@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-8 dark:bg-dark-950">
+  <div class="min-h-screen app-page p-8">
     <div class="mb-8 flex items-center justify-between">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Checklists</h1>
-      <button class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow rounded-xl" @click="$router.push('/checklists/create')">
+      <button class="btn-primary rounded-xl px-6 py-3 text-lg font-semibold" @click="$router.push('/checklists/create')">
         + Create Checklist
       </button>
     </div>

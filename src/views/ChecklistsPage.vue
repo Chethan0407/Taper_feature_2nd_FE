@@ -1,231 +1,196 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <Sidebar />
     
     <div class="ml-64">
       <Header />
       
-      <main class="p-6">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Checklists</h1>
-          <p class="text-gray-500 dark:text-gray-400">Build, reuse and sign-off tapeout checklists</p>
+      <main class="p-8">
+        <div class="mb-8 page-enter">
+          <h1 class="page-title-gradient mb-1">Checklists</h1>
+          <p class="page-subtitle">Build, reuse and sign-off tapeout checklists</p>
         </div>
 
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        <div class="mx-auto mb-8 grid max-w-7xl grid-cols-1 gap-5 xl:grid-cols-3 page-enter">
           <!-- Checklist Templates -->
-          <div class="xl:col-span-2 w-full">
-            <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl h-[480px] flex flex-col">
-              <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-dark-700">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Checklist Templates</h2>
-                <button class="btn-primary" @click="showCreateTemplateModal = true">Create Template</button>
+          <div class="min-w-0 xl:col-span-2">
+            <div class="module-panel flex h-[520px] flex-col">
+              <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-dark-700">
+                <h2 class="module-section-title text-lg">Checklist Templates</h2>
+                <button class="btn-primary px-4 py-2 text-sm" @click="showCreateTemplateModal = true">Create Template</button>
               </div>
-              
-              <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
-                <div v-if="checklistsStore.loading" class="text-center py-8">
-                  <div class="text-gray-500 dark:text-gray-400">Loading templates...</div>
-                </div>
-                
-                <div v-else-if="checklistsStore.error" class="text-center py-8">
-                  <div class="text-red-500">{{ checklistsStore.error }}</div>
-                </div>
-                
-                <div v-else-if="visibleTemplates.length === 0" class="text-center py-8">
-                  <div class="text-gray-500 dark:text-gray-400">No templates found. Create your first template!</div>
-                </div>
-                
-                <div v-else class="space-y-2">
-                  <div v-for="template in visibleTemplates" :key="template.id" class="bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors p-4">
-                    <div class="flex items-center gap-2">
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-medium text-gray-900 dark:text-white text-base">{{ template.name || `Template ${template.id}` }}</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                          {{ template.items?.length || 0 }} items
-                          <span v-if="template.description">• {{ template.description }}</span>
-                        </p>
-                      </div>
-                      <div class="flex items-center gap-2 flex-shrink-0">
-                        <button class="btn-secondary text-sm px-3 py-1.5" @click="useTemplate(template.id)">Use Template</button>
-                        <button
-                          class="p-2 text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                          @click="confirmDeleteTemplate(template)"
-                          :disabled="deletingTemplate === template.id"
-                          title="Delete template"
+
+              <div class="custom-scrollbar flex-1 overflow-y-auto px-3 py-2">
+                <div v-if="checklistsStore.loading" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading templates...</div>
+                <div v-else-if="checklistsStore.error" class="py-10 text-center text-sm text-red-500">{{ checklistsStore.error }}</div>
+                <div v-else-if="visibleTemplates.length === 0" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">No templates yet. Create your first one.</div>
+                <ul v-else class="divide-y divide-gray-200 dark:divide-dark-700">
+                  <li
+                    v-for="template in visibleTemplates"
+                    :key="template.id"
+                    class="flex min-w-0 items-center gap-3 px-2 py-3"
+                  >
+                    <div class="min-w-0 flex-1">
+                      <h3 class="truncate text-sm font-medium text-gray-900 dark:text-white" :title="template.name || `Template ${template.id}`">
+                        {{ template.name || `Template ${template.id}` }}
+                      </h3>
+                      <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span
+                          v-if="template.is_system"
+                          class="rounded-full border border-sky-500/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-300"
+                          data-testid="template-system-badge"
                         >
-                          <svg v-if="deletingTemplate === template.id" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                          </svg>
-                        </button>
+                          System
+                        </span>
+                        <span
+                          v-if="template.is_system || isTorTemplate(template)"
+                          class="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200"
+                          data-testid="template-tor-badge"
+                        >
+                          Tapeout
+                        </span>
                       </div>
+                      <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+                        {{ template.items?.length || 0 }} items
+                        <span v-if="template.description"> · {{ template.description }}</span>
+                      </p>
                     </div>
-                  </div>
-                </div>
+                    <div class="flex flex-shrink-0 items-center gap-1.5">
+                      <button class="btn-secondary px-3 py-1.5 text-xs" @click="useTemplate(template.id)">Use</button>
+                      <button
+                        v-if="!template.is_system"
+                        class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                        @click="confirmDeleteTemplate(template)"
+                        :disabled="deletingTemplate === template.id"
+                        title="Delete template"
+                      >
+                        <svg v-if="deletingTemplate === template.id" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
 
           <!-- Active Checklists -->
-          <div class="w-full bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl h-[480px] flex flex-col">
-            <div class="p-6 pb-4 border-b border-gray-200 dark:border-dark-700">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Active Checklists</h2>
-            </div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
-              <div v-if="activeChecklistsLoading" class="text-center py-8">
-                <div class="text-gray-500 dark:text-gray-400">Loading active checklists...</div>
+          <div class="min-w-0">
+            <div class="module-panel flex h-[520px] flex-col">
+              <div class="border-b border-gray-200 px-5 py-4 dark:border-dark-700">
+                <h2 class="module-section-title text-lg">Active Checklists</h2>
               </div>
-              <div v-else-if="activeChecklistsError" class="text-center py-8">
-                <div class="text-red-500">{{ activeChecklistsError }}</div>
-              </div>
-              <div v-else-if="visibleActiveChecklists.length === 0" class="text-center py-8">
-                <div class="text-gray-500 dark:text-gray-400">No active checklists found.</div>
-              </div>
-              <div v-else class="space-y-4">
-                <div
-                  v-for="checklist in visibleActiveChecklists"
-                  :key="checklist.id"
-                  class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
-                >
-                  <!-- Show the template name that this active checklist was created from -->
-                  <h3 class="font-medium text-gray-900 dark:text-white mb-2">
-                    {{ checklist.template_name || `Checklist ${checklist.id}` }}
-                  </h3>
-                  
-                  <!-- Completion Status -->
-                  <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-500 dark:text-gray-400">
-                      {{ getCompletionText(checklist) }}
-                    </span>
-                    <span :class="getProgressClassFromPercent(getCompletionPercent(checklist))" class="px-2 py-1 rounded text-xs font-semibold">
-                      {{ getCompletionPercent(checklist) }}%
-                    </span>
-                  </div>
-                  
-                  <!-- Additional Info (approved_by/rejected_by) -->
-                  <div v-if="checklist.status === 'approved' && (checklist.approved_by || checklist.approved_by_email)" class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Approved by: {{ checklist.approved_by || checklist.approved_by_email }}
-                  </div>
-                  <div v-if="checklist.status === 'rejected' && (checklist.rejected_by || checklist.rejected_by_email)" class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Rejected by: {{ checklist.rejected_by || checklist.rejected_by_email }}
-                  </div>
-                  
-                  <!-- Status Badge/Button -->
-                  <div class="mt-2 flex items-center gap-2">
-                    <!-- Pending: Show Approve button (green) -->
-                    <button 
-                      v-if="checklist.status === 'pending'"
-                      class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                      @click="approveChecklist(checklist.id)"
-                      :disabled="approving === checklist.id"
+              <div class="custom-scrollbar flex-1 overflow-y-auto px-3 py-2">
+                <div v-if="activeChecklistsLoading" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading active checklists...</div>
+                <div v-else-if="activeChecklistsError" class="py-10 text-center text-sm text-red-500">{{ activeChecklistsError }}</div>
+                <div v-else-if="visibleActiveChecklists.length === 0" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">No active checklists.</div>
+                <ul v-else class="divide-y divide-gray-200 dark:divide-dark-700">
+                  <li
+                    v-for="checklist in visibleActiveChecklists"
+                    :key="checklist.id"
+                    class="px-2 py-3"
+                  >
+                    <div class="mb-2 flex min-w-0 items-start gap-2">
+                      <div class="min-w-0 flex-1">
+                        <h3 class="truncate text-sm font-medium text-gray-900 dark:text-white" :title="checklist.template_name || `Checklist ${checklist.id}`">
+                          {{ checklist.template_name || `Checklist ${checklist.id}` }}
+                        </h3>
+                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          {{ getCompletionText(checklist) }}
+                        </p>
+                      </div>
+                      <span :class="getProgressClassFromPercent(getCompletionPercent(checklist))" class="flex-shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums">
+                        {{ getCompletionPercent(checklist) }}%
+                      </span>
+                    </div>
+
+                    <p
+                      v-if="checklist.status === 'approved' && (checklist.approved_by || checklist.approved_by_email)"
+                      class="mb-2 truncate text-[11px] text-gray-500 dark:text-gray-400"
                     >
-                      {{ approving === checklist.id ? 'Approving...' : 'Approve' }}
-                    </button>
-                    
-                    <!-- Approved: Show Approved badge (green, disabled) -->
-                    <span 
-                      v-if="checklist.status === 'approved'"
-                      class="px-4 py-2 bg-green-500/20 text-green-500 border border-green-500/30 rounded-lg text-sm font-semibold"
+                      Approved by {{ checklist.approved_by || checklist.approved_by_email }}
+                    </p>
+                    <p
+                      v-if="checklist.status === 'rejected' && (checklist.rejected_by || checklist.rejected_by_email)"
+                      class="mb-2 truncate text-[11px] text-gray-500 dark:text-gray-400"
                     >
-                      Approved
-                    </span>
-                    
-                    <!-- Rejected: Show Rejected badge (red) -->
-                    <span 
-                      v-if="checklist.status === 'rejected'"
-                      class="px-4 py-2 bg-red-500/20 text-red-500 border border-red-500/30 rounded-lg text-sm font-semibold"
-                    >
-                      Rejected
-                    </span>
-                    
-                    <!-- Delete button for all statuses -->
-                    <button
-                      class="ml-auto p-2 text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      @click="confirmDeleteChecklist(checklist)"
-                      :disabled="deleting === checklist.id"
-                      title="Delete checklist"
-                    >
-                      <svg v-if="deleting === checklist.id" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                      Rejected by {{ checklist.rejected_by || checklist.rejected_by_email }}
+                    </p>
+
+                    <div class="flex items-center gap-2">
+                      <button
+                        v-if="checklist.status === 'pending'"
+                        class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        @click="approveChecklist(checklist.id)"
+                        :disabled="approving === checklist.id"
+                      >
+                        {{ approving === checklist.id ? '…' : 'Approve' }}
+                      </button>
+                      <span
+                        v-else-if="checklist.status === 'approved'"
+                        :class="statusBadgeClass('approved')"
+                      >
+                        Approved
+                      </span>
+                      <span
+                        v-else-if="checklist.status === 'rejected'"
+                        :class="statusBadgeClass('rejected')"
+                      >
+                        Rejected
+                      </span>
+
+                      <button
+                        class="ml-auto rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                        @click="confirmDeleteChecklist(checklist)"
+                        :disabled="deleting === checklist.id"
+                        title="Delete checklist"
+                      >
+                        <svg v-if="deleting === checklist.id" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Statistics Section -->
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Total Templates</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {{ checklistsStore.stats?.total_templates ?? (checklistsStore.statsLoading ? '...' : checklistsStore.list.length) }}
-                </p>
-              </div>
-              <div class="p-3 bg-blue-500/10 rounded-lg">
-                <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-            </div>
+        <div class="mx-auto grid max-w-7xl grid-cols-2 gap-3 md:grid-cols-4">
+          <div class="stat-tile !text-left !p-4 border-sky-500/30 bg-sky-500/5">
+            <p class="text-xs font-medium uppercase tracking-wide text-sky-400">Total Templates</p>
+            <p class="mt-1 font-display text-2xl font-bold text-sky-300">
+              {{ checklistsStore.stats?.total_templates ?? (checklistsStore.statsLoading ? '…' : checklistsStore.list.length) }}
+            </p>
           </div>
-
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Active Checklists</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {{ checklistsStore.stats?.active_checklists ?? (checklistsStore.statsLoading ? '...' : activeChecklists.length) }}
-                </p>
-              </div>
-              <div class="p-3 bg-green-500/10 rounded-lg">
-                <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-            </div>
+          <div class="stat-tile !text-left !p-4 border-violet-500/30 bg-violet-500/5">
+            <p class="text-xs font-medium uppercase tracking-wide text-violet-400">Active Checklists</p>
+            <p class="mt-1 font-display text-2xl font-bold text-violet-300">
+              {{ checklistsStore.stats?.active_checklists ?? (checklistsStore.statsLoading ? '…' : activeChecklists.length) }}
+            </p>
           </div>
-
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Approved</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {{ checklistsStore.stats?.approved_checklists ?? (checklistsStore.statsLoading ? '...' : approvedCount) }}
-                </p>
-              </div>
-              <div class="p-3 bg-purple-500/10 rounded-lg">
-                <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
+          <div class="stat-tile !text-left !p-4 border-emerald-500/30 bg-emerald-500/5">
+            <p class="text-xs font-medium uppercase tracking-wide text-emerald-400">Approved</p>
+            <p class="mt-1 font-display text-2xl font-bold text-emerald-300">
+              {{ checklistsStore.stats?.approved_checklists ?? (checklistsStore.statsLoading ? '…' : approvedCount) }}
+            </p>
           </div>
-
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Avg. Completion</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {{ checklistsStore.stats ? `${Math.round(checklistsStore.stats.avg_completion_rate)}%` : (checklistsStore.statsLoading ? '...' : `${averageCompletion}%`) }}
-                </p>
-              </div>
-              <div class="p-3 bg-orange-500/10 rounded-lg">
-                <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-              </div>
-            </div>
+          <div class="stat-tile !text-left !p-4 border-amber-500/30 bg-amber-500/5">
+            <p class="text-xs font-medium uppercase tracking-wide text-amber-400">Avg. Completion</p>
+            <p class="mt-1 font-display text-2xl font-bold text-amber-300">
+              {{ checklistsStore.stats ? `${Math.round(checklistsStore.stats.avg_completion_rate)}%` : (checklistsStore.statsLoading ? '…' : `${averageCompletion}%`) }}
+            </p>
           </div>
         </div>
       </main>
@@ -355,6 +320,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChecklistsStore } from '@/stores/checklists'
 import CreateTemplateModal from '@/components/Checklist/CreateTemplateModal.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import { statusBadgeClass } from '@/utils/status-badge'
 
 const router = useRouter()
 
@@ -601,7 +567,18 @@ const handleTemplateCreated = async () => {
   setTimeout(() => { toast.value = null }, 2500)
 }
 
+function isTorTemplate(template: any) {
+  const name = String(template?.name || '').toLowerCase()
+  const cat = String(template?.category || '').toLowerCase()
+  return Boolean(template?.is_system) || cat.includes('tapeout') || cat.includes('tor') || name.includes('tapeout') || name.includes('tor ')
+}
+
 const confirmDeleteTemplate = (template: any) => {
+  if (template?.is_system) {
+    toast.value = { message: 'System / Tapeout templates cannot be deleted.', type: 'error' }
+    setTimeout(() => { toast.value = null }, 3000)
+    return
+  }
   templateToDelete.value = template
   deleteTemplateError.value = ''
   showDeleteTemplateModal.value = true

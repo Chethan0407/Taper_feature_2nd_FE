@@ -89,4 +89,18 @@ test.describe('API & network UI validations @network @regression', () => {
     await projectsPage.expectLoaded()
     expect(sawAuth).toBeTruthy()
   })
+
+  test('SpecLint Add Rule never shows Response construct error on network abort', {
+    tag: ['@network', '@regression', '@speclint'],
+  }, async ({ authenticated, specLintPage, page }) => {
+    void authenticated
+    await abortApi(page, /\/speclint\/rules/, 3)
+    await specLintPage.goto()
+    await specLintPage.expectLoaded()
+    await specLintPage.fillMinimalRule('NETWORK-FIXME')
+    await specLintPage.submitAddRule()
+    await expect(specLintPage.ruleError()).toBeVisible({ timeout: 15_000 })
+    await specLintPage.expectNoResponseConstructError()
+    await expect(page.getByText(/cannot reach the server|network error|failed to add rule/i).first()).toBeVisible()
+  })
 })

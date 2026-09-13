@@ -1,5 +1,5 @@
 <template>
-  <header class="border-b border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-900 px-6 py-4">
+  <header class="sticky top-0 z-20 border-b border-slate-300/70 bg-[#f7fafc]/90 px-6 py-4 shadow-sm backdrop-blur-xl dark:border-dark-700/80 dark:bg-dark-900/80 dark:shadow-none">
     <div class="flex items-center justify-between">
       <!-- Branding Logo and Name -->
       <div class="flex items-center mr-8">
@@ -118,20 +118,21 @@
               </li>
               <li>
                 <router-link 
-                  to="/settings?section=appearance" 
-                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
-                  @click="closeProfileDropdown"
-                >
-                  Appearance
-                </router-link>
-              </li>
-              <li>
-                <router-link 
                   to="/settings?section=branding" 
                   class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
                   @click="closeProfileDropdown"
                 >
                   Branding
+                </router-link>
+              </li>
+              <li v-if="authStore.canManageDataTransfer">
+                <router-link
+                  to="/settings?section=data"
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors"
+                  data-testid="header-nav-data"
+                  @click="closeProfileDropdown"
+                >
+                  Data
                 </router-link>
               </li>
               <li class="border-t border-dark-700 mt-1">
@@ -165,6 +166,7 @@ import { useCompaniesStore } from '@/stores/companies'
 import NotificationBell from './NotificationBell.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
 import SmartSuggestionsPanel from '@/components/Common/SmartSuggestionsPanel.vue'
+import { statusBadgeClass } from '@/utils/status-badge'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -261,14 +263,7 @@ function handleSearchBlur() {
 }
 
 function getStatusClass(status: string) {
-  switch (status) {
-    case 'active':
-      return 'bg-green-500/20 text-green-400 border border-green-500/30'
-    case 'inactive':
-      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-    default:
-      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-  }
+  return statusBadgeClass(status)
 }
 
 // Load user profile

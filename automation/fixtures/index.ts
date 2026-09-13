@@ -13,6 +13,7 @@ import {
   VerifyEmailPage,
   ResetPasswordPage,
   DashboardPage,
+  StatsPage,
   ProjectsPage,
   ProjectDetailsPage,
   SpecsPage,
@@ -32,6 +33,7 @@ type Pages = {
   verifyEmailPage: VerifyEmailPage
   resetPasswordPage: ResetPasswordPage
   dashboardPage: DashboardPage
+  statsPage: StatsPage
   projectsPage: ProjectsPage
   projectDetailsPage: ProjectDetailsPage
   specsPage: SpecsPage
@@ -50,6 +52,10 @@ type AuthPages = Pages & {
   authenticated: void
   /** Seeds engineer (non-admin) token + API mocks. */
   authenticatedEngineer: void
+  /** Same domain peer — should see company-shared data. */
+  authenticatedPeer: void
+  /** Other domain — must not see tapeoutops shared data. */
+  authenticatedOutsider: void
 }
 
 export const test = base.extend<AuthPages>({
@@ -67,6 +73,9 @@ export const test = base.extend<AuthPages>({
   },
   dashboardPage: async ({ page }, use) => {
     await use(new DashboardPage(page))
+  },
+  statsPage: async ({ page }, use) => {
+    await use(new StatsPage(page))
   },
   projectsPage: async ({ page }, use) => {
     await use(new ProjectsPage(page))
@@ -111,6 +120,20 @@ export const test = base.extend<AuthPages>({
   authenticatedEngineer: [
     async ({ page }, use) => {
       await seedAuth(page, Users.engineer)
+      await use()
+    },
+    { auto: false },
+  ],
+  authenticatedPeer: [
+    async ({ page }, use) => {
+      await seedAuth(page, Users.peer)
+      await use()
+    },
+    { auto: false },
+  ],
+  authenticatedOutsider: [
+    async ({ page }, use) => {
+      await seedAuth(page, Users.outsider)
       await use()
     },
     { auto: false },

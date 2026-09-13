@@ -7,6 +7,7 @@ test.describe('App navigation & logout @authenticated', () => {
 
     const links: Array<{ label: RegExp; url: RegExp }> = [
       { label: /^Dashboard$/i, url: /\/dashboard/ },
+      { label: /^Stats$/i, url: /\/stats/ },
       { label: /^Projects$/i, url: /\/projects/ },
       { label: /^Specs$/i, url: /\/specs/ },
       { label: /^Checklists$/i, url: /\/checklists/ },

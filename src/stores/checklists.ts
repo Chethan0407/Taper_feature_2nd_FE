@@ -22,6 +22,8 @@ export interface Checklist {
   created_at?: string
   updated_at?: string
   is_template?: boolean
+  is_system?: boolean
+  category?: string
 }
 
 export interface ChecklistStats {

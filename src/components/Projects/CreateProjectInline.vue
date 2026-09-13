@@ -75,6 +75,61 @@
             />
           </div>
 
+          <!-- Tapeout profile -->
+          <div class="rounded-xl border border-slate-200 p-4 dark:border-dark-600">
+            <p class="mb-3 text-sm font-semibold text-slate-800 dark:text-gray-200">Tapeout profile</p>
+            <p class="mb-4 text-xs text-slate-500 dark:text-gray-400">
+              Foundry, node, and PDK for program readiness tracking — not an EDA runner.
+            </p>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">FOUNDRY</label>
+                <select v-model="form.foundry" class="input-field w-full">
+                  <option value="">Select foundry</option>
+                  <option
+                    v-for="f in (metadataStore.platforms.length ? metadataStore.platforms : ['TSMC', 'Samsung', 'GlobalFoundries', 'Intel'])"
+                    :key="f"
+                    :value="f"
+                  >{{ f }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">PROCESS NODE</label>
+                <select v-model="form.process_node" class="input-field w-full">
+                  <option value="">Select node</option>
+                  <option
+                    v-for="n in (metadataStore.processNodes.length ? metadataStore.processNodes : ['N3', 'N5', 'N7', 'N16', 'N28'])"
+                    :key="n"
+                    :value="n"
+                  >{{ n }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">PDK VERSION</label>
+                <input v-model="form.pdk_version" type="text" placeholder="e.g. 1.2.3" class="input-field w-full" />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">EDA TOOL VERSION</label>
+                <input v-model="form.eda_tool_version" type="text" placeholder="e.g. 2024.1" class="input-field w-full" />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">TARGET TAPEOUT DATE</label>
+                <input v-model="form.target_tapeout_date" type="date" class="input-field w-full" />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">TAPEOUT STATUS</label>
+                <select v-model="form.tapeout_status" class="input-field w-full">
+                  <option value="">Select status</option>
+                  <option
+                    v-for="s in (metadataStore.tapeoutStatuses.length ? metadataStore.tapeoutStatuses : ['planning', 'in_progress', 'frozen', 'submitted', 'fab'])"
+                    :key="s"
+                    :value="s"
+                  >{{ s }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <!-- Submit Button -->
           <div class="flex justify-end space-x-3 pt-4">
             <button 
@@ -87,7 +142,7 @@
             <button 
               type="submit"
               :disabled="submitting"
-              class="btn-primary px-8 py-3 rounded-lg font-semibold shadow-xl animate-glow"
+              class="btn-primary rounded-lg px-8 py-3 font-semibold"
             >
               <svg v-if="submitting" class="w-5 h-5 mr-2 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -123,10 +178,16 @@ const metadataStore = useMetadataStore()
 const form = reactive({
   name: '',
   description: '',
-  platform: '' as 'ASIC' | 'FPGA' | 'SoC',
-  edaTool: '' as 'Synopsys' | 'Cadence' | 'Mentor',
-  type: '' as 'TapeOut' | 'LintOnly',
-  companyId: '' as string
+  platform: '' as string,
+  edaTool: '' as string,
+  type: '' as string,
+  companyId: '' as string,
+  foundry: '',
+  process_node: '',
+  pdk_version: '',
+  eda_tool_version: '',
+  target_tapeout_date: '',
+  tapeout_status: '',
 })
 
 const emit = defineEmits(['project-created', 'cancel'])
@@ -146,17 +207,23 @@ const toggleForm = () => {
 const resetForm = () => {
   form.name = ''
   form.description = ''
-  form.platform = '' as 'ASIC' | 'FPGA' | 'SoC'
-  form.edaTool = '' as 'Synopsys' | 'Cadence' | 'Mentor'
-  form.type = '' as 'TapeOut' | 'LintOnly'
-  form.companyId = '' as string
+  form.platform = ''
+  form.edaTool = ''
+  form.type = ''
+  form.companyId = ''
+  form.foundry = ''
+  form.process_node = ''
+  form.pdk_version = ''
+  form.eda_tool_version = ''
+  form.target_tapeout_date = ''
+  form.tapeout_status = ''
   nameError.value = ''
 }
 
 const handleSubmit = async () => {
   submitting.value = true
   nameError.value = ''
-  
+
   try {
     const trimmedName = form.name.trim()
 
@@ -164,9 +231,8 @@ const handleSubmit = async () => {
       throw new Error('Project name is required')
     }
 
-    // Enforce unique project names (case-insensitive) so cards stay distinct
     const existing = projectsStore.projects?.some(
-      (p) => p.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      (p) => p.name.trim().toLowerCase() === trimmedName.toLowerCase(),
     )
     if (existing) {
       nameError.value = 'A project with this name already exists. Please choose a different name.'
@@ -174,11 +240,14 @@ const handleSubmit = async () => {
       return
     }
 
-    // Validate company_id is selected
     if (!form.companyId || !parseInt(form.companyId)) {
       throw new Error('Please select a company')
     }
-    
+
+    const targetIso = form.target_tapeout_date
+      ? new Date(`${form.target_tapeout_date}T00:00:00Z`).toISOString()
+      : undefined
+
     const projectData = {
       name: trimmedName,
       description: form.description,
@@ -187,27 +256,27 @@ const handleSubmit = async () => {
       type: form.type,
       status: 'active' as const,
       company_id: parseInt(form.companyId),
+      foundry: form.foundry || undefined,
+      process_node: form.process_node || undefined,
+      pdk_version: form.pdk_version || undefined,
+      eda_tool_version: form.eda_tool_version || undefined,
+      target_tapeout_date: targetIso,
+      tapeout_status: form.tapeout_status || undefined,
       created_at: '',
-      updated_at: ''
+      updated_at: '',
     }
-    
-    const newProject = await projectsStore.createProject(projectData)
-    
-    // Call parent callback if provided
+
+    const newProject = await projectsStore.createProject(projectData as any)
+
+    emit('project-created', newProject)
     if (props.onProjectCreated) {
       props.onProjectCreated(newProject)
     }
-    
-    // Reset form and hide
+
     resetForm()
     showForm.value = false
-    
-    // Show success toast (you can implement a toast system)
-    console.log('Project created successfully!')
-    
   } catch (error: any) {
     console.error('Failed to create project:', error)
-    // Show error toast
   } finally {
     submitting.value = false
   }

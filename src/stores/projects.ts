@@ -7,17 +7,79 @@ export interface Project {
   id: string
   name: string
   description?: string
-  platform: 'ASIC' | 'FPGA' | 'SoC'
-  edaTool: 'Synopsys' | 'Cadence' | 'Mentor'
-  type: 'TapeOut' | 'LintOnly'
-  status: 'active' | 'planning' | 'completed' | 'archived'
+  platform: string
+  edaTool: string
+  eda_tool?: string
+  eda_tool_version?: string
+  type: string
+  status: string
   company_id: number
+  companyId?: number
+  foundry?: string
+  process_node?: string
+  pdk_version?: string
+  target_tapeout_date?: string
+  tapeout_status?: string
   created_at: string
   updated_at: string
   createdAt?: string
   updatedAt?: string
   spec_ids?: number[]
   checklist_ids?: number[]
+}
+
+function normalizeProject(p: any): Project {
+  return {
+    ...p,
+    platform: p.platform || p.platform_name || p.platform_type || '',
+    edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
+    eda_tool: p.eda_tool || p.edaTool || p.eda_tool_name || '',
+    eda_tool_version: p.eda_tool_version || p.edaToolVersion || '',
+    type: p.type || p.project_type || '',
+    foundry: p.foundry || '',
+    process_node: p.process_node || p.processNode || '',
+    pdk_version: p.pdk_version || p.pdkVersion || '',
+    target_tapeout_date: p.target_tapeout_date || p.targetTapeoutDate || '',
+    tapeout_status: p.tapeout_status || p.tapeoutStatus || '',
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  }
+}
+
+function toApiPayload(projectData: Partial<Project> & Record<string, any>) {
+  const {
+    edaTool,
+    createdAt,
+    updatedAt,
+    companyId,
+    ...rest
+  } = projectData
+
+  const payload: Record<string, unknown> = { ...rest }
+
+  if (edaTool != null && payload.eda_tool == null) {
+    payload.eda_tool = edaTool
+  }
+  // Prefer snake_case for API; drop camel aliases that confuse backends
+  delete payload.edaTool
+  delete payload.companyId
+
+  if (createdAt) payload.created_at = createdAt
+
+  // Omit empty optional tapeout fields
+  for (const key of [
+    'foundry',
+    'process_node',
+    'pdk_version',
+    'eda_tool_version',
+    'target_tapeout_date',
+    'tapeout_status',
+    'description',
+  ]) {
+    if (payload[key] === '' || payload[key] == null) delete payload[key]
+  }
+
+  return payload
 }
 
 export const useProjectsStore = defineStore('projects', () => {
@@ -27,13 +89,12 @@ export const useProjectsStore = defineStore('projects', () => {
 
   const API_BASE = '/api/v1/projects'
 
-  // Load all projects
   const loadProjects = async () => {
     loading.value = true
     error.value = null
     try {
       const response = await authenticatedFetch(API_BASE)
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Not authenticated')
@@ -41,46 +102,31 @@ export const useProjectsStore = defineStore('projects', () => {
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to load projects')
       }
-      
+
       const data = await response.json()
-      projects.value = Array.isArray(data)
-        ? data.map((p: any) => ({
-            ...p,
-            // Normalize core fields so edit modal always sees them
-            platform: p.platform || p.platform_name || p.platform_type || '',
-            edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
-            type: p.type || p.project_type || '',
-            createdAt: p.created_at,
-            updatedAt: p.updated_at
-          }))
-        : []
+      projects.value = Array.isArray(data) ? data.map(normalizeProject) : []
     } catch (err: any) {
       error.value = err.message || 'Failed to load projects'
-      console.error('🔍 DEBUG - Error loading projects:', err)
+      console.error('Error loading projects:', err)
     } finally {
       loading.value = false
     }
   }
 
-  // Create new project
-  const createProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { company_id: number }) => {
+  const createProject = async (
+    projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & { company_id: number },
+  ) => {
     loading.value = true
     error.value = null
     try {
-      const pd = projectData as any;
-      const payload = {
-        ...projectData,
-        ...(pd.createdAt ? { created_at: pd.createdAt } : {})
-      };
-      
+      const payload = toApiPayload(projectData as any)
+
       const response = await authenticatedFetch(API_BASE, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       })
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Not authenticated')
@@ -88,16 +134,8 @@ export const useProjectsStore = defineStore('projects', () => {
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to create project')
       }
-      
-      const newProject = await response.json()
-      return {
-        ...newProject,
-        platform: newProject.platform || newProject.platform_name || newProject.platform_type || '',
-        edaTool: newProject.edaTool || newProject.eda_tool || newProject.eda_tool_name || '',
-        type: newProject.type || newProject.project_type || '',
-        createdAt: newProject.created_at,
-        updatedAt: newProject.updated_at
-      }
+
+      return normalizeProject(await response.json())
     } catch (err: any) {
       error.value = err.message || 'Failed to create project'
       throw err
@@ -106,13 +144,12 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // Get single project
   const getProject = async (id: string) => {
     loading.value = true
     error.value = null
     try {
       const response = await authenticatedFetch(`${API_BASE}/${id}`)
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Not authenticated')
@@ -120,16 +157,8 @@ export const useProjectsStore = defineStore('projects', () => {
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to load project')
       }
-      
-      const p = await response.json()
-      return {
-        ...p,
-        platform: p.platform || p.platform_name || p.platform_type || '',
-        edaTool: p.edaTool || p.eda_tool || p.eda_tool_name || '',
-        type: p.type || p.project_type || '',
-        createdAt: p.created_at,
-        updatedAt: p.updated_at
-      }
+
+      return normalizeProject(await response.json())
     } catch (err: any) {
       error.value = err.message || 'Failed to load project'
       throw err
@@ -138,25 +167,18 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // Update project
   const updateProject = async (id: string, projectData: Partial<Project>) => {
     loading.value = true
     error.value = null
     try {
-      const pd = projectData as any;
-      const payload = {
-        ...projectData,
-        ...(pd.createdAt ? { created_at: pd.createdAt } : {})
-      };
-      
+      const payload = toApiPayload(projectData as any)
+
       const response = await authenticatedFetch(`${API_BASE}/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       })
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Not authenticated')
@@ -164,27 +186,13 @@ export const useProjectsStore = defineStore('projects', () => {
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to update project')
       }
-      
-      const updatedProject = await response.json()
-      const index = projects.value.findIndex(p => p.id === id)
+
+      const updatedProject = normalizeProject(await response.json())
+      const index = projects.value.findIndex((p) => p.id === id)
       if (index !== -1) {
-        projects.value[index] = {
-          ...updatedProject,
-          platform: updatedProject.platform || updatedProject.platform_name || updatedProject.platform_type || projects.value[index].platform,
-          edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || projects.value[index].edaTool,
-          type: updatedProject.type || updatedProject.project_type || projects.value[index].type,
-          createdAt: updatedProject.created_at,
-          updatedAt: updatedProject.updated_at
-        }
+        projects.value[index] = { ...projects.value[index], ...updatedProject }
       }
-      return {
-        ...updatedProject,
-        platform: updatedProject.platform || updatedProject.platform_name || updatedProject.platform_type || '',
-        edaTool: updatedProject.edaTool || updatedProject.eda_tool || updatedProject.eda_tool_name || '',
-        type: updatedProject.type || updatedProject.project_type || '',
-        createdAt: updatedProject.created_at,
-        updatedAt: updatedProject.updated_at
-      }
+      return updatedProject
     } catch (err: any) {
       error.value = err.message || 'Failed to update project'
       throw err
@@ -193,22 +201,20 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // Delete project
   const deleteProject = async (id: string) => {
     loading.value = true
     error.value = null
     try {
       const response = await authenticatedFetch(`${API_BASE}/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Not authenticated')
         }
         if (response.status === 404) {
-          // Project already deleted or doesn't exist - remove from local list anyway
-          projects.value = projects.value.filter(p => p.id !== id)
+          projects.value = projects.value.filter((p) => p.id !== id)
           return
         }
         const errorText = await response.text()
@@ -221,25 +227,22 @@ export const useProjectsStore = defineStore('projects', () => {
         }
         throw new Error(errorMsg)
       }
-      
-      // Remove from local list only if deletion was successful
-      projects.value = projects.value.filter(p => p.id !== id)
+
+      projects.value = projects.value.filter((p) => p.id !== id)
     } catch (err: any) {
       error.value = err.message || 'Failed to delete project'
-      console.error('❌ Error deleting project:', err)
+      console.error('Error deleting project:', err)
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  // Get linked content for a project
   const getProjectLinkedContent = async (projectId: string): Promise<LinkedContentResponse> => {
     loading.value = true
     error.value = null
     try {
-      const linkedContent = await getLinkedContent(projectId)
-      return linkedContent
+      return await getLinkedContent(projectId)
     } catch (err: any) {
       error.value = err.message || 'Failed to load linked content'
       throw err
@@ -257,6 +260,6 @@ export const useProjectsStore = defineStore('projects', () => {
     getProject,
     updateProject,
     deleteProject,
-    getProjectLinkedContent
+    getProjectLinkedContent,
   }
-}) 
+})
