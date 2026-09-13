@@ -94,8 +94,8 @@
                 <h2 class="module-section-title text-lg">Active Checklists</h2>
               </div>
               <div class="custom-scrollbar flex-1 overflow-y-auto px-3 py-2">
-                <div v-if="activeChecklistsLoading" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading active checklists...</div>
-                <div v-else-if="activeChecklistsError" class="py-10 text-center text-sm text-red-500">{{ activeChecklistsError }}</div>
+                <div v-if="activeChecklistsLoading && visibleActiveChecklists.length === 0" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Loading active checklists...</div>
+                <div v-else-if="activeChecklistsError && visibleActiveChecklists.length === 0" class="py-10 text-center text-sm text-red-500">{{ activeChecklistsError }}</div>
                 <div v-else-if="visibleActiveChecklists.length === 0" class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">No active checklists.</div>
                 <ul v-else class="divide-y divide-gray-200 dark:divide-dark-700">
                   <li
@@ -453,8 +453,11 @@ const fetchTemplates = async () => {
   }
 }
 
-const fetchActiveChecklists = async () => {
-  activeChecklistsLoading.value = true
+const fetchActiveChecklists = async (opts?: { silent?: boolean }) => {
+  const silent = Boolean(opts?.silent) || activeChecklists.value.length > 0
+  if (!silent) {
+    activeChecklistsLoading.value = true
+  }
   activeChecklistsError.value = ''
   try {
     const data = await checklistsStore.fetchActiveChecklists()
@@ -536,8 +539,10 @@ const fetchActiveChecklists = async () => {
     // Don't auto-logout - just show the error
     // The user can manually refresh or try again
     console.error('Error fetching active checklists:', e)
-    // Clear the list on error to prevent stale data
-    activeChecklists.value = []
+    // Only clear list on hard (non-silent) failures so approve/use don't wipe the panel
+    if (!silent) {
+      activeChecklists.value = []
+    }
   } finally {
     activeChecklistsLoading.value = false
   }
@@ -738,7 +743,7 @@ const useTemplate = async (templateId: string | number) => {
     await res.json()
     toast.value = { message: 'Checklist instantiated!', type: 'success' }
     // Refresh active list + stats without blanking the templates panel
-    await fetchActiveChecklists()
+    await fetchActiveChecklists({ silent: true })
     void checklistsStore.fetchStats()
   } catch (e: any) {
     toast.value = { message: e.message || 'Failed to create active checklist', type: 'error' }
@@ -1004,9 +1009,8 @@ const approveChecklist = async (id: string) => {
         status: normalizedStatus
       }
     }
-    // Kick off background refresh of active checklists and statistics
-    // without blocking the button/UI.
-    fetchActiveChecklists().catch((err) => {
+    // Kick off background refresh without blanking the active list
+    fetchActiveChecklists({ silent: true }).catch((err) => {
       console.error('Background refresh of active checklists failed:', err)
     })
     checklistsStore.fetchStats().catch((err: any) => {
