@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <Sidebar />
     
     <div class="ml-64">
@@ -7,17 +7,19 @@
       
       <main class="p-8">
         <!-- Page Header -->
-        <div class="mb-8 flex items-center justify-between">
+        <div class="mb-8 flex items-center justify-between page-enter">
           <div>
-            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2 tracking-wide">PROJECTS</h1>
-            <p class="text-gray-500 dark:text-gray-400 text-lg">Manage your tapeout projects and configurations</p>
+            <h1 class="page-title-gradient mb-1">Projects</h1>
+            <p class="page-subtitle">Manage your tapeout projects and configurations</p>
           </div>
-          <button v-if="!showCreateForm" class="btn-primary px-6 py-3 text-lg font-semibold shadow-xl animate-glow rounded-xl" @click="handleOpenCreate">
-            + New Project
-          </button>
+          <div class="flex items-center gap-3">
+            <button v-if="!showCreateForm" class="btn-primary px-6 py-3 text-lg font-semibold rounded-xl" @click="handleOpenCreate">
+              + New Project
+            </button>
+          </div>
         </div>
-        <div v-if="showCreateForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div class="w-full max-w-2xl mx-auto">
+        <div v-if="showCreateForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div class="mx-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto">
             <CreateProjectInline @project-created="handleProjectCreated" @cancel="handleCloseCreate" />
           </div>
         </div>
@@ -50,7 +52,7 @@
             v-for="project in filteredProjects" 
             :key="project.id" 
             :project="project"
-            class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl"
+            class="module-panel module-panel-accent live-card"
             @click="handleProjectClick"
             @edit="handleProjectEdit"
             @delete="handleProjectDelete"

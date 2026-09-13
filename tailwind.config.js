@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // Required so Appearance (localStorage + <html class="dark">) overrides OS preference.
+  // Default 'media' ignores .dark and only uses prefers-color-scheme.
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
@@ -7,15 +10,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Brandable primary scale — channels set by applyBrandTheme()
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
           300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          400: 'rgb(var(--brand-primary-rgb) / <alpha-value>)',
+          500: 'rgb(var(--brand-primary-rgb) / <alpha-value>)',
+          600: 'rgb(var(--brand-primary-rgb) / <alpha-value>)',
+          700: 'rgb(var(--brand-primary-hover-rgb) / <alpha-value>)',
           800: '#1e40af',
           900: '#1e3a8a',
         },
@@ -46,28 +50,44 @@ export default {
           950: '#0f172a',
         },
         neon: {
-          blue: '#00d4ff',
+          // Live branding: primary → neon-blue, secondary → neon-purple
+          blue: 'rgb(var(--brand-primary-rgb) / <alpha-value>)',
           green: '#00ff88',
-          purple: '#8b5cf6',
+          purple: 'rgb(var(--brand-secondary-rgb) / <alpha-value>)',
           teal: '#14b8a6',
           amber: '#f59e0b',
           indigo: '#6366f1',
           pink: '#ec4899',
-        }
+        },
+        brand: {
+          primary: 'rgb(var(--brand-primary-rgb) / <alpha-value>)',
+          secondary: 'rgb(var(--brand-secondary-rgb) / <alpha-value>)',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       animation: {
         'glow': 'glow 2s ease-in-out infinite alternate',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 5s ease-in-out infinite',
+        'float-delayed': 'float 6s ease-in-out 1.2s infinite',
+        'shimmer': 'shimmer 3.5s linear infinite',
       },
       keyframes: {
         glow: {
-          '0%': { boxShadow: '0 0 5px #00d4ff, 0 0 10px #00d4ff, 0 0 15px #00d4ff' },
-          '100%': { boxShadow: '0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px #00d4ff' },
-        }
+          '0%, 100%': { boxShadow: '0 4px 14px rgb(var(--brand-primary-rgb) / 0.22)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' },
+        },
       },
       backdropBlur: {
         xs: '2px',
@@ -75,4 +95,4 @@ export default {
     },
   },
   plugins: [],
-} 
+}

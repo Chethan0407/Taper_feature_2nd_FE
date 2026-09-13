@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -22,34 +22,35 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet"
       />
     </noscript>
     
-    <!-- Theme -->
+    <!-- Theme: dark-only (must match src/utils/theme.ts) -->
     <script>
-      // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
+      (function () {
+        var root = document.documentElement
+        localStorage.theme = 'dark'
+        root.classList.add('dark')
+        root.style.backgroundColor = '#0e0e0e'
+        root.style.colorScheme = 'dark'
+      })()
     </script>
   </head>
-  <body class="bg-dark-950 text-gray-100 antialiased">
+  <body class="min-h-screen bg-dark-950 text-gray-100 antialiased">
     <!--
       If you only see this block (no app UI), JS did not boot: check DevTools → Console, disable extensions,
       hard refresh (Cmd+Shift+R). Vue replaces everything inside #app when it mounts.
     -->
-    <div id="app" style="min-height: 100vh; background-color: #0e0e0e">
+    <div id="app" class="min-h-screen bg-dark-950">
       <div
         id="boot-fallback"
         style="color: #94a3b8; padding: 2rem; font-family: system-ui, sans-serif; text-align: center; max-width: 24rem; margin: 0 auto"

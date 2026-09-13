@@ -18,19 +18,19 @@
     <!-- Notification Dropdown -->
     <div
       v-if="isOpen"
-      class="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-dark-900 border border-dark-700 rounded-lg shadow-2xl z-50 flex flex-col max-h-[500px]"
+      class="absolute right-0 top-full z-50 mt-2 flex max-h-[500px] w-96 max-w-[calc(100vw-2rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-2xl dark:border-dark-700 dark:bg-dark-900"
     >
       <!-- Header -->
-      <div class="px-4 py-3 border-b border-dark-700 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-white">Notifications</h3>
+      <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-dark-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
         <div class="flex items-center gap-3">
-          <span v-if="unreadCount > 0" class="text-sm text-neon-blue">
+          <span v-if="unreadCount > 0" class="text-sm text-blue-600 dark:text-neon-blue">
             {{ unreadCount }} unread
           </span>
           <button
             @click="markAllAsRead"
             :disabled="unreadCount === 0 || markingAllAsRead"
-            class="text-sm text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class="text-sm text-gray-500 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:text-white"
           >
             {{ markingAllAsRead ? 'Marking...' : 'Mark all as read' }}
           </button>
@@ -38,14 +38,14 @@
       </div>
 
       <!-- Notification List -->
-      <div class="overflow-y-auto flex-1">
-        <div v-if="loading" class="p-8 text-center text-gray-400">
+      <div class="flex-1 overflow-y-auto">
+        <div v-if="loading" class="p-8 text-center text-gray-500 dark:text-gray-400">
           Loading...
         </div>
-        <div v-else-if="error" class="p-8 text-center text-red-400">
+        <div v-else-if="error" class="p-8 text-center text-red-600 dark:text-red-400">
           {{ error }}
         </div>
-        <div v-else-if="notifications.length === 0" class="p-8 text-center text-gray-400">
+        <div v-else-if="notifications.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
           No notifications
         </div>
         <div v-else>
@@ -53,33 +53,35 @@
             v-for="notification in displayedNotifications"
             :key="notification.id"
             :class="[
-              'px-4 py-3 border-b border-dark-700 cursor-pointer transition-colors flex items-start gap-3',
-              !notification.is_read ? 'bg-dark-800/50 hover:bg-dark-800' : 'hover:bg-dark-800/50'
+              'flex cursor-pointer items-start gap-3 border-b border-gray-100 px-4 py-3 transition-colors dark:border-dark-700',
+              !notification.is_read
+                ? 'bg-gray-50 hover:bg-gray-100 dark:bg-dark-800/50 dark:hover:bg-dark-800'
+                : 'hover:bg-gray-50 dark:hover:bg-dark-800/50',
             ]"
             @click="handleNotificationClick(notification)"
           >
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
+            <div class="min-w-0 flex-1">
+              <div class="mb-1 flex items-center gap-2">
                 <span
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide"
+                  class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
                   :class="getTypeBadgeClass(notification.type)"
                 >
                   {{ formatType(notification.type) }}
                 </span>
               </div>
-              <p class="text-sm text-white mb-1">{{ notification.message }}</p>
-              <span class="text-xs text-gray-400">{{ formatTime(notification.created_at) }}</span>
+              <p class="mb-1 text-sm text-gray-900 dark:text-white">{{ notification.message }}</p>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatTime(notification.created_at) }}</span>
             </div>
-            <div v-if="!notification.is_read" class="w-2 h-2 bg-neon-blue rounded-full mt-1.5 flex-shrink-0"></div>
+            <div v-if="!notification.is_read" class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500 dark:bg-neon-blue"></div>
           </div>
         </div>
       </div>
 
       <!-- Footer -->
-      <div v-if="notifications.length > 10" class="px-4 py-3 border-t border-dark-700 text-center">
+      <div v-if="notifications.length > 10" class="border-t border-gray-200 px-4 py-3 text-center dark:border-dark-700">
         <router-link
           to="/notifications"
-          class="text-sm text-neon-blue hover:text-neon-blue/80"
+          class="text-sm text-blue-600 hover:text-blue-500 dark:text-neon-blue dark:hover:text-neon-blue/80"
           @click="isOpen = false"
         >
           View all notifications
@@ -283,13 +285,13 @@ const formatType = (type: Notification['type']) => {
 const getTypeBadgeClass = (type: Notification['type']) => {
   switch (type) {
     case 'comment':
-      return 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+      return 'border border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/20 dark:text-blue-300'
     case 'update':
-      return 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+      return 'border border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-300'
     case 'mention':
-      return 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+      return 'border border-purple-200 bg-purple-100 text-purple-800 dark:border-purple-500/40 dark:bg-purple-500/20 dark:text-purple-300'
     default:
-      return 'bg-gray-500/20 text-gray-300 border border-gray-500/40'
+      return 'border border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-500/40 dark:bg-gray-500/20 dark:text-gray-300'
   }
 }
 

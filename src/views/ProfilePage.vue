@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950 flex items-center justify-center py-12">
+  <div class="min-h-screen app-page flex items-center justify-center py-12">
     <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-2xl rounded-2xl p-8 w-full max-w-lg">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">User Profile</h1>
       <form @submit.prevent="saveProfile" class="space-y-6">

@@ -29,6 +29,7 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
+.env.playwright.local
 
 # Build outputs
 build/
@@ -175,6 +176,14 @@ dist
 # Temporary folders
 tmp/
 temp/
+
+# Playwright
+/test-results/
+/playwright-report/
+/allure-results/
+/allure-report/
+/blob-report/
+/playwright/.cache/
 
 # Editor directories and files
 .vscode/*

@@ -1,502 +1,191 @@
 <template>
-  <div class="min-h-screen bg-light-50 dark:bg-dark-950">
-    <!-- Sidebar -->
+  <div class="min-h-screen app-page">
     <Sidebar />
-    
-    <!-- Main Content -->
     <div class="ml-64">
-      <!-- Header -->
       <Header />
-      
-      <!-- Dashboard Content -->
+
       <main class="p-8">
         <div
           v-if="adminAccessNotice"
-          class="mb-6 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-100"
+          class="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-amber-100"
           role="status"
         >
-          <p class="font-semibold text-amber-50">System Usage is admin-only</p>
-          <p class="mt-1 text-sm text-amber-100/90">
-            You were redirected from <code class="rounded bg-dark-800 px-1 py-0.5 text-xs">/admin/usage</code> because this account is not recognized as an administrator.
-            The sidebar hides &quot;System Usage&quot; for the same reason. Ask your team to assign an admin role in the backend (or log in with an admin user).
+          <p class="font-semibold">System Usage is superuser-only</p>
+          <p class="mt-1 text-sm opacity-90">
+            You were redirected because this account is not a superuser.
           </p>
-          <button
-            type="button"
-            class="mt-3 text-sm font-medium text-neon-blue hover:underline"
-            @click="dismissAdminNotice"
-          >
+          <button type="button" class="mt-3 text-sm font-medium text-neon-blue hover:underline" @click="dismissAdminNotice">
             Dismiss
           </button>
         </div>
 
-        <!-- Welcome Banner -->
-        <div class="mb-8">
-          <h1 class="text-4xl font-bold text-gradient mb-4">
-            Streamline Your Tapeout Workflow
-          </h1>
-          <p class="text-xl text-gray-600 dark:text-gray-400 max-w-2xl">
-            Welcome back<span v-if="authStore.user?.name">, {{ authStore.user.name }}</span>. Manage your semiconductor design specifications, 
-            automate quality checks, and collaborate with vendors all in one place.
+        <!-- User entry hero -->
+        <section class="mb-10 page-enter">
+          <p class="mb-2 text-sm text-slate-500">
+            Welcome back<span v-if="authStore.user?.name">, {{ authStore.user.name }}</span>
           </p>
-        </div>
+          <h1 class="page-title-gradient mb-3 max-w-3xl">
+            Your tapeout program workspace
+          </h1>
+          <p class="page-subtitle max-w-2xl">
+            Start from here — open projects, track readiness, run SpecLint, and manage checklists.
+            This is your entry point; live counts live on Stats.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <button type="button" class="btn-primary px-6 py-3 text-base" @click="router.push('/projects')">
+              Open Projects
+            </button>
+            <button type="button" class="btn-secondary px-6 py-3 text-base" @click="router.push('/stats')">
+              View Stats
+            </button>
+          </div>
+        </section>
 
-        <!-- CTA Section -->
-        <div class="mb-12">
-          <button class="btn-primary text-lg px-8 py-4 animate-glow" @click="goToProjects">
-            Get Started
+        <!-- Entry cards -->
+        <section class="mb-10 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 page-enter">
+          <button
+            v-for="card in entryCards"
+            :key="card.to"
+            type="button"
+            class="settings-card group !text-left transition hover:border-neon-blue/40"
+            @click="router.push(card.to)"
+          >
+            <div class="settings-card-body">
+              <div
+                class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl text-white"
+                :class="card.iconBg"
+              >
+                <component :is="card.icon" class="h-5 w-5" />
+              </div>
+              <h2 class="text-lg font-semibold text-white group-hover:text-neon-blue">{{ card.title }}</h2>
+              <p class="mt-1 text-sm text-slate-400">{{ card.desc }}</p>
+              <p class="mt-3 text-sm font-medium" :class="card.ctaClass">{{ card.cta }} →</p>
+            </div>
           </button>
-        </div>
+        </section>
 
-        <!-- Chip Illustration -->
-        <div class="mb-12 flex justify-center">
-          <div class="relative w-64 h-64">
-            <!-- Animated Circuit Pattern -->
-            <svg class="w-full h-full" viewBox="0 0 256 256" fill="none">
-              <!-- Grid Pattern -->
+        <!-- Soft circuit accent (decorative, not data) -->
+        <section class="flex justify-center opacity-80 page-enter" aria-hidden="true">
+          <div class="relative h-48 w-48">
+            <svg class="h-full w-full" viewBox="0 0 256 256" fill="none">
               <defs>
-                <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                  <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="1"/>
+                <pattern id="dash-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                  <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="1" />
                 </pattern>
               </defs>
-              <rect width="256" height="256" fill="url(#grid)"/>
-              
-              <!-- Circuit Lines -->
-              <path d="M 32 64 L 96 64 L 96 32 L 160 32 L 160 96 L 224 96" 
-                    stroke="rgba(0,212,255,0.6)" stroke-width="2" fill="none" 
-                    class="animate-pulse-slow"/>
-              <path d="M 64 128 L 128 128 L 128 160 L 192 160 L 192 224" 
-                    stroke="rgba(139,92,246,0.6)" stroke-width="2" fill="none" 
-                    class="animate-pulse-slow" style="animation-delay: 1s"/>
-              
-              <!-- Connection Points -->
-              <circle cx="32" cy="64" r="4" fill="rgba(0,212,255,0.8)" class="animate-pulse"/>
-              <circle cx="96" cy="64" r="4" fill="rgba(0,212,255,0.8)" class="animate-pulse"/>
-              <circle cx="160" cy="32" r="4" fill="rgba(0,212,255,0.8)" class="animate-pulse"/>
-              <circle cx="224" cy="96" r="4" fill="rgba(0,212,255,0.8)" class="animate-pulse"/>
-              <circle cx="64" cy="128" r="4" fill="rgba(139,92,246,0.8)" class="animate-pulse"/>
-              <circle cx="192" cy="224" r="4" fill="rgba(139,92,246,0.8)" class="animate-pulse"/>
+              <rect width="256" height="256" fill="url(#dash-grid)" />
+              <path
+                d="M 32 64 L 96 64 L 96 32 L 160 32 L 160 96 L 224 96"
+                stroke="rgba(56,189,248,0.55)"
+                stroke-width="2"
+                fill="none"
+                class="animate-pulse-slow"
+              />
+              <path
+                d="M 64 128 L 128 128 L 128 160 L 192 160 L 192 224"
+                stroke="rgba(52,211,153,0.5)"
+                stroke-width="2"
+                fill="none"
+                class="animate-pulse-slow"
+                style="animation-delay: 1s"
+              />
+              <circle cx="32" cy="64" r="4" fill="rgba(56,189,248,0.85)" class="animate-pulse" />
+              <circle cx="224" cy="96" r="4" fill="rgba(56,189,248,0.85)" class="animate-pulse" />
+              <circle cx="192" cy="224" r="4" fill="rgba(52,211,153,0.85)" class="animate-pulse" />
             </svg>
           </div>
-        </div>
-
-        <!-- Feature Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-          <!-- SpecLint Engine Card -->
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 group">
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">SpecLint Engine</h3>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                  Automatically validate your specifications for compliance, completeness, and best practices.
-                </p>
-                <button class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors" @click="router.push('/speclint')">
-                  Try SpecLint →
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Checklist Automation Card -->
-          <div class="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 group">
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-neon-green to-neon-blue rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Checklist Automation</h3>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                  Create, assign, and track approval workflows with automated reminders and notifications.
-                </p>
-                <button class="text-neon-green hover:text-neon-green/80 font-medium transition-colors" @click="router.push('/checklists')">
-                  Create Checklist →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12 mt-12">
-          <!-- Platform Card -->
-          <div class="card bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-xl shadow-lg p-6">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-neon-blue dark:to-neon-purple rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-500 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                </svg>
-              </div>
-              <span class="text-lg font-semibold text-gray-900 dark:text-white">Platform</span>
-            </div>
-            <div class="flex flex-wrap gap-3 mt-2">
-              <button v-for="platform in metadataStore.platforms" :key="platform"
-                @click="handleFilter('platform', platform)"
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-semibold border shadow-sm transition-colors',
-                  isFilterSelected('platform', platform)
-                    ? 'bg-blue-600 text-white border-blue-600 dark:bg-neon-blue dark:text-white dark:border-neon-blue'
-                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50 dark:bg-dark-800 dark:text-gray-300 dark:border-dark-700 dark:hover:bg-dark-700'
-                ]">
-                {{ platform }}
-              </button>
-            </div>
-          </div>
-          <!-- EDA Tool Card -->
-          <div class="card bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-xl shadow-lg p-6">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-10 h-10 bg-gradient-to-br from-green-100 to-blue-100 dark:from-neon-green dark:to-neon-blue rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-500 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-              </div>
-              <span class="text-lg font-semibold text-gray-900 dark:text-white">EDA Tool</span>
-            </div>
-            <div class="flex flex-wrap gap-3 mt-2">
-              <button v-for="edaTool in metadataStore.edaTools" :key="edaTool"
-                @click="handleFilter('edaTool', edaTool)"
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-semibold border shadow-sm transition-colors',
-                  isFilterSelected('edaTool', edaTool)
-                    ? 'bg-green-600 text-white border-green-600 dark:bg-neon-green dark:text-white dark:border-neon-green'
-                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-green-50 dark:bg-dark-800 dark:text-gray-300 dark:border-dark-700 dark:hover:bg-dark-700'
-                ]">
-                {{ edaTool }}
-              </button>
-            </div>
-          </div>
-          <!-- Type Card -->
-          <div class="card bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-xl shadow-lg p-6">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-neon-purple dark:to-neon-pink rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-purple-500 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-              </div>
-              <span class="text-lg font-semibold text-gray-900 dark:text-white">Type</span>
-            </div>
-            <div class="flex flex-wrap gap-3 mt-2">
-              <button v-for="type in metadataStore.types" :key="type"
-                @click="handleFilter('type', type)"
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-semibold border shadow-sm transition-colors',
-                  isFilterSelected('type', type)
-                    ? 'bg-purple-600 text-white border-purple-600 dark:bg-neon-purple dark:text-white dark:border-neon-purple'
-                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-purple-50 dark:bg-dark-800 dark:text-gray-300 dark:border-dark-700 dark:hover:bg-dark-700'
-                ]">
-                {{ type }}
-              </button>
-            </div>
-          </div>
-          <!-- Status Card -->
-          <div class="card bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-xl shadow-lg p-6">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-10 h-10 bg-gradient-to-br from-yellow-100 to-yellow-300 dark:from-yellow-400 dark:to-yellow-600 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-yellow-500 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <span class="text-lg font-semibold text-gray-900 dark:text-white">Status</span>
-            </div>
-            <div class="flex flex-wrap gap-3 mt-2">
-              <button v-for="status in ['Approved', 'Pending', 'Rejected']" :key="status"
-                @click="handleFilter('status', status)"
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-semibold border shadow-sm transition-colors',
-                  isFilterSelected('status', status)
-                    ? 'bg-yellow-500 text-white border-yellow-500 dark:bg-yellow-400 dark:text-white dark:border-yellow-400'
-                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-yellow-50 dark:bg-dark-800 dark:text-gray-300 dark:border-dark-700 dark:hover:bg-dark-700'
-                ]">
-                {{ status }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Active filter summary -->
-        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          Showing specs for
-          <span class="font-medium text-gray-900 dark:text-white">{{ activeFilterSummary }}</span>
-        </p>
-
-        <!-- Loading state for tapeouts or metadata -->
-        <div v-if="metadataStore.loading || showTapeoutsLoading" class="flex justify-center items-center py-12">
-          <div class="text-center">
-            <svg class="w-12 h-12 text-neon-blue animate-spin mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            <p class="text-gray-400">Loading data...</p>
-          </div>
-        </div>
-        <div v-else-if="tapeoutsError" class="flex flex-col items-center justify-center py-12">
-          <svg class="w-16 h-16 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <div class="text-2xl font-bold text-red-400 mb-2">Failed to Load Tapeouts</div>
-          <div class="text-gray-400 mb-4">
-            <span v-if="tapeoutsError.includes('Not authenticated')">You are not logged in. Please log in to view tapeouts.</span>
-            <span v-else>{{ tapeoutsError }}</span>
-          </div>
-          <button @click="fetchTapeouts" class="btn-primary">Try Again</button>
-        </div>
-
-        <!-- Stats Error Display -->
-        <div v-if="statsError" class="mt-12 flex flex-col items-center justify-center py-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-          <div class="text-red-600 dark:text-red-400 mb-4 font-mono text-sm">{{ statsError }}</div>
-          <button @click="fetchStats" class="btn-primary">Try Again</button>
-        </div>
-
-        <!-- Quick Stats -->
-        <div v-else class="mt-12 grid grid-cols-1 md:grid-cols-5 gap-6">
-          <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-blue mb-2">
-              {{ stats.approved_specs ?? 0 }}
-            </div>
-            <div class="text-gray-600 dark:text-gray-400">Approved Specs</div>
-          </div>
-          <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-green mb-2">
-              {{ stats.pending_specs ?? 0 }}
-            </div>
-            <div class="text-gray-600 dark:text-gray-400">Pending Specs</div>
-          </div>
-          <div class="card text-center">
-            <div class="text-3xl font-bold text-red-500 mb-2">
-              {{ stats.rejected_specs ?? 0 }}
-            </div>
-            <div class="text-gray-600 dark:text-gray-400">Rejected Specs</div>
-          </div>
-          <div class="card text-center">
-            <div class="text-3xl font-bold text-neon-purple mb-2">
-              {{ stats.vendor_partners ?? 0 }}
-            </div>
-            <div class="text-gray-600 dark:text-gray-400">Vendor Partners</div>
-          </div>
-          <div class="card text-center">
-            <div class="text-3xl font-bold text-yellow-400 mb-2">
-              {{ (stats.quality_score ?? 0) + '%' }}
-            </div>
-            <div class="text-gray-600 dark:text-gray-400">Quality Score</div>
-          </div>
-        </div>
+        </section>
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onUnmounted, computed } from 'vue'
+import { computed, h, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { useMetadataStore } from '@/stores/metadata'
-import { useSpecificationsStore } from '@/stores/specifications'
-import { authenticatedFetch } from '@/utils/auth-requests'
 
 const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
+onMounted(() => {
+  if (!authStore.user) void authStore.checkAuth()
+})
+
 const adminAccessNotice = computed(() => route.query.notice === 'admin_required')
 function dismissAdminNotice() {
   router.replace({ path: '/dashboard' })
 }
-const metadataStore = useMetadataStore()
-const specificationsStore = useSpecificationsStore()
 
-const goToProjects = () => {
-  router.push('/projects')
-}
-
-const stats = ref<{ approved_specs?: number; pending_specs?: number; rejected_specs?: number; vendor_partners?: number; quality_score?: number }>({})
-const loadingStats = ref(true)
-const statsError = ref('')
-let statsInterval: number | undefined
-
-const tapeouts = ref([])
-const tapeoutsLoading = ref(false)
-const showTapeoutsLoading = ref(false) // NEW: controls the overlay
-let tapeoutsLoadingDelay: ReturnType<typeof setTimeout> | null = null
-let tapeoutsLoadingMin: ReturnType<typeof setTimeout> | null = null
-const tapeoutsError = ref('')
-
-const selectedFilters = ref({
-  platform: '',
-  edaTool: '',
-  type: '',
-  status: ''
-})
-
-const activeFilterSummary = computed(() => {
-  const parts: string[] = []
-  if (selectedFilters.value.platform) parts.push(selectedFilters.value.platform)
-  if (selectedFilters.value.edaTool) parts.push(selectedFilters.value.edaTool)
-  if (selectedFilters.value.type) parts.push(selectedFilters.value.type)
-  if (selectedFilters.value.status) parts.push(selectedFilters.value.status)
-  return parts.length ? parts.join(' • ') : 'All specs'
-})
-
-const fetchStats = async () => {
-  loadingStats.value = true
-  statsError.value = ''
-  try {
-    // Build query params from selected filters
-    const params = new URLSearchParams()
-    if (selectedFilters.value.platform) params.append('platform', selectedFilters.value.platform)
-    if (selectedFilters.value.edaTool) params.append('eda_tool', selectedFilters.value.edaTool)
-    if (selectedFilters.value.type) params.append('type', selectedFilters.value.type)
-    if (selectedFilters.value.status) params.append('status', selectedFilters.value.status)
-
-    const queryString = params.toString()
-    const url = queryString ? `/api/v1/dashboard?${queryString}` : '/api/v1/dashboard'
-
-    // Use authenticatedFetch which automatically includes Authorization header and handles URL normalization
-    const res = await authenticatedFetch(url)
-    
-    if (!res.ok) {
-      // If backend returns 404 for "no data" with current filters, treat as empty stats instead of a hard error
-      if (res.status === 404) {
-        console.warn('📊 Dashboard stats 404 for current filters - treating as empty stats')
-        stats.value = {
-          approved_specs: 0,
-          pending_specs: 0,
-          rejected_specs: 0,
-          vendor_partners: 0,
-          quality_score: undefined
-        }
-        statsError.value = ''
-        return
-      }
-
-      const errorText = await res.text()
-      let errorMsg = 'Unable to load dashboard stats.'
-      try {
-        const errorData = JSON.parse(errorText)
-        errorMsg = errorData.detail || errorData.message || errorMsg
-      } catch {
-        errorMsg = errorText || errorMsg
-      }
-      throw new Error(errorMsg)
-    }
-    
-    stats.value = await res.json()
-    statsError.value = '' // Clear any previous errors on success
-  } catch (e: any) {
-    statsError.value = e.message || 'Unable to load dashboard stats.'
-    console.error('Error fetching dashboard stats:', e)
-    // Show toast (simple alert for now)
-    window.dispatchEvent(new CustomEvent('toast', { detail: { message: statsError.value, type: 'error' } }))
-  } finally {
-    loadingStats.value = false
+function iconPath(d: string) {
+  return {
+    render() {
+      return h(
+        'svg',
+        { fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+        [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d })],
+      )
+    },
   }
 }
 
-const fetchTapeouts = async () => {
-  if (tapeoutsLoadingDelay) clearTimeout(tapeoutsLoadingDelay)
-  if (tapeoutsLoadingMin) clearTimeout(tapeoutsLoadingMin)
-  tapeoutsLoading.value = true
-  // Only show overlay if fetch takes >200ms
-  tapeoutsLoadingDelay = setTimeout(() => {
-    showTapeoutsLoading.value = true
-    // If overlay appears, keep it for at least 400ms
-    tapeoutsLoadingMin = setTimeout(() => {}, 400)
-  }, 200)
-  tapeoutsError.value = ''
-  try {
-    // Build filters from selectedFilters
-    const filters: any = {}
-    if (selectedFilters.value.platform) filters.platform = selectedFilters.value.platform
-    if (selectedFilters.value.edaTool) filters.eda_tool = selectedFilters.value.edaTool
-    if (selectedFilters.value.type) filters.type = selectedFilters.value.type
-    if (selectedFilters.value.status) filters.status = selectedFilters.value.status
-    
-    // Use the store's loadSpecifications method which handles caching and URL construction correctly
-    await specificationsStore.loadSpecifications(filters)
-    
-    // Get the specifications from the store
-    tapeouts.value = specificationsStore.specifications || []
-  } catch (e: any) {
-    const errorMessage = e.message || 'Failed to fetch specifications'
-
-    // If backend treats "no specs for these filters" as 404, show empty list instead of a hard error
-    if (errorMessage.includes('404') || errorMessage.toLowerCase().includes('not found')) {
-      console.warn('📄 Specifications 404 for current filters - showing empty list')
-      tapeouts.value = []
-      tapeoutsError.value = ''
-    } else {
-      tapeoutsError.value = errorMessage
-
-      // Check if it's an authentication error
-      if (errorMessage.includes('Not authenticated') || errorMessage.includes('Authentication')) {
-        console.warn('⚠️ Authentication error in fetchTapeouts, but not redirecting to allow graceful error display')
-      }
-
-      console.error('Error fetching tapeouts:', e)
-    }
-  } finally {
-    tapeoutsLoading.value = false
-    if (tapeoutsLoadingDelay) clearTimeout(tapeoutsLoadingDelay)
-    if (showTapeoutsLoading.value) {
-      // If overlay is visible, keep it for at least 400ms
-      if (tapeoutsLoadingMin) {
-        setTimeout(() => {
-          showTapeoutsLoading.value = false
-        }, 400)
-      } else {
-        showTapeoutsLoading.value = false
-      }
-    }
-    else {
-      showTapeoutsLoading.value = false
-    }
-  }
-}
-
-// Listen for specification deletion events to refresh stats
-const handleSpecDeleted = () => {
-  console.log('🔄 Specification deleted, refreshing dashboard stats...')
-  fetchStats()
-}
-
-onMounted(async () => {
-  // Check authentication on mount
-  await authStore.checkAuth()
-
-  if (!metadataStore.platforms.length) await metadataStore.fetchMetadata()
-  await fetchStats()
-  await fetchTapeouts()
-  statsInterval = window.setInterval(fetchStats, 10000)
-  
-  // Listen for specification deletion events to refresh stats
-  window.addEventListener('specification-deleted', handleSpecDeleted)
-})
-
-onUnmounted(() => {
-  if (statsInterval) clearInterval(statsInterval)
-  // Clean up event listener on unmount
-  window.removeEventListener('specification-deleted', handleSpecDeleted)
-})
-
-const handleFilter = (key: keyof typeof selectedFilters.value, value: string) => {
-  // Toggle behavior: clicking the same chip again clears that filter
-  selectedFilters.value[key] = selectedFilters.value[key] === value ? '' : value
-  // When filters change, refresh both stats and spec list so they stay in sync
-  fetchStats()
-  fetchTapeouts()
-}
-
-const isFilterSelected = (key: keyof typeof selectedFilters.value, value: string) => selectedFilters.value[key] === value
-</script> 
-
-<style scoped>
-.chip {
-  @apply px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 cursor-pointer;
-}
-</style> 
+const entryCards = [
+  {
+    title: 'Projects',
+    desc: 'Create and open tapeout programs with foundry / node / PDK profile.',
+    to: '/projects',
+    cta: 'Browse projects',
+    ctaClass: 'text-sky-300',
+    iconBg: 'bg-gradient-to-br from-sky-500 to-blue-600',
+    icon: iconPath('M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z'),
+  },
+  {
+    title: 'Tapeout readiness',
+    desc: 'Freeze design, upload signoff reports, track waivers and packages.',
+    to: '/projects',
+    cta: 'Open a project',
+    ctaClass: 'text-emerald-300',
+    iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+    icon: iconPath('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'),
+  },
+  {
+    title: 'SpecLint',
+    desc: 'Validate specification documents for completeness and consistency.',
+    to: '/speclint',
+    cta: 'Run SpecLint',
+    ctaClass: 'text-violet-300',
+    iconBg: 'bg-gradient-to-br from-violet-500 to-fuchsia-600',
+    icon: iconPath('M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'),
+  },
+  {
+    title: 'Checklists',
+    desc: 'Use TOR templates and active approval workflows.',
+    to: '/checklists',
+    cta: 'Open checklists',
+    ctaClass: 'text-amber-300',
+    iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
+    icon: iconPath('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'),
+  },
+  {
+    title: 'Specs',
+    desc: 'Review and filter the specification pipeline.',
+    to: '/specs',
+    cta: 'Browse specs',
+    ctaClass: 'text-cyan-300',
+    iconBg: 'bg-gradient-to-br from-cyan-500 to-sky-600',
+    icon: iconPath('M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'),
+  },
+  {
+    title: 'Stats',
+    desc: 'Live Approved / Pending / Quality metrics and filtered spec matches.',
+    to: '/stats',
+    cta: 'Open stats',
+    ctaClass: 'text-fuchsia-300',
+    iconBg: 'bg-gradient-to-br from-fuchsia-500 to-pink-600',
+    icon: iconPath('M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
+  },
+]
+</script>

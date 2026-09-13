@@ -373,9 +373,9 @@
           </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch mb-16">
           <!-- Product Story -->
-          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700 h-full flex flex-col">
             <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mb-6">
               <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
@@ -385,13 +385,13 @@
             <p class="text-gray-400 leading-relaxed mb-4">
               TapeOutOps was born from a simple observation: semiconductor tapeout workflows are complex, fragmented, and often inefficient. We set out to create a unified platform that brings together all aspects of the tapeout process—from specification management to quality checks and vendor collaboration.
             </p>
-            <p class="text-gray-400 leading-relaxed">
+            <p class="text-gray-400 leading-relaxed grow">
               Our platform empowers engineering teams to streamline their workflows, reduce errors, and accelerate time-to-market. With intelligent automation, real-time collaboration, and comprehensive quality assurance, TapeOutOps transforms how semiconductor companies manage their tapeout processes.
             </p>
           </div>
 
           <!-- Founder Story -->
-          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700 h-full flex flex-col">
             <div class="flex items-center mb-6">
               <img 
                 src="/founder-photo.jpg" 
@@ -407,10 +407,10 @@
             <p class="text-gray-400 leading-relaxed mb-4">
               As the founder of TapeOutOps, I've spent considerable time researching and understanding the challenges teams face during tapeout. Through extensive conversations with engineers and deep analysis of industry workflows, I recognized the critical need for integrated tools. The lack of unified solutions, manual processes, and communication gaps between teams inspired me to build a platform that addresses these pain points.
             </p>
-            <p class="text-gray-400 leading-relaxed">
+            <p class="text-gray-400 leading-relaxed grow">
               TapeOutOps represents my vision of a modern, efficient tapeout workflow—one where engineers can focus on what they do best: designing exceptional chips. Every feature we build is driven by real-world needs and feedback from the semiconductor community.
             </p>
-            <div class="mt-6 flex items-center space-x-4">
+            <div class="mt-auto pt-6 flex items-center space-x-4">
               <a href="mailto:support@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>

@@ -98,10 +98,13 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'Dashboard',
-      // Code split: Creates "dashboard" chunk
-      // WHY: Dashboard is large, so splitting reduces initial bundle
-      // Using simple dynamic import for reliability
       component: () => import('@/views/DashboardPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/stats',
+      name: 'Stats',
+      component: () => import('@/views/StatsPage.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -193,7 +196,7 @@ const router = createRouter({
       path: '/admin/usage',
       name: 'SystemUsage',
       component: () => import('@/views/SystemUsagePage.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
+      meta: { requiresAuth: true, requiresSuperuser: true },
     },
     // Common mistaken URL (no /dashboard prefix in this app) — was a blank black screen in prod
     {
@@ -243,18 +246,14 @@ router.beforeEach(async (to, from, next) => {
         return
       }
 
-      // Admin-only routes: require user to be loaded and admin/super-admin (or allow in dev for testing)
-      if (to.meta.requiresAdmin) {
-        if (!authStore.user) {
-          const ok = await authStore.checkAuth()
-          if (!ok) {
-            next('/login')
-            return
-          }
-        }
-        const isDev = import.meta.env.DEV
-        if (!authStore.isAdmin && !isDev) {
-          // Query helps support/debug: prod “/admin/usage not working” is often non-admin user
+      // Hydrate profile when we only have a token (sidebar superuser links, welcome name, etc.)
+      if (!authStore.user) {
+        await authStore.checkAuth()
+      }
+
+      // Superuser-only routes (System Usage)
+      if (to.meta.requiresSuperuser || to.meta.requiresAdmin) {
+        if (authStore.isSuperuser !== true) {
           next({ path: '/dashboard', query: { notice: 'admin_required' }, replace: true })
           return
         }

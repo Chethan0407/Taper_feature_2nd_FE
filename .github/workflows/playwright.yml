@@ -1,0 +1,53 @@
+name: Frontend Automation
+
+# Runs on every push and every PR — automation/ is the always-on gate.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: automation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  automation:
+    name: automation-suite
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build app (CI — vite only)
+        run: npm run build:ci
+
+      - name: Run full automation suite
+        run: npm run test:automation
+        env:
+          CI: true
+
+      - name: Generate Allure report
+        if: always()
+        run: npm run test:automation:report:gen
+
+      - name: Upload Allure + Playwright reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-report-${{ github.run_id }}
+          path: |
+            allure-report/
+            allure-results/
+            playwright-report/
+            test-results/
+          retention-days: 14

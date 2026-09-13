@@ -185,6 +185,35 @@ export const useVendorsStore = defineStore('vendors', () => {
     }
   }
 
+  const listNDAs = async (id: string) => {
+    const res = await fetch(`${API_BASE}${id}/nda`, {
+      headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : undefined,
+    })
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error('Failed to list NDAs')
+    const data = await res.json()
+    if (Array.isArray(data)) return data
+    if (Array.isArray(data?.items)) return data.items
+    if (Array.isArray(data?.ndas)) return data.ndas
+    return []
+  }
+
+  const downloadNDA = async (vendorId: string, ndaId: string | number) => {
+    const res = await fetch(`${API_BASE}${vendorId}/nda/${ndaId}/download`, {
+      headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : undefined,
+    })
+    if (!res.ok) throw new Error('Failed to download NDA')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `nda-${ndaId}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 500)
+  }
+
   // Get vendor timeline
   const fetchTimeline = async (id: string) => {
     loading.value = true
@@ -194,7 +223,11 @@ export const useVendorsStore = defineStore('vendors', () => {
         headers: authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
       })
       if (!res.ok) throw new Error('Failed to fetch timeline')
-      return await res.json() as VendorActivity[]
+      const data = await res.json()
+      if (Array.isArray(data)) return data as VendorActivity[]
+      if (Array.isArray(data?.items)) return data.items as VendorActivity[]
+      if (Array.isArray(data?.events)) return data.events as VendorActivity[]
+      return []
     } catch (e: any) {
       error.value = e.message || 'Failed to fetch timeline'
       throw e
@@ -236,6 +269,8 @@ export const useVendorsStore = defineStore('vendors', () => {
     updateVendor,
     deleteVendor,
     uploadNDA,
+    listNDAs,
+    downloadNDA,
     fetchTimeline,
     acknowledge
   }

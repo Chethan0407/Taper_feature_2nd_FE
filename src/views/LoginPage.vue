@@ -1,12 +1,24 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-light-50 to-light-100 dark:from-dark-950 dark:to-dark-900 flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
+  <div
+    class="login-page-root relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4 text-gray-900 dark:text-gray-100"
+  >
+    <!-- Investor-demo ambient stage -->
+    <div class="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
+      <div class="absolute inset-0 bg-gradient-to-br from-slate-50 via-cyan-50/40 to-violet-50/50 dark:from-[#070b12] dark:via-[#0a1524] dark:to-[#120a1f]" />
+      <div class="absolute -left-24 top-10 h-80 w-80 rounded-full bg-neon-blue/25 blur-3xl animate-float" />
+      <div class="absolute -right-16 bottom-10 h-96 w-96 rounded-full bg-neon-purple/20 blur-3xl animate-float-delayed" />
+      <div class="absolute left-1/3 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-neon-blue/10 blur-2xl" />
+    </div>
+
+    <div class="relative z-10 w-full min-w-0 max-w-md">
       <!-- Login Card -->
-      <div class="glass-effect rounded-2xl p-8 shadow-2xl">
+      <div
+        class="rounded-3xl border border-gray-200/80 bg-white/90 p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl dark:border-white/10 dark:bg-dark-900/85 dark:shadow-neon-blue/10"
+      >
         <!-- Logo -->
-        <div class="text-center mb-8">
-          <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="mb-8 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-neon-blue to-neon-purple shadow-md ring-1 ring-black/10 dark:ring-white/10">
+            <svg class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="6" height="6" rx="1"/>
               <rect x="15" y="3" width="6" height="6" rx="1"/>
               <rect x="3" y="15" width="6" height="6" rx="1"/>
@@ -17,8 +29,10 @@
               <line x1="6" y1="15" x2="18" y2="15"/>
             </svg>
           </div>
-          <h1 class="text-3xl font-bold text-gradient">TapeOutOps</h1>
-          <p class="text-gray-600 dark:text-gray-400 mt-2">Semiconductor Tapeout Workflow Management</p>
+          <h1 class="font-display text-4xl font-extrabold text-gradient">TapeOutOps</h1>
+          <p class="mt-2 text-sm font-medium tracking-wide text-gray-500 dark:text-gray-400">
+            Semiconductor Tapeout Workflow Management
+          </p>
         </div>
 
         <!-- Login Form (prevent native submit to avoid any full-page reload while typing) -->

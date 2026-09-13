@@ -1,272 +1,263 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+  <div class="min-h-screen app-page">
     <Sidebar />
     
     <div class="ml-64">
       <Header />
       
       <main class="p-8">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
-          <p class="text-gray-500 dark:text-gray-400">Manage your account and organization settings</p>
+        <div class="mb-8 page-enter">
+          <h1 class="page-title-gradient mb-1">Settings</h1>
+          <p class="page-subtitle">Manage your account and organization settings</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- 1. User Profile (Top-Left) -->
-          <div 
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <!-- 1. User Profile -->
+          <section
             ref="profileSectionRef"
             id="profile"
-            class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6 scroll-mt-8"
+            class="settings-card scroll-mt-8"
           >
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">User Profile</h2>
-            <div class="space-y-4">
+            <div class="settings-card-body">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
-                <input 
-                  v-model="profile.name" 
-                  type="text"
-                  class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100" 
-                  placeholder="Enter your name"
-                />
+                <h2 class="module-section-title text-lg">User Profile</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Name, role, and account email</p>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
-                <select 
-                  v-model="profile.role"
-                  class="input-field w-full bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 focus:ring-blue-500 dark:focus:ring-neon-blue text-gray-900 dark:text-gray-100"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="engineer">Engineer</option>
-                  <option value="pm">PM</option>
-                </select>
+              <div class="space-y-4">
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300">Name</label>
+                  <input
+                    v-model="profile.name"
+                    type="text"
+                    class="input-field w-full"
+                    placeholder="Enter your name"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300">Role</label>
+                  <select v-model="profile.role" class="input-field w-full">
+                    <option value="admin">Admin</option>
+                    <option value="engineer">Engineer</option>
+                    <option value="pm">PM</option>
+                  </select>
+                </div>
+                <p v-if="profile.email" class="text-sm text-slate-500 dark:text-gray-400">
+                  Email · {{ profile.email }}
+                </p>
+                <p v-if="profileSuccess" class="text-sm text-emerald-500">Profile updated successfully!</p>
+                <p v-if="profileError" class="text-sm text-red-500">{{ profileError }}</p>
               </div>
-              <div v-if="profile.email" class="text-sm text-gray-500 dark:text-gray-400">
-                Email: {{ profile.email }}
-              </div>
-              <button 
-                @click="updateProfile" 
+            </div>
+            <div class="settings-card-footer">
+              <button
+                type="button"
+                class="btn-primary px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="profileLoading"
-                class="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="updateProfile"
               >
-                <span v-if="profileLoading">Updating...</span>
+                <span v-if="profileLoading">Updating…</span>
                 <span v-else>Update Profile</span>
               </button>
-              <div v-if="profileSuccess" class="text-green-500 text-sm text-center">Profile updated successfully!</div>
-              <div v-if="profileError" class="text-red-500 text-sm text-center">{{ profileError }}</div>
             </div>
-          </div>
+          </section>
 
-          <!-- 2. API Keys (Top-Right) -->
-          <div class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">API Keys</h2>
-            <div class="space-y-4">
-              <div v-if="apiKeysLoading" class="text-center text-gray-400 py-4">Loading...</div>
-              <div v-else-if="apiKeysError" class="text-red-500 text-sm text-center py-4">{{ apiKeysError }}</div>
-              <div v-else-if="apiKeys.length === 0" class="text-center py-8">
-                <p class="text-gray-500 dark:text-gray-400 mb-4">No API keys found</p>
-                <button 
-                  @click="showGenerateModal = true"
-                  class="btn-secondary"
-                >
-                  Generate New Key
-                </button>
+          <!-- 2. API Keys -->
+          <section class="settings-card">
+            <div class="settings-card-body">
+              <div>
+                <h2 class="module-section-title text-lg">API Keys</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Generate and manage access keys</p>
+              </div>
+              <div v-if="apiKeysLoading" class="py-6 text-center text-sm text-slate-400">Loading…</div>
+              <div v-else-if="apiKeysError" class="py-4 text-center text-sm text-red-500">{{ apiKeysError }}</div>
+              <div v-else-if="apiKeys.length === 0" class="rounded-xl border border-dashed border-slate-300 py-8 text-center dark:border-dark-600">
+                <p class="mb-1 text-sm text-slate-500 dark:text-gray-400">No API keys yet</p>
               </div>
               <div v-else class="space-y-3">
-                <div 
-                  v-for="key in apiKeys" 
+                <div
+                  v-for="key in apiKeys"
                   :key="key.id"
-                  class="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600"
+                  class="rounded-xl border border-slate-200 px-4 py-3 dark:border-dark-600 dark:bg-dark-950/50"
                 >
                   <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1 min-w-0">
-                      <p class="font-medium text-gray-900 dark:text-white mb-1">{{ key.name || 'Unnamed Key' }}</p>
-                      <p class="text-sm text-gray-500 dark:text-gray-400 font-mono mb-2 break-all">
+                    <div class="min-w-0 flex-1">
+                      <p class="mb-1 font-medium text-slate-900 dark:text-white">{{ key.name || 'Unnamed Key' }}</p>
+                      <p class="mb-2 break-all font-mono text-xs text-slate-500 dark:text-gray-400">
                         {{ key.key_masked || '••••••••••••••••••••' }}
                       </p>
-                      <div class="text-xs text-gray-400 dark:text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
-                        <span v-if="key.created_at">Created: {{ formatDate(key.created_at) }}</span>
-                        <span v-if="key.last_used_at">Last used: {{ formatDate(key.last_used_at) }}</span>
+                      <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400 dark:text-gray-500">
+                        <span v-if="key.created_at">Created {{ formatDate(key.created_at) }}</span>
+                        <span v-if="key.last_used_at">Last used {{ formatDate(key.last_used_at) }}</span>
                         <span v-else>Never used</span>
-                        <span v-if="key.expires_at" class="text-yellow-400 dark:text-yellow-500">Expires: {{ formatDate(key.expires_at) }}</span>
+                        <span v-if="key.expires_at" class="text-amber-500">Expires {{ formatDate(key.expires_at) }}</span>
                       </div>
                     </div>
-                    <div class="flex flex-col gap-2 flex-shrink-0">
-                      <button 
-                        @click="regenerateApiKey(key.id)"
+                    <div class="flex shrink-0 flex-col items-end gap-1.5">
+                      <button
+                        type="button"
+                        class="text-sm text-neon-blue hover:underline disabled:opacity-50"
                         :disabled="regeneratingKey === key.id"
-                        class="text-sm text-blue-600 dark:text-neon-blue hover:text-blue-700 dark:hover:text-neon-blue/80 disabled:opacity-50 whitespace-nowrap"
+                        @click="regenerateApiKey(key.id)"
                       >
-                        {{ regeneratingKey === key.id ? 'Regenerating...' : 'Regenerate' }}
+                        {{ regeneratingKey === key.id ? 'Regenerating…' : 'Regenerate' }}
                       </button>
-                      <button 
-                        @click="deleteApiKey(key.id)"
+                      <button
+                        type="button"
+                        class="text-sm text-red-500 hover:underline disabled:opacity-50"
                         :disabled="deletingKey === key.id"
-                        class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 disabled:opacity-50 whitespace-nowrap"
+                        @click="deleteApiKey(key.id)"
                       >
-                        {{ deletingKey === key.id ? 'Deleting...' : 'Delete' }}
+                        {{ deletingKey === key.id ? 'Deleting…' : 'Delete' }}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-              <button 
+              <p v-if="rateLimitError" class="text-center text-sm text-red-500">{{ rateLimitError }}</p>
+            </div>
+            <div class="settings-card-footer">
+              <button
+                type="button"
+                class="btn-secondary px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="apiKeysLoading || !!rateLimitError"
                 @click="showGenerateModal = true"
-                :disabled="apiKeysLoading || rateLimitError"
-                class="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Generate New Key
               </button>
-              <div v-if="rateLimitError" class="text-red-500 text-sm text-center">
-                {{ rateLimitError }}
-              </div>
             </div>
-          </div>
+          </section>
 
-          <!-- 3. Notifications (Bottom-Left) -->
-          <div 
+          <!-- 3. Notifications -->
+          <section
             ref="notificationsSectionRef"
             id="notifications"
-            class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6 scroll-mt-8"
+            class="settings-card scroll-mt-8"
           >
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Notifications</h2>
-            <div v-if="notificationsLoading" class="text-center text-gray-400 py-4">Loading...</div>
-            <div v-else-if="notificationsError" class="text-red-500 text-sm text-center py-4">{{ notificationsError }}</div>
-            <div v-else class="space-y-4">
-              <div 
-                v-for="pref in notificationPreferences" 
-                :key="pref.notification_type"
-                class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-dark-600 last:border-0"
-              >
-                <div>
-                  <p class="font-medium text-gray-900 dark:text-white capitalize">
-                    {{ pref.notification_type }} notifications
-                  </p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {{ getNotificationDescription(pref.notification_type) }}
-                  </p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    class="sr-only peer" 
-                    :checked="pref.is_enabled"
-                    @change="toggleNotification(pref.notification_type, $event)"
-                  >
-                  <div class="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-neon-blue"></div>
-                </label>
+            <div class="settings-card-body">
+              <div>
+                <h2 class="module-section-title text-lg">Notifications</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Choose what you get alerted about</p>
               </div>
-              <button 
-                @click="saveNotificationPreferences"
+              <div v-if="notificationsLoading" class="py-6 text-center text-sm text-slate-400">Loading…</div>
+              <div v-else-if="notificationsError" class="py-4 text-center text-sm text-red-500">{{ notificationsError }}</div>
+              <div v-else class="divide-y divide-slate-200 dark:divide-dark-700">
+                <div
+                  v-for="pref in notificationPreferences"
+                  :key="pref.notification_type"
+                  class="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0"
+                >
+                  <div class="min-w-0">
+                    <p class="font-medium capitalize text-slate-900 dark:text-white">
+                      {{ pref.notification_type }} notifications
+                    </p>
+                    <p class="mt-0.5 text-sm text-slate-500 dark:text-gray-400">
+                      {{ getNotificationDescription(pref.notification_type) }}
+                    </p>
+                  </div>
+                  <label class="relative inline-flex shrink-0 cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      class="peer sr-only"
+                      :checked="pref.is_enabled"
+                      @change="toggleNotification(pref.notification_type, $event)"
+                    >
+                    <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-neon-blue peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-dark-600"></div>
+                  </label>
+                </div>
+              </div>
+              <p v-if="notificationsSuccess" class="text-sm text-emerald-500">Preferences saved!</p>
+            </div>
+            <div class="settings-card-footer">
+              <button
+                type="button"
+                class="btn-primary px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="notificationsLoading || savingNotifications"
-                class="btn-primary w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="saveNotificationPreferences"
               >
-                <span v-if="savingNotifications">Saving...</span>
+                <span v-if="savingNotifications">Saving…</span>
                 <span v-else>Save Preferences</span>
               </button>
-              <div v-if="notificationsSuccess" class="text-green-500 text-sm text-center">Preferences saved!</div>
             </div>
-          </div>
+          </section>
 
-          <!-- 4. Branding & Organization (Bottom-Right) -->
-          <div 
+          <!-- 4. Branding & Organization -->
+          <section
             ref="brandingSectionRef"
             id="branding"
-            class="card bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-700 shadow-lg rounded-2xl p-6 scroll-mt-8"
+            class="settings-card scroll-mt-8"
           >
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Branding & Organization</h2>
-              <router-link 
-                to="/settings/branding" 
-                class="text-neon-blue hover:text-neon-blue/80 text-sm font-medium transition-colors"
-              >
-                Manage Branding →
-              </router-link>
-            </div>
-            <div class="space-y-6">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
-                <input 
-                  v-model="branding.company_name" 
-                  type="text"
-                  class="input-field w-full bg-gray-200 dark:bg-dark-800 border border-gray-300 dark:border-dark-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                  placeholder="Company name is managed in Companies"
-                  readonly
-                />
+            <div class="settings-card-body">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h2 class="module-section-title text-lg">Branding & Organization</h2>
+                  <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Logo for your workspace</p>
+                </div>
+                <router-link
+                  to="/settings/branding"
+                  class="shrink-0 text-sm font-medium text-neon-blue hover:underline"
+                >
+                  Manage →
+                </router-link>
               </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Logo</label>
-                <div v-if="branding.logo_url" class="mb-3">
-                  <img 
-                  :src="branding.logo_url" 
-                  alt="Company Logo" 
-                    class="w-24 h-24 object-contain rounded-lg border border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-800"
+              <div class="space-y-5">
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300">Company Name</label>
+                  <input
+                    v-model="branding.company_name"
+                    type="text"
+                    class="input-field w-full cursor-not-allowed opacity-70"
+                    placeholder="Company name is managed in Companies"
+                    readonly
                   />
                 </div>
-                <div class="flex items-center gap-3">
-                  <label class="btn-secondary cursor-pointer">
-                    <input 
-                      type="file" 
-                      accept=".png,.jpg,.jpeg,.gif,.svg,.webp"
-                      @change="handleLogoChange"
-                      class="hidden"
-                    />
-                    Upload Logo
-                  </label>
-                  <span v-if="logoUploading" class="text-sm text-gray-500">Uploading...</span>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP (Max 5MB)
-                </p>
-              </div>
 
-              <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primary Color</label>
-                  <div class="flex items-center gap-2">
-                    <input 
-                      v-model="branding.primary_color" 
-                      type="color"
-                      class="w-12 h-10 rounded border border-gray-200 dark:border-dark-600 cursor-pointer"
-                    />
-                    <input 
-                      v-model="branding.primary_color" 
-                      type="text"
-                      class="input-field flex-1 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100"
-                      placeholder="#3B82F6"
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300">Logo</label>
+                  <div v-if="branding.logo_url" class="mb-3">
+                    <img
+                      :src="branding.logo_url"
+                      alt="Company Logo"
+                      class="h-20 w-20 rounded-lg border border-slate-200 object-contain dark:border-dark-600 dark:bg-dark-800"
                     />
                   </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Secondary Color</label>
-                  <div class="flex items-center gap-2">
-                    <input 
-                      v-model="branding.secondary_color" 
-                      type="color"
-                      class="w-12 h-10 rounded border border-gray-200 dark:border-dark-600 cursor-pointer"
-                    />
-                    <input 
-                      v-model="branding.secondary_color" 
-                      type="text"
-                      class="input-field flex-1 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 text-gray-900 dark:text-gray-100"
-                      placeholder="#10B981"
-                    />
+                  <div class="flex items-center gap-3">
+                    <label class="btn-secondary cursor-pointer px-4 py-2 text-sm">
+                      <input
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.gif,.svg,.webp"
+                        class="hidden"
+                        @change="handleLogoChange"
+                      />
+                      Upload Logo
+                    </label>
+                    <span v-if="logoUploading" class="text-sm text-slate-500">Uploading…</span>
                   </div>
+                  <p class="mt-2 text-xs text-slate-500 dark:text-gray-400">
+                    PNG, JPG, GIF, SVG, WEBP · max 5MB
+                  </p>
                 </div>
-              </div>
 
-              <button 
-                @click="saveBranding"
+                <p v-if="brandingSuccess" class="text-sm text-emerald-500">Branding saved successfully!</p>
+                <p v-if="brandingError" class="text-sm text-red-500">{{ brandingError }}</p>
+              </div>
+            </div>
+            <div class="settings-card-footer">
+              <button
+                type="button"
+                class="btn-primary px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="brandingLoading || logoUploading"
-                class="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="saveBranding"
               >
-                <span v-if="brandingLoading">Saving...</span>
+                <span v-if="brandingLoading">Saving…</span>
                 <span v-else>Save Branding</span>
               </button>
-              <div v-if="brandingSuccess" class="text-green-500 text-sm text-center">Branding saved successfully!</div>
-              <div v-if="brandingError" class="text-red-500 text-sm text-center">{{ brandingError }}</div>
             </div>
-          </div>
+          </section>
+        </div>
+
+        <!-- Admin / superuser data transfer (header: Settings → Data) -->
+        <div ref="dataSectionRef" class="mt-6 page-enter">
+          <SettingsDataTransfer />
         </div>
       </main>
     </div>
@@ -402,11 +393,13 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
+import SettingsDataTransfer from '@/components/Common/SettingsDataTransfer.vue'
 import { onMounted, onActivated, ref, watch, nextTick } from 'vue'
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
 import { useRouter, useRoute } from 'vue-router'
+import { applyBrandTheme } from '@/utils/brand-theme'
 
 const authStore = useAuthStore()
 const brandingStore = useBrandingStore()
@@ -417,6 +410,7 @@ const route = useRoute()
 const profileSectionRef = ref<HTMLElement | null>(null)
 const notificationsSectionRef = ref<HTMLElement | null>(null)
 const brandingSectionRef = ref<HTMLElement | null>(null)
+const dataSectionRef = ref<HTMLElement | null>(null)
 
 // User Profile
 const profile = ref({ name: '', email: '', role: 'engineer' })
@@ -453,8 +447,8 @@ const savingNotifications = ref(false)
 const branding = ref({
   company_name: '',
   logo_url: '',
-  primary_color: '#3B82F6',
-  secondary_color: '#10B981'
+  primary_color: '#0f766e',
+  secondary_color: '#d97706'
 })
 const brandingLoading = ref(false)
 const brandingError = ref('')
@@ -467,11 +461,17 @@ const scrollToSection = async (section: string) => {
   await nextTick()
   const sectionMap: Record<string, HTMLElement | null> = {
     profile: profileSectionRef.value,
+    // Legacy ?section=appearance links land on profile (theme is dark-only now)
+    appearance: profileSectionRef.value,
     notifications: notificationsSectionRef.value,
-    branding: brandingSectionRef.value
+    branding: brandingSectionRef.value,
+    data: dataSectionRef.value,
+    'data-transfer': dataSectionRef.value,
   }
-  
-  const element = sectionMap[section]
+
+  const element =
+    sectionMap[section] ||
+    (typeof document !== 'undefined' ? document.getElementById(section) : null)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // Highlight the section briefly
@@ -508,7 +508,7 @@ const loadAllData = async () => {
 // Load all data on mount
 onMounted(async () => {
   await loadAllData()
-  
+
   // Check for section query parameter on mount
   const section = route.query.section
   if (section && typeof section === 'string') {
@@ -981,9 +981,13 @@ const loadBranding = async () => {
     branding.value = {
       company_name: data.company_name || '',
       logo_url: data.logo_url || '',
-      primary_color: data.primary_color || '#3B82F6',
-      secondary_color: data.secondary_color || '#10B981'
+      primary_color: data.primary_color || '#0f766e',
+      secondary_color: data.secondary_color || '#d97706'
     }
+    applyBrandTheme({
+      primary_color: branding.value.primary_color,
+      secondary_color: branding.value.secondary_color,
+    })
   } catch (e: any) {
     brandingError.value = e.message || 'Failed to load branding'
   } finally {
@@ -1055,12 +1059,11 @@ const saveBranding = async () => {
       await uploadLogo()
     }
 
-    const body: any = {}
+    const body: Record<string, string> = {}
     // NOTE: company_name is immutable once the company is created and is managed
     // via the Companies module, so we intentionally do NOT send it from here.
+    // Color scheme UI removed — theme colors stay on app defaults / API.
     if (branding.value.logo_url) body.logo_url = branding.value.logo_url
-    if (branding.value.primary_color) body.primary_color = branding.value.primary_color
-    if (branding.value.secondary_color) body.secondary_color = branding.value.secondary_color
 
     // Use the shared branding store update so global state (Header, etc.) updates immediately
     await brandingStore.updateBranding(body)
