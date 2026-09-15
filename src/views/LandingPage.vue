@@ -529,7 +529,15 @@ import { reportLandingVisit } from '@/utils/clientTelemetry'
 const router = useRouter()
 const authStore = useAuthStore()
 
-onMounted(() => {
+onMounted(async () => {
+  // Hydrate profile when a token exists so logged-in homepage hits get email/name
+  if (authStore.token && !authStore.user) {
+    try {
+      await authStore.checkAuth()
+    } catch {
+      /* ignore */
+    }
+  }
   const user = authStore.user as { email?: string; full_name?: string; name?: string; id?: string | number } | null
   reportLandingVisit(
     user
