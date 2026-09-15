@@ -143,10 +143,61 @@ export type LocalLandingVisitEntry = {
   ts: number
   path: string
   referrer: string
+  /** Marketing channel: linkedin | direct | google | other */
+  channel?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
   /** Present only when a session token/user is available */
   email?: string
   name?: string
   userId?: string | number
+}
+
+export function detectTrafficChannel(referrer: string, search = ''): {
+  channel: string
+  utmSource: string
+  utmMedium: string
+  utmCampaign: string
+} {
+  let utmSource = ''
+  let utmMedium = ''
+  let utmCampaign = ''
+  try {
+    const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search)
+    utmSource = (q.get('utm_source') || '').trim().toLowerCase()
+    utmMedium = (q.get('utm_medium') || '').trim().toLowerCase()
+    utmCampaign = (q.get('utm_campaign') || '').trim().toLowerCase()
+  } catch {
+    /* ignore */
+  }
+
+  const ref = (referrer || '').toLowerCase()
+  const linkedInUtm = utmSource.includes('linkedin') || utmSource === 'li' || utmMedium.includes('linkedin')
+  const linkedInRef =
+    ref.includes('linkedin.com') ||
+    ref.includes('lnkd.in') ||
+    ref.includes('linkedin.')
+
+  if (linkedInUtm || linkedInRef) {
+    return { channel: 'linkedin', utmSource, utmMedium, utmCampaign }
+  }
+  if (utmSource) {
+    return { channel: utmSource.slice(0, 40), utmSource, utmMedium, utmCampaign }
+  }
+  if (!ref) {
+    return { channel: 'direct', utmSource, utmMedium, utmCampaign }
+  }
+  if (ref.includes('google.') || ref.includes('bing.') || ref.includes('duckduckgo.')) {
+    return { channel: 'search', utmSource, utmMedium, utmCampaign }
+  }
+  return { channel: 'other', utmSource, utmMedium, utmCampaign }
+}
+
+export function isLinkedInLandingVisit(row: LocalLandingVisitEntry): boolean {
+  if (row.channel === 'linkedin') return true
+  const { channel } = detectTrafficChannel(row.referrer || '', '')
+  return channel === 'linkedin'
 }
 
 function appendLocalLandingVisit(entry: LocalLandingVisitEntry): void {
@@ -198,14 +249,20 @@ export function reportLandingVisit(identity?: {
 }): void {
   const ts = Date.now()
   const path = typeof window !== 'undefined' ? window.location.pathname || '/' : '/'
+  const search = typeof window !== 'undefined' ? window.location.search || '' : ''
   const referrer =
     typeof document !== 'undefined' && document.referrer ? String(document.referrer).slice(0, 300) : ''
+  const detected = detectTrafficChannel(referrer, search)
 
   const entry: LocalLandingVisitEntry = {
     ts,
     path,
     referrer,
+    channel: detected.channel,
   }
+  if (detected.utmSource) entry.utmSource = detected.utmSource
+  if (detected.utmMedium) entry.utmMedium = detected.utmMedium
+  if (detected.utmCampaign) entry.utmCampaign = detected.utmCampaign
   if (identity?.email) entry.email = String(identity.email).trim().toLowerCase()
   if (identity?.name) entry.name = String(identity.name).trim().slice(0, 120)
   if (identity?.userId != null && identity.userId !== '') entry.userId = identity.userId
@@ -215,7 +272,11 @@ export function reportLandingVisit(identity?: {
   const payload: Record<string, string | number | boolean> = {
     path,
     referrer: referrer || '(direct)',
+    channel: detected.channel,
   }
+  if (detected.utmSource) payload.utm_source = detected.utmSource
+  if (detected.utmMedium) payload.utm_medium = detected.utmMedium
+  if (detected.utmCampaign) payload.utm_campaign = detected.utmCampaign
   if (entry.email) payload.email = entry.email
   if (entry.name) payload.name = entry.name
   if (entry.userId != null) payload.userId = String(entry.userId)
