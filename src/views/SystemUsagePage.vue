@@ -138,7 +138,7 @@
                   </thead>
                   <tbody>
                     <tr v-for="c in (siteTraffic.today.countries || []).slice(0, 10)" :key="c.country" class="border-b border-dark-800">
-                      <td class="px-3 py-1.5 text-gray-200">{{ c.country }}</td>
+                      <td class="px-3 py-1.5 text-gray-200">{{ countryDisplayName(c.country) }}</td>
                       <td class="px-3 py-1.5 text-gray-300">{{ c.requests }}</td>
                       <td class="px-3 py-1.5 text-gray-300">{{ c.visits }}</td>
                     </tr>
@@ -929,6 +929,7 @@ import {
   type LocalSignupLeadEntry,
   type LocalLandingVisitEntry,
 } from '@/utils/clientTelemetry'
+import { countryDisplayName } from '@/utils/country-names'
 
 const authStore = useAuthStore()
 const API = '/api/v1/admin/usage'
