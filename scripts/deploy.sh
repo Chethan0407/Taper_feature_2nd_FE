@@ -19,6 +19,16 @@ echo "📦 Step 2: Installing dependencies..."
 npm install
 
 echo ""
+echo "📈 Step 2b: Refreshing Cloudflare traffic snapshot (if credentials present)..."
+if [ -f "$HOME/.config/tapeoutops/cloudflare.env" ] || [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+  # shellcheck disable=SC1090
+  [ -f "$HOME/.config/tapeoutops/cloudflare.env" ] && set -a && . "$HOME/.config/tapeoutops/cloudflare.env" && set +a
+  node scripts/fetch-cloudflare-traffic.mjs || echo "⚠️  Cloudflare traffic fetch failed (continuing deploy)"
+else
+  echo "⏭️  Skipping (no CLOUDFLARE_API_TOKEN / ~/.config/tapeoutops/cloudflare.env)"
+fi
+
+echo ""
 echo "🔨 Step 3: Building production bundle..."
 npx vite build
 

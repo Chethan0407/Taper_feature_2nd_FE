@@ -521,9 +521,26 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { reportLandingVisit } from '@/utils/clientTelemetry'
 
 const router = useRouter()
+const authStore = useAuthStore()
+
+onMounted(() => {
+  const user = authStore.user as { email?: string; full_name?: string; name?: string; id?: string | number } | null
+  reportLandingVisit(
+    user
+      ? {
+          email: user.email,
+          name: user.full_name || user.name,
+          userId: user.id,
+        }
+      : undefined,
+  )
+})
 
 const scrollToSection = (id: string) => {
   const element = document.getElementById(id)
