@@ -21,9 +21,64 @@
             <div class="settings-card-body">
               <div>
                 <h2 class="module-section-title text-lg">User Profile</h2>
-                <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Name, role, and account email</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">Name, role, photo, and account email</p>
               </div>
               <div class="space-y-4">
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300">Profile photo</label>
+                  <div class="flex flex-wrap items-center gap-4">
+                    <div
+                      class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-gradient-to-br from-neon-blue to-neon-purple text-lg font-semibold text-white dark:border-dark-600"
+                      title="Current photo"
+                    >
+                      <img
+                        v-if="currentAvatarUrl"
+                        :src="currentAvatarUrl"
+                        alt="Current avatar"
+                        class="h-full w-full object-cover"
+                      />
+                      <span v-else>{{ profileInitials }}</span>
+                    </div>
+                    <div
+                      v-if="avatarPreviewUrl"
+                      class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-neon-blue/50 bg-slate-100 dark:bg-dark-800"
+                      title="Preview"
+                    >
+                      <img
+                        :src="avatarPreviewUrl"
+                        alt="Preview"
+                        class="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div class="flex min-w-0 flex-col gap-2">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <label class="btn-secondary cursor-pointer px-4 py-2 text-sm">
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/gif,image/webp"
+                            class="hidden"
+                            @change="handleAvatarChange"
+                          />
+                          Choose photo
+                        </label>
+                        <button
+                          type="button"
+                          class="btn-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                          :disabled="!avatarFile || avatarUploading"
+                          @click="uploadAvatar"
+                        >
+                          <span v-if="avatarUploading">Uploading…</span>
+                          <span v-else>Upload</span>
+                        </button>
+                      </div>
+                      <p class="text-xs text-slate-500 dark:text-gray-400">
+                        PNG, JPG, GIF, WEBP · max 5MB
+                      </p>
+                      <p v-if="avatarSuccess" class="text-sm text-emerald-500">Photo updated.</p>
+                      <p v-if="avatarError" class="text-sm text-red-500">{{ avatarError }}</p>
+                    </div>
+                  </div>
+                </div>
                 <div>
                   <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-gray-300">Name</label>
                   <input
@@ -394,7 +449,7 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import SettingsDataTransfer from '@/components/Common/SettingsDataTransfer.vue'
-import { onMounted, onActivated, ref, watch, nextTick } from 'vue'
+import { onMounted, onActivated, onUnmounted, ref, computed, watch, nextTick } from 'vue'
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
@@ -417,6 +472,30 @@ const profile = ref({ name: '', email: '', role: 'engineer' })
 const profileLoading = ref(false)
 const profileSuccess = ref(false)
 const profileError = ref('')
+
+const avatarFile = ref<File | null>(null)
+const avatarPreviewUrl = ref<string | null>(null)
+const avatarUploading = ref(false)
+const avatarSuccess = ref(false)
+const avatarError = ref('')
+
+const currentAvatarUrl = computed(
+  () => authStore.user?.avatar || authStore.user?.avatar_url || ''
+)
+
+const profileInitials = computed(() => {
+  const name = (profile.value.name || profile.value.email || 'U').trim()
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+})
+
+const revokeAvatarPreview = () => {
+  if (avatarPreviewUrl.value) {
+    URL.revokeObjectURL(avatarPreviewUrl.value)
+    avatarPreviewUrl.value = null
+  }
+}
 
 // API Keys
 const apiKeys = ref<any[]>([])
@@ -592,6 +671,10 @@ const loadProfile = async () => {
         email: user.email || '',
         role: user.role || 'engineer'
       }
+      const avatar = user.avatar_url || user.avatar
+      if (typeof avatar === 'string' && avatar.trim()) {
+        authStore.setUserAvatar(avatar.trim())
+      }
       profileError.value = '' // Clear any previous errors
     } catch (parseError: any) {
       console.error('❌ Failed to parse profile response:', parseError)
@@ -641,6 +724,73 @@ const updateProfile = async () => {
     profileLoading.value = false
   }
 }
+
+const handleAvatarChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  avatarError.value = ''
+  avatarSuccess.value = false
+  if (!file) return
+
+  if (file.size > 5 * 1024 * 1024) {
+    avatarError.value = 'File size must be less than 5MB'
+    target.value = ''
+    return
+  }
+
+  const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+  if (!allowed.includes(file.type)) {
+    avatarError.value = 'Invalid file type. Allowed: PNG, JPG, GIF, WEBP'
+    target.value = ''
+    return
+  }
+
+  revokeAvatarPreview()
+  avatarFile.value = file
+  avatarPreviewUrl.value = URL.createObjectURL(file)
+  target.value = ''
+}
+
+const uploadAvatar = async () => {
+  if (!avatarFile.value) return
+
+  try {
+    avatarUploading.value = true
+    avatarError.value = ''
+    avatarSuccess.value = false
+
+    const formData = new FormData()
+    formData.append('file', avatarFile.value)
+
+    const res = await apiClient('/settings/profile/avatar', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const errorMessage = await parseApiError(res, 'Failed to upload photo')
+      throw new Error(errorMessage)
+    }
+
+    const data = await res.json()
+    const url = (data.avatar_url || data.avatar || '').trim()
+    if (!url) throw new Error('Upload succeeded but no avatar URL returned')
+
+    authStore.setUserAvatar(url)
+    revokeAvatarPreview()
+    avatarFile.value = null
+    avatarSuccess.value = true
+    setTimeout(() => { avatarSuccess.value = false }, 3000)
+  } catch (e: any) {
+    avatarError.value = e.message || 'Failed to upload photo'
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
+onUnmounted(() => {
+  revokeAvatarPreview()
+})
 
 // ========== API Keys ==========
 const loadAPIKeys = async () => {

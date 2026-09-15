@@ -7,7 +7,9 @@ interface User {
   email: string
   name: string
   role: 'admin' | 'lead' | 'engineer' | 'manager'
+  /** Canonical profile photo URL (from avatar_url || avatar on /me). */
   avatar?: string
+  avatar_url?: string
   is_superuser?: boolean
 }
 
@@ -38,11 +40,19 @@ function userHasAdminAccess(u: Record<string, unknown> | null | undefined): bool
   )
 }
 
+function pickAvatarUrl(raw: Record<string, unknown>): string | undefined {
+  const url = raw.avatar_url || raw.avatar
+  return typeof url === 'string' && url.trim() ? url.trim() : undefined
+}
+
 function normalizeUser(raw: Record<string, unknown> | null | undefined): User | null {
   if (!raw || typeof raw !== 'object') return null
+  const avatar = pickAvatarUrl(raw)
   return {
     ...(raw as unknown as User),
     is_superuser: isTruthyFlag(raw.is_superuser),
+    avatar,
+    avatar_url: avatar,
   }
 }
 
@@ -435,6 +445,17 @@ export const useAuthStore = defineStore('auth', () => {
     return authCheckPromise
   }
 
+  /** Update profile photo everywhere that reads authStore.user.avatar */
+  const setUserAvatar = (url: string) => {
+    if (!user.value) return
+    const next = url.trim()
+    user.value = {
+      ...user.value,
+      avatar: next || undefined,
+      avatar_url: next || undefined,
+    }
+  }
+
   // Auto-load user data if token exists but user is missing
   const initializeAuth = async () => {
     try {
@@ -480,6 +501,7 @@ export const useAuthStore = defineStore('auth', () => {
     checkAuth,
     getAuthHeader,
     initializeAuth,
+    setUserAvatar,
     verifyEmail,
     resendOTP
   }
