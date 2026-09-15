@@ -75,12 +75,12 @@
           ref="profileDropdownRef"
           @click.stop="toggleProfileDropdown"
         >
-          <img 
-            v-if="branding.logo_url" 
-            :src="branding.logo_url" 
-            alt="Brand Logo" 
-            class="h-8 w-8 rounded-full border border-gray-200 dark:border-dark-600" 
-          />
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-gradient-to-br from-neon-blue to-neon-purple text-xs font-semibold text-white dark:border-dark-600"
+            aria-hidden="true"
+          >
+            {{ profileInitials }}
+          </div>
           <span class="text-base font-semibold text-gray-900 dark:text-white">
             {{ userProfile?.full_name || authStore.user?.name || 'User' }}
           </span>
@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBrandingStore } from '@/stores/branding'
 import { useAuthStore } from '@/stores/auth'
@@ -187,6 +187,13 @@ let searchTimeout: any = null
 // User profile state
 const userProfile = ref<{ full_name?: string; email?: string; role?: string } | null>(null)
 const showProfileDropdown = ref(false)
+
+const profileInitials = computed(() => {
+  const name = String(userProfile.value?.full_name || authStore.user?.name || authStore.user?.email || 'U')
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+})
 
 // Smart Suggestions
 const showSmartSuggestions = ref(false)
