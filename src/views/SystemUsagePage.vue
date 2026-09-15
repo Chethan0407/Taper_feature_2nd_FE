@@ -44,6 +44,120 @@
           </div>
         </section>
 
+        <!-- Site traffic (Cloudflare + local landing beacons) -->
+        <section class="mb-10 page-enter" data-testid="site-traffic">
+          <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 class="module-section-title">Site traffic</h2>
+              <p class="mt-1 max-w-3xl text-sm text-slate-400">
+                Cloudflare hits for <strong class="text-slate-200">tapeoutops.com</strong>
+                (anonymous — no name/email). Homepage visits from
+                <strong class="text-slate-200">this browser</strong> include name/email only when the visitor is logged in.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-500/20"
+              @click="refreshSiteTraffic"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div v-if="siteTrafficLoading" class="text-gray-400">Loading site traffic…</div>
+          <div v-else-if="siteTrafficError" class="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 text-sm">
+            {{ siteTrafficError }}
+          </div>
+          <div v-else class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div class="stat-tile !text-left !p-4 border-sky-500/30 bg-sky-500/5">
+              <p class="text-xs font-medium uppercase tracking-wide text-sky-400">Requests ({{ siteTraffic?.rangeDays ?? 7 }}d)</p>
+              <p class="mt-1 font-display text-3xl font-bold text-sky-300">{{ siteTraffic?.totals?.requests ?? '—' }}</p>
+            </div>
+            <div class="stat-tile !text-left !p-4 border-emerald-500/30 bg-emerald-500/5">
+              <p class="text-xs font-medium uppercase tracking-wide text-emerald-400">Page views</p>
+              <p class="mt-1 font-display text-3xl font-bold text-emerald-300">{{ siteTraffic?.totals?.pageViews ?? '—' }}</p>
+            </div>
+            <div class="stat-tile !text-left !p-4 border-violet-500/30 bg-violet-500/5">
+              <p class="text-xs font-medium uppercase tracking-wide text-violet-400">Uniques (sum/day)</p>
+              <p class="mt-1 font-display text-3xl font-bold text-violet-300">{{ siteTraffic?.totals?.uniques ?? '—' }}</p>
+            </div>
+            <div class="stat-tile !text-left !p-4 border-amber-500/30 bg-amber-500/5">
+              <p class="text-xs font-medium uppercase tracking-wide text-amber-400">Updated</p>
+              <p class="mt-1 text-sm font-medium text-amber-200">{{ formatSiteTrafficTime(siteTraffic?.fetchedAt) }}</p>
+            </div>
+          </div>
+
+          <div v-if="siteTraffic?.series?.length" class="mb-8 overflow-x-auto rounded-xl border border-sky-500/20 bg-white shadow-lg dark:border-sky-500/20 dark:bg-dark-900/90">
+            <table class="min-w-full text-left text-sm">
+              <thead class="border-b border-sky-500/15 bg-sky-500/5">
+                <tr>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Date</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Requests</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Page views</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Uniques</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in siteTraffic.series"
+                  :key="row.date"
+                  class="border-b border-gray-200 dark:border-dark-800"
+                >
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.date }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.requests }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.pageViews }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.uniques }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="mb-3 text-lg font-semibold text-sky-200">Homepage visits (this browser)</h3>
+          <div class="mb-3 flex flex-wrap items-center gap-3">
+            <p class="text-sm text-slate-400">
+              Captured locally: <strong class="text-slate-200">{{ localLandingVisits.length }}</strong>
+            </p>
+            <button
+              type="button"
+              class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300"
+              @click="clearLocalLandingVisits"
+            >
+              Clear log
+            </button>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-sky-500/20 bg-white shadow-lg dark:border-sky-500/20 dark:bg-dark-900/90">
+            <table class="min-w-full text-left text-sm">
+              <thead class="border-b border-sky-500/15 bg-sky-500/5">
+                <tr>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">When</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Path</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Name</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Email</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Referrer</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="localLandingVisits.length === 0">
+                  <td colspan="5" class="px-4 py-6 text-center text-gray-400">
+                    No homepage visits logged in this browser yet. Open tapeoutops.com/ then refresh this page.
+                  </td>
+                </tr>
+                <tr
+                  v-for="(row, idx) in localLandingVisits.slice(0, 50)"
+                  :key="String(row.ts) + String(idx)"
+                  class="border-b border-gray-200 dark:border-dark-800"
+                >
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ formatSiteTrafficTime(row.ts) }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.path || '/' }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.name || '—' }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.email || '—' }}</td>
+                  <td class="px-4 py-2 text-gray-400 truncate max-w-xs">{{ row.referrer || '(direct)' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <!-- Signup leads — same layout pattern as Users (filters + table) -->
         <section class="mb-10 page-enter" data-testid="signup-leads">
           <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -642,10 +756,77 @@ import { pageSlice, totalPages, rangeLabel, pageNumberWindow } from '@/utils/cli
 import {
   readLocalSignupLeadsLog,
   clearLocalSignupLeadsLog,
+  readLocalLandingVisitsLog,
+  clearLocalLandingVisitsLog,
   type LocalSignupLeadEntry,
+  type LocalLandingVisitEntry,
 } from '@/utils/clientTelemetry'
 
 const API = '/api/v1/admin/usage'
+
+type SiteTrafficDay = {
+  date: string
+  requests: number
+  pageViews: number
+  cachedRequests?: number
+  uniques: number
+}
+
+type SiteTrafficPayload = {
+  source?: string
+  zone?: string
+  rangeDays?: number
+  since?: string
+  until?: string
+  fetchedAt?: string
+  totals?: {
+    requests?: number
+    pageViews?: number
+    cachedRequests?: number
+    uniques?: number
+  }
+  series?: SiteTrafficDay[]
+  note?: string
+}
+
+const siteTraffic = ref<SiteTrafficPayload | null>(null)
+const siteTrafficLoading = ref(false)
+const siteTrafficError = ref('')
+const localLandingVisits = ref<LocalLandingVisitEntry[]>([])
+
+function formatSiteTrafficTime(value?: string | number) {
+  if (value == null || value === '') return '—'
+  const d = typeof value === 'number' ? new Date(value) : new Date(String(value))
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString()
+}
+
+async function refreshSiteTraffic() {
+  siteTrafficLoading.value = true
+  siteTrafficError.value = ''
+  localLandingVisits.value = readLocalLandingVisitsLog()
+  try {
+    const res = await fetch(`/site-traffic.json?t=${Date.now()}`, { cache: 'no-store' })
+    if (!res.ok) {
+      throw new Error(
+        res.status === 404
+          ? 'site-traffic.json missing — run: node scripts/fetch-cloudflare-traffic.mjs (then redeploy).'
+          : `Failed to load site traffic (${res.status})`,
+      )
+    }
+    siteTraffic.value = await res.json()
+  } catch (e: any) {
+    siteTrafficError.value = e?.message || 'Failed to load Cloudflare traffic snapshot'
+    siteTraffic.value = null
+  } finally {
+    siteTrafficLoading.value = false
+  }
+}
+
+function clearLocalLandingVisits() {
+  clearLocalLandingVisitsLog()
+  localLandingVisits.value = []
+}
 
 // Overview
 const overview = ref<{
@@ -1140,6 +1321,7 @@ watch(activityHours, () => fetchActivity())
 onMounted(async () => {
   refreshLocalSignupLeads()
   await Promise.all([
+    refreshSiteTraffic(),
     fetchOverview(),
     fetchSignupLeads(),
     fetchTrends(),

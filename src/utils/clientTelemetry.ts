@@ -135,6 +135,94 @@ export function clearLocalSignupLeadsLog(): void {
   }
 }
 
+/** Homepage / marketing visit log (this browser) for System Usage preview. */
+const LOCAL_LANDING_VISITS_KEY = 'tapeout_landing_visits_log'
+const LOCAL_LANDING_VISITS_MAX = 200
+
+export type LocalLandingVisitEntry = {
+  ts: number
+  path: string
+  referrer: string
+  /** Present only when a session token/user is available */
+  email?: string
+  name?: string
+  userId?: string | number
+}
+
+function appendLocalLandingVisit(entry: LocalLandingVisitEntry): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    const raw = localStorage.getItem(LOCAL_LANDING_VISITS_KEY)
+    const arr: LocalLandingVisitEntry[] = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(arr)) return
+    arr.unshift(entry)
+    localStorage.setItem(LOCAL_LANDING_VISITS_KEY, JSON.stringify(arr.slice(0, LOCAL_LANDING_VISITS_MAX)))
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+export function readLocalLandingVisitsLog(): LocalLandingVisitEntry[] {
+  try {
+    if (typeof localStorage === 'undefined') return []
+    const raw = localStorage.getItem(LOCAL_LANDING_VISITS_KEY)
+    if (!raw) return []
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) ? (arr as LocalLandingVisitEntry[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function clearLocalLandingVisitsLog(): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    localStorage.removeItem(LOCAL_LANDING_VISITS_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+export function countLocalLandingVisits(): number {
+  return readLocalLandingVisitsLog().length
+}
+
+/**
+ * Record a homepage hit. Anonymous by default; pass identity only when the visitor is logged in.
+ * Also attempts fire-and-forget UI telemetry (same as signup leads).
+ */
+export function reportLandingVisit(identity?: {
+  email?: string
+  name?: string
+  userId?: string | number
+}): void {
+  const ts = Date.now()
+  const path = typeof window !== 'undefined' ? window.location.pathname || '/' : '/'
+  const referrer =
+    typeof document !== 'undefined' && document.referrer ? String(document.referrer).slice(0, 300) : ''
+
+  const entry: LocalLandingVisitEntry = {
+    ts,
+    path,
+    referrer,
+  }
+  if (identity?.email) entry.email = String(identity.email).trim().toLowerCase()
+  if (identity?.name) entry.name = String(identity.name).trim().slice(0, 120)
+  if (identity?.userId != null && identity.userId !== '') entry.userId = identity.userId
+
+  appendLocalLandingVisit(entry)
+
+  const payload: Record<string, string | number | boolean> = {
+    path,
+    referrer: referrer || '(direct)',
+  }
+  if (entry.email) payload.email = entry.email
+  if (entry.name) payload.name = entry.name
+  if (entry.userId != null) payload.userId = String(entry.userId)
+
+  reportUiEvent('landing_page_visit', payload)
+}
+
 /**
  * Captures signup email text once it looks “enough” typed (not only after full domain.tld).
  * Also appends to localStorage so System Usage can show rows without a backend list API.

@@ -10,6 +10,7 @@
     "start": "sh -c 'for pid in $(lsof -nP -iTCP:5177 -sTCP:LISTEN -t 2>/dev/null); do kill -9 \"$pid\" 2>/dev/null; done; exec node ./node_modules/vite/bin/vite.js --clearScreen false --logLevel info'",
     "build": "vue-tsc && node ./node_modules/vite/bin/vite.js build",
     "build:ci": "node ./node_modules/vite/bin/vite.js build",
+    "traffic:cf": "node scripts/fetch-cloudflare-traffic.mjs",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "reinstall": "rm -rf node_modules package-lock.json && npm install",
     "check:api": "sh -c 'echo \"→ GET http://localhost:8000/docs (3s timeout)\"; curl -sS -m 3 -o /dev/null -w \"  HTTP %{http_code}\\n\" http://localhost:8000/docs || { echo \"→ GET http://127.0.0.1:8000/docs\"; curl -sS -m 3 -o /dev/null -w \"  HTTP %{http_code}\\n\" http://127.0.0.1:8000/docs; }'",

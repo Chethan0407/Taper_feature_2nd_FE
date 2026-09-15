@@ -1,0 +1,74 @@
+{
+  "source": "cloudflare",
+  "zone": "tapeoutops.com",
+  "zoneId": "f429a21e8989e3fbbf61f5646abef43e",
+  "rangeDays": 7,
+  "since": "2026-09-08",
+  "until": "2026-09-15",
+  "fetchedAt": "2026-09-15T08:52:04.847Z",
+  "totals": {
+    "requests": 18752,
+    "pageViews": 4550,
+    "cachedRequests": 240,
+    "uniques": 738
+  },
+  "note": "Uniques are summed per-day (not de-duplicated across days). Name/email are not available from Cloudflare for anonymous visitors.",
+  "series": [
+    {
+      "date": "2026-09-08",
+      "requests": 1714,
+      "pageViews": 948,
+      "cachedRequests": 12,
+      "uniques": 102
+    },
+    {
+      "date": "2026-09-09",
+      "requests": 253,
+      "pageViews": 107,
+      "cachedRequests": 13,
+      "uniques": 82
+    },
+    {
+      "date": "2026-09-10",
+      "requests": 1026,
+      "pageViews": 673,
+      "cachedRequests": 9,
+      "uniques": 76
+    },
+    {
+      "date": "2026-09-11",
+      "requests": 1165,
+      "pageViews": 504,
+      "cachedRequests": 43,
+      "uniques": 83
+    },
+    {
+      "date": "2026-09-12",
+      "requests": 1399,
+      "pageViews": 840,
+      "cachedRequests": 57,
+      "uniques": 81
+    },
+    {
+      "date": "2026-09-13",
+      "requests": 4570,
+      "pageViews": 749,
+      "cachedRequests": 87,
+      "uniques": 95
+    },
+    {
+      "date": "2026-09-14",
+      "requests": 2854,
+      "pageViews": 332,
+      "cachedRequests": 9,
+      "uniques": 115
+    },
+    {
+      "date": "2026-09-15",
+      "requests": 5771,
+      "pageViews": 397,
+      "cachedRequests": 10,
+      "uniques": 104
+    }
+  ]
+}
