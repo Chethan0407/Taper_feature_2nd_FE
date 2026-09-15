@@ -10,7 +10,16 @@
     <!-- Logo -->
     <div class="relative border-b border-slate-300/70 p-6 dark:border-dark-700/80">
       <div class="flex items-center space-x-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue to-neon-purple shadow-md ring-1 ring-black/5 dark:ring-white/10">
+        <img
+          v-if="branding.logo_url"
+          :src="branding.logo_url"
+          alt="Logo"
+          class="h-10 w-10 rounded-xl object-cover shadow-md ring-1 ring-black/5 dark:ring-white/10"
+        />
+        <div
+          v-else
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue to-neon-purple shadow-md ring-1 ring-black/5 dark:ring-white/10"
+        >
           <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="6" height="6" rx="1"/>
             <rect x="15" y="3" width="6" height="6" rx="1"/>
@@ -22,7 +31,7 @@
             <line x1="6" y1="15" x2="18" y2="15"/>
           </svg>
         </div>
-        <span class="font-display text-xl font-bold text-gradient">TapeOutOps</span>
+        <span class="font-display text-xl font-bold text-gradient">{{ branding.company_name || 'TapeOutOps' }}</span>
       </div>
     </div>
 
@@ -55,7 +64,16 @@
     <!-- User Profile -->
     <div class="relative border-t border-slate-300/70 p-4 dark:border-dark-700/80">
       <div class="flex items-center space-x-3 rounded-xl border border-slate-200/80 bg-white p-2 shadow-sm dark:border-transparent dark:bg-dark-800/50 dark:shadow-none">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-neon-green to-neon-blue shadow-md shadow-neon-blue/20 ring-2 ring-white/40 dark:ring-dark-700">
+        <img
+          v-if="branding.logo_url"
+          :src="branding.logo_url"
+          alt="Brand logo"
+          class="h-10 w-10 rounded-full object-cover shadow-md ring-2 ring-white/40 dark:ring-dark-700"
+        />
+        <div
+          v-else
+          class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-neon-green to-neon-blue shadow-md shadow-neon-blue/20 ring-2 ring-white/40 dark:ring-dark-700"
+        >
           <span class="text-sm font-semibold text-white">
             {{ userInitials }}
           </span>
@@ -83,9 +101,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandingStore } from '@/stores/branding'
 import {
   LayoutDashboard,
   FileText,
@@ -101,6 +120,13 @@ import {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const branding = useBrandingStore()
+
+onMounted(() => {
+  if (!branding.logo_url && !branding.company_name) {
+    void branding.fetchBranding()
+  }
+})
 
 const mainNavItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
