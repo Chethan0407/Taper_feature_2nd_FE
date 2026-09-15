@@ -117,6 +117,105 @@
             </table>
           </div>
 
+          <!-- Cloudflare today breakdown — explains the big numbers -->
+          <div v-if="siteTraffic?.today" class="mb-8" data-testid="site-traffic-breakdown">
+            <h3 class="mb-2 text-lg font-semibold text-sky-200">
+              What’s behind today’s traffic
+              <span class="ml-2 text-sm font-normal text-slate-400">(UTC {{ siteTraffic.today.date }})</span>
+            </h3>
+            <p class="mb-4 max-w-3xl text-sm text-slate-400">
+              The big “people” number includes bots and API clients. Below: countries, real pages (not /api), devices, and browsers — still no emails from Cloudflare.
+            </p>
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div class="overflow-x-auto rounded-xl border border-violet-500/20 bg-white dark:bg-dark-900/90">
+                <table class="min-w-full text-left text-sm">
+                  <thead class="border-b border-violet-500/15 bg-violet-500/5">
+                    <tr>
+                      <th class="px-3 py-2 text-violet-200">Country</th>
+                      <th class="px-3 py-2 text-violet-200">Requests</th>
+                      <th class="px-3 py-2 text-violet-200">Visits</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="c in (siteTraffic.today.countries || []).slice(0, 10)" :key="c.country" class="border-b border-dark-800">
+                      <td class="px-3 py-1.5 text-gray-200">{{ c.country }}</td>
+                      <td class="px-3 py-1.5 text-gray-300">{{ c.requests }}</td>
+                      <td class="px-3 py-1.5 text-gray-300">{{ c.visits }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="overflow-x-auto rounded-xl border border-emerald-500/20 bg-white dark:bg-dark-900/90">
+                <table class="min-w-full text-left text-sm">
+                  <thead class="border-b border-emerald-500/15 bg-emerald-500/5">
+                    <tr>
+                      <th class="px-3 py-2 text-emerald-200">Page path (human UI)</th>
+                      <th class="px-3 py-2 text-emerald-200">Hits</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-if="!(siteTraffic.today.pages || []).length">
+                      <td colspan="2" class="px-3 py-3 text-gray-400">No UI page paths in sample</td>
+                    </tr>
+                    <tr v-for="p in (siteTraffic.today.pages || []).slice(0, 10)" :key="p.path" class="border-b border-dark-800">
+                      <td class="px-3 py-1.5 font-mono text-xs text-gray-200">{{ p.path }}</td>
+                      <td class="px-3 py-1.5 text-gray-300">{{ p.requests }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="overflow-x-auto rounded-xl border border-sky-500/20 bg-white dark:bg-dark-900/90">
+                <table class="min-w-full text-left text-sm">
+                  <thead class="border-b border-sky-500/15 bg-sky-500/5">
+                    <tr>
+                      <th class="px-3 py-2 text-sky-200">Device</th>
+                      <th class="px-3 py-2 text-sky-200">Requests</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="d in (siteTraffic.today.devices || [])" :key="d.device" class="border-b border-dark-800">
+                      <td class="px-3 py-1.5 text-gray-200">{{ d.device }}</td>
+                      <td class="px-3 py-1.5 text-gray-300">{{ d.requests }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="overflow-x-auto rounded-xl border border-amber-500/20 bg-white dark:bg-dark-900/90">
+                <table class="min-w-full text-left text-sm">
+                  <thead class="border-b border-amber-500/15 bg-amber-500/5">
+                    <tr>
+                      <th class="px-3 py-2 text-amber-200">Browser / bot</th>
+                      <th class="px-3 py-2 text-amber-200">Requests</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="b in (siteTraffic.today.browsers || []).slice(0, 10)" :key="b.browser" class="border-b border-dark-800">
+                      <td class="px-3 py-1.5 text-gray-200">{{ b.browser }}</td>
+                      <td class="px-3 py-1.5 text-gray-300">{{ b.requests }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div v-if="(siteTraffic.today.apis || []).length" class="mt-4 overflow-x-auto rounded-xl border border-slate-500/20 bg-white dark:bg-dark-900/90">
+              <p class="px-3 pt-3 text-xs font-medium uppercase tracking-wide text-slate-400">Top API paths today (inflates request count)</p>
+              <table class="min-w-full text-left text-sm">
+                <thead class="border-b border-slate-500/15">
+                  <tr>
+                    <th class="px-3 py-2 text-slate-300">API path</th>
+                    <th class="px-3 py-2 text-slate-300">Hits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="a in siteTraffic.today.apis.slice(0, 8)" :key="a.path" class="border-b border-dark-800">
+                    <td class="px-3 py-1.5 font-mono text-xs text-gray-300">{{ a.path }}</td>
+                    <td class="px-3 py-1.5 text-gray-400">{{ a.requests }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <h3 class="mb-3 text-lg font-semibold text-sky-200">Your visits vs everyone else</h3>
           <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div class="stat-tile !text-left !p-4 border-fuchsia-500/40 bg-fuchsia-500/10">
@@ -833,6 +932,14 @@ type SiteTrafficPayload = {
   }
   series?: SiteTrafficDay[]
   note?: string
+  today?: {
+    date?: string
+    countries?: { country: string; requests: number; visits: number }[]
+    pages?: { path: string; requests: number }[]
+    apis?: { path: string; requests: number }[]
+    devices?: { device: string; requests: number }[]
+    browsers?: { browser: string; requests: number }[]
+  }
 }
 
 const siteTraffic = ref<SiteTrafficPayload | null>(null)
