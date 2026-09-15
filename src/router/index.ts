@@ -246,6 +246,15 @@ router.beforeEach(async (to, from, next) => {
         return
       }
 
+      // Cancel in-flight page work from the previous route (stops request storms on fast nav/switch)
+      if (from.path !== to.path) {
+        const { bumpNavigationGeneration, invalidateRequestCache } = await import('@/utils/request-coordinator')
+        bumpNavigationGeneration()
+        // Drop soft-cached shell reads so a new company/page context cannot reuse stale dashboard payloads
+        invalidateRequestCache('/api/v1/dashboard')
+        invalidateRequestCache('/api/v1/checklists')
+      }
+
       // Hydrate profile when we only have a token (sidebar superuser links, welcome name, etc.)
       if (!authStore.user) {
         await authStore.checkAuth()

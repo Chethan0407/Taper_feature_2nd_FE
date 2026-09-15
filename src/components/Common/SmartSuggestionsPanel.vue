@@ -168,6 +168,8 @@
 import { computed, onMounted, watch, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import { fetchDashboardJson, fetchUnreadNotifications } from '@/utils/shell-data'
+import { isAbortError } from '@/utils/request-coordinator'
 
 interface SuggestionCard {
   id: string
@@ -196,7 +198,7 @@ const suggestions = ref<SuggestionCard[]>([])
 
 const close = () => emit('close')
 
-const buildDashboardUrl = () => {
+const buildDashboardQuery = () => {
   // Try to reuse any dashboard-like filters from current route query if present
   const params = new URLSearchParams()
   const platform = route.query.platform as string | undefined
@@ -209,8 +211,7 @@ const buildDashboardUrl = () => {
   if (type) params.append('type', type)
   if (status) params.append('status', status)
 
-  const qs = params.toString()
-  return qs ? `/api/v1/dashboard?${qs}` : '/api/v1/dashboard'
+  return params.toString()
 }
 
 const loadSuggestions = async () => {
@@ -219,30 +220,29 @@ const loadSuggestions = async () => {
   suggestions.value = []
 
   try {
-    const [dashboardRes, checklistStatsRes, activeChecklistsRes, notificationsRes] = await Promise.allSettled([
-      authenticatedFetch(buildDashboardUrl()),
-      authenticatedFetch('/api/v1/checklists/stats'),
-      authenticatedFetch('/api/v1/checklists/active'),
-      authenticatedFetch('/api/v1/notifications?is_read=false')
+    // Stage: shell reads first (deduped), then checklist endpoints — avoid blasting 4+ at once with duplicates elsewhere
+    const [dashboardData, notifications] = await Promise.all([
+      fetchDashboardJson(buildDashboardQuery()).catch(() => null),
+      fetchUnreadNotifications().catch(() => []),
     ])
 
-    // Specs / dashboard
-    if (dashboardRes.status === 'fulfilled' && dashboardRes.value.ok) {
-      const data = await dashboardRes.value.json().catch(() => ({}))
-      const pending = data.pending_specs ?? data.pending ?? 0
-
-      if (pending && pending > 0) {
-        suggestions.value.push({
-          id: 'pending-specs',
-          title: `You have ${pending} pending specs`,
-          description: 'Review and approve pending specifications to keep your tapeout on track.',
-          ctaLabel: 'Go to Specs',
-          route: { path: '/specs', query: {} },
-          severity: 'warning',
-          icon: 'spec'
-        })
-      }
+    const pending = dashboardData?.pending_specs ?? dashboardData?.pending ?? 0
+    if (pending && pending > 0) {
+      suggestions.value.push({
+        id: 'pending-specs',
+        title: `You have ${pending} pending specs`,
+        description: 'Review and approve pending specifications to keep your tapeout on track.',
+        ctaLabel: 'Go to Specs',
+        route: { path: '/specs', query: {} },
+        severity: 'warning',
+        icon: 'spec'
+      })
     }
+
+    const [checklistStatsRes, activeChecklistsRes] = await Promise.allSettled([
+      authenticatedFetch('/api/v1/checklists/stats'),
+      authenticatedFetch('/api/v1/checklists/active'),
+    ])
 
     // Checklists
     let checklistStats: any = null
@@ -295,53 +295,40 @@ const loadSuggestions = async () => {
       }
     }
 
-    // Notifications
-    if (notificationsRes.status === 'fulfilled') {
-      let res = notificationsRes.value
-      if (res.status === 404) {
-        // Fallback variant with trailing slash before query params
-        res = await authenticatedFetch('/api/v1/notifications/?is_read=false')
+    const important = (notifications || []).slice(0, 3)
+    important.forEach((n: any, index: number) => {
+      let title = ''
+      let routeConfig: SuggestionCard['route'] = { path: '/' }
+
+      const entityType = n.entity_type
+      const entityId = n.entity_id
+
+      if (entityType === 'spec') {
+        title = `Spec update: ${n.message || 'A spec was updated'}`
+        routeConfig = { path: `/specs/${entityId}` }
+      } else if (entityType === 'checklist') {
+        title = `Checklist update: ${n.message || 'Checklist status changed'}`
+        routeConfig = { path: '/checklists' }
+      } else if (entityType === 'project') {
+        title = `Project activity: ${n.message || 'Project was updated'}`
+        routeConfig = { path: `/projects/${entityId}` }
+      } else {
+        title = n.message || 'Recent activity'
+        routeConfig = { path: '/' }
       }
 
-      if (res.ok) {
-        const data = await res.json().catch(() => [])
-        const notifications = Array.isArray(data) ? data : (data.results || [])
-
-        const important = notifications.slice(0, 3)
-        important.forEach((n: any, index: number) => {
-          let title = ''
-          let routeConfig: SuggestionCard['route'] = { path: '/' }
-
-          const entityType = n.entity_type
-          const entityId = n.entity_id
-
-          if (entityType === 'spec') {
-            title = `Spec update: ${n.message || 'A spec was updated'}`
-            routeConfig = { path: `/specs/${entityId}` }
-          } else if (entityType === 'checklist') {
-            title = `Checklist update: ${n.message || 'Checklist status changed'}`
-            routeConfig = { path: '/checklists' }
-          } else if (entityType === 'project') {
-            title = `Project activity: ${n.message || 'Project was updated'}`
-            routeConfig = { path: `/projects/${entityId}` }
-          } else {
-            title = n.message || 'Recent activity'
-            routeConfig = { path: '/' }
-          }
-
-          suggestions.value.push({
-            id: `notification-${n.id ?? index}`,
-            title,
-            description: 'Review this recent activity to stay up to date.',
-            ctaLabel: 'View details',
-            route: routeConfig,
-            severity: 'info',
-            icon: 'notification'
-          })
-        })
-      }
-    }
+      suggestions.value.push({
+        id: `notification-${n.id ?? index}`,
+        title,
+        description: 'Review this recent activity to stay up to date.',
+        ctaLabel: 'View details',
+        route: routeConfig,
+        severity: 'info',
+        icon: 'notification'
+      })
+    })
   } catch (e: any) {
+    if (isAbortError(e)) return
     error.value = e?.message || 'Failed to load smart suggestions.'
     console.error('Failed to load smart suggestions:', e)
   } finally {

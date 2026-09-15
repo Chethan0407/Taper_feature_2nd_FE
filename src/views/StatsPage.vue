@@ -269,8 +269,15 @@ import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { useMetadataStore } from '@/stores/metadata'
 import { useSpecificationsStore } from '@/stores/specifications'
-import { authenticatedFetch } from '@/utils/auth-requests'
+import { fetchDashboardJson } from '@/utils/shell-data'
+import {
+  createRequestScope,
+  isAbortError,
+} from '@/utils/request-coordinator'
 import { statusBadgeClass } from '@/utils/status-badge'
+
+const pageScope = createRequestScope('stats-page')
+const STATS_POLL_MS = 60_000
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -369,37 +376,22 @@ const fetchStats = async () => {
     if (selectedFilters.value.status) params.append('status', selectedFilters.value.status)
 
     const queryString = params.toString()
-    const url = queryString ? `/api/v1/dashboard?${queryString}` : '/api/v1/dashboard'
-
-    const res = await authenticatedFetch(url)
-
-    if (!res.ok) {
-      if (res.status === 404) {
-        stats.value = {
-          approved_specs: 0,
-          pending_specs: 0,
-          rejected_specs: 0,
-          vendor_partners: 0,
-          quality_score: undefined,
-        }
-        statsError.value = ''
-        return
-      }
-
-      const errorText = await res.text()
-      let errorMsg = 'Unable to load dashboard stats.'
-      try {
-        const errorData = JSON.parse(errorText)
-        errorMsg = errorData.detail || errorData.message || errorMsg
-      } catch {
-        errorMsg = errorText || errorMsg
-      }
-      throw new Error(errorMsg)
-    }
-
-    stats.value = await res.json()
+    stats.value = await fetchDashboardJson(queryString, pageScope.signal)
     statsError.value = ''
   } catch (e: any) {
+    if (isAbortError(e)) return
+    // Soft-empty on 404-style messages from shell helper
+    if (String(e?.message || '').includes('404')) {
+      stats.value = {
+        approved_specs: 0,
+        pending_specs: 0,
+        rejected_specs: 0,
+        vendor_partners: 0,
+        quality_score: undefined,
+      }
+      statsError.value = ''
+      return
+    }
     statsError.value = e.message || 'Unable to load dashboard stats.'
     console.error('Error fetching dashboard stats:', e)
     window.dispatchEvent(new CustomEvent('toast', { detail: { message: statsError.value, type: 'error' } }))
@@ -455,17 +447,25 @@ const handleSpecDeleted = () => {
 }
 
 onMounted(async () => {
+  pageScope.begin()
   await authStore.checkAuth()
 
   if (!metadataStore.platforms.length) await metadataStore.fetchMetadata()
+  // Stage: dashboard shell first, then specs list
   await fetchStats()
-  await fetchTapeouts()
-  statsInterval = window.setInterval(fetchStats, 10000)
+  if (!pageScope.signal.aborted) {
+    await fetchTapeouts()
+  }
+  // Bounded poll — was 10s which compounded with nav fan-out under load
+  statsInterval = window.setInterval(() => {
+    if (!pageScope.signal.aborted) void fetchStats()
+  }, STATS_POLL_MS)
 
   window.addEventListener('specification-deleted', handleSpecDeleted)
 })
 
 onUnmounted(() => {
+  pageScope.abort()
   if (statsInterval) clearInterval(statsInterval)
   window.removeEventListener('specification-deleted', handleSpecDeleted)
 })

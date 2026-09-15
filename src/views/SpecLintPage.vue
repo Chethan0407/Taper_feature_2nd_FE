@@ -728,6 +728,9 @@ import { useSpecificationsStore } from '@/stores/specifications'
 import { authenticatedFetch } from '@/utils/auth-requests'
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { severityBadgeClass } from '@/utils/status-badge'
+import { createRequestScope, isAbortError } from '@/utils/request-coordinator'
+
+const pageScope = createRequestScope('speclint-page')
 
 interface LintResult {
   id?: string
@@ -821,7 +824,7 @@ const editingRule = ref<LintRule | null>(null)
 const showEditModal = ref(false)
 
 // Fetch all available specs
-const fetchAllSpecs = async () => {
+const fetchAllSpecs = async (signal?: AbortSignal) => {
   console.log('🔵 fetchAllSpecs: Starting to fetch specs...')
   loadingSpecs.value = true
   try {
@@ -829,7 +832,8 @@ const fetchAllSpecs = async () => {
     // Note: GET /api/v1/specs/ does not exist - removed that call
     const url = '/api/v1/specifications/'
     console.log('🔵 fetchAllSpecs: Calling API:', url)
-    const specificationsRes = await authenticatedFetch(url).catch((err) => {
+    const specificationsRes = await authenticatedFetch(url, { signal }).catch((err) => {
+      if (isAbortError(err)) throw err
       console.error('❌ fetchAllSpecs: API call failed:', err)
       return null
     })
@@ -853,6 +857,7 @@ const fetchAllSpecs = async () => {
     allAvailableSpecs.value = specs
     console.log('✅ fetchAllSpecs: Loaded', specs.length, 'specs for dropdown')
   } catch (e: any) {
+    if (isAbortError(e)) return
     console.error('❌ fetchAllSpecs: Error:', e)
     // Fallback to specifications store
     allAvailableSpecs.value = specificationsStore.specifications.map((s: any) => ({ ...s, source: 'specifications' }))
@@ -870,7 +875,7 @@ const formatSpecDisplayName = (spec: any) => {
   return `${name} (${idDisplay})${missingSuffix}`
 }
 
-const fetchRules = async () => {
+const fetchRules = async (signal?: AbortSignal) => {
   console.log('🔵 fetchRules: Starting to fetch rules...')
   fetchingRules.value = true // Use separate loading state for fetching
   ruleError.value = ''
@@ -888,7 +893,7 @@ const fetchRules = async () => {
     if (ruleFilters.value.severity) params.append('severity', ruleFilters.value.severity)
     const url = `/api/v1/speclint/rules?${params.toString()}`
     console.log('🔵 fetchRules: Calling API:', url)
-    const res = await authenticatedFetch(url)
+    const res = await authenticatedFetch(url, { signal })
     console.log('🔵 fetchRules: Response status:', res.status, 'ok:', res.ok)
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'Unknown error')
@@ -900,6 +905,7 @@ const fetchRules = async () => {
     rules.value = data.results || []
     totalResults.value = data.pagination?.total || data.pagination?.total_results || 0
   } catch (e: any) {
+    if (isAbortError(e)) return
     console.error('❌ fetchRules: Error:', e)
     ruleError.value = e.message || 'Failed to fetch rules'
   } finally {
@@ -947,27 +953,30 @@ watch([page], () => {
 })
 
 onMounted(async () => {
+  const signal = pageScope.begin()
   console.log('🔵🔵🔵 SpecLintPage: Component MOUNTED - Starting initialization...')
   console.log('🔵 SpecLintPage: Route:', route.path, route.name)
   console.log('🔵 SpecLintPage: Token exists:', !!authStore.token)
   
   try {
     console.log('🔵 SpecLintPage: Step 1 - Calling fetchRules()...')
-    await fetchRules() // Make it await so we can see if it completes
+    await fetchRules(signal) // Make it await so we can see if it completes
+    if (signal.aborted) return
     console.log('✅ SpecLintPage: Step 1 - fetchRules() completed')
     
     console.log('🔵 SpecLintPage: Step 2 - Calling fetchAllSpecs()...')
     try {
-      await fetchAllSpecs()
+      await fetchAllSpecs(signal)
       console.log('✅ SpecLintPage: Step 2 - fetchAllSpecs() completed')
     } catch (fetchError: any) {
+      if (isAbortError(fetchError)) return
       console.error('❌ SpecLintPage: Step 2 - Failed to fetch specs:', fetchError.message, fetchError)
       // Don't throw - continue without specs (user can still use the page)
     }
     
     // Only try to load from store if we don't have any specs yet
     // And wrap in try-catch to prevent any errors from blocking page load
-    if (allAvailableSpecs.value.length === 0) {
+    if (!signal.aborted && allAvailableSpecs.value.length === 0) {
       console.log('🔵 SpecLintPage: Step 3 - No specs from fetchAllSpecs, trying store...')
       try {
         await specificationsStore.loadSpecifications()
@@ -985,6 +994,7 @@ onMounted(async () => {
     console.log('✅ SpecLintPage: Rules loaded:', rules.value.length)
     console.log('✅ SpecLintPage: Specs loaded:', allAvailableSpecs.value.length)
   } catch (error) {
+    if (isAbortError(error)) return
     console.error('❌❌❌ SpecLintPage: CRITICAL ERROR during initialization:', error)
     console.error('❌ SpecLintPage: Error stack:', (error as Error).stack)
   }
@@ -1299,6 +1309,7 @@ const cancelAutoNavigate = () => {
 
 // Cleanup on component unmount
 onBeforeUnmount(() => {
+  pageScope.abort()
   cancelAutoNavigate()
 })
 
