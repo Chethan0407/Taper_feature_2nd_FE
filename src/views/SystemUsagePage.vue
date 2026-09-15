@@ -230,12 +230,12 @@
             </div>
           </div>
 
-          <h3 class="mb-3 text-lg font-semibold text-sky-200">Your visits vs everyone else</h3>
+          <h3 class="mb-3 text-lg font-semibold text-sky-200">Landing visits (live)</h3>
           <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div class="stat-tile !text-left !p-4 border-blue-500/40 bg-blue-500/10 ring-1 ring-blue-400/20">
               <p class="text-xs font-medium uppercase tracking-wide text-blue-300">From LinkedIn</p>
               <p class="mt-1 font-display text-2xl font-bold text-blue-200">{{ linkedInLandingVisitCount }}</p>
-              <p class="mt-1 text-[11px] text-blue-300/80">referrer or utm_source=linkedin (this browser)</p>
+              <p class="mt-1 text-[11px] text-blue-300/80">last {{ landingVisitsHours }}h · server</p>
             </div>
             <div class="stat-tile !text-left !p-4 border-fuchsia-500/40 bg-fuchsia-500/10">
               <p class="text-xs font-medium uppercase tracking-wide text-fuchsia-300">My visits</p>
@@ -248,15 +248,17 @@
               <p class="mt-1 text-[11px] text-slate-400">Not tagged as you</p>
             </div>
             <div class="stat-tile !text-left !p-4 border-sky-500/30 bg-sky-500/5">
-              <p class="text-xs font-medium uppercase tracking-wide text-sky-400">This browser total</p>
-              <p class="mt-1 font-display text-2xl font-bold text-sky-300">{{ localLandingVisits.length }}</p>
-              <p class="mt-1 text-[11px] text-sky-400/80">Homepage opens logged here</p>
+              <p class="text-xs font-medium uppercase tracking-wide text-sky-400">Server total</p>
+              <p class="mt-1 font-display text-2xl font-bold text-sky-300">{{ landingVisitsDisplay.length }}</p>
+              <p class="mt-1 text-[11px] text-sky-400/80">
+                {{ landingVisitsFromServer ? `GET /landing-visits (${landingVisitsHours}h)` : 'this browser (API pending)' }}
+              </p>
             </div>
           </div>
           <p class="mb-3 max-w-3xl text-xs text-slate-400">
             Tip: post LinkedIn links as
             <code class="text-sky-300">https://tapeoutops.com/?utm_source=linkedin&amp;utm_medium=social</code>
-            so clicks always count even if the browser hides the referrer. Cloudflare plan can’t show LinkedIn referrers site-wide.
+            so clicks always count. Homepage beacons POST to <code class="text-sky-300">/auth/ui-events</code>.
           </p>
 
           <div class="mb-3 flex flex-wrap items-center gap-3">
@@ -1007,6 +1009,9 @@ const siteTrafficFetchedLabel = computed(() => {
 })
 
 const localLandingVisits = ref<LocalLandingVisitEntry[]>([])
+const serverLandingVisits = ref<LocalLandingVisitEntry[]>([])
+const landingVisitsFromServer = ref(false)
+const landingVisitsHours = ref(24)
 const landingVisitFilter = ref<'all' | 'mine' | 'others' | 'linkedin'>('all')
 /** Override so you can set chethan@shurutech.com even if viewing as another account */
 const myVisitEmailOverride = ref('')
@@ -1017,6 +1022,10 @@ const myVisitEmail = computed(() => {
   const fromAuth = String((authStore.user as any)?.email || '').trim().toLowerCase()
   return fromAuth || 'chethan@shurutech.com'
 })
+
+const landingVisitsDisplay = computed(() =>
+  landingVisitsFromServer.value ? serverLandingVisits.value : localLandingVisits.value,
+)
 
 const latestDay = computed(() => {
   const series = siteTraffic.value?.series
@@ -1037,17 +1046,17 @@ function detectChannelLabel(row: LocalLandingVisitEntry) {
 }
 
 const myLandingVisitCount = computed(
-  () => localLandingVisits.value.filter((r) => isMyLandingVisit(r)).length,
+  () => landingVisitsDisplay.value.filter((r) => isMyLandingVisit(r)).length,
 )
 const otherLandingVisitCount = computed(
-  () => localLandingVisits.value.length - myLandingVisitCount.value,
+  () => landingVisitsDisplay.value.length - myLandingVisitCount.value,
 )
 const linkedInLandingVisitCount = computed(
-  () => localLandingVisits.value.filter((r) => isLinkedInLandingVisit(r)).length,
+  () => landingVisitsDisplay.value.filter((r) => isLinkedInLandingVisit(r)).length,
 )
 
 const filteredLandingVisits = computed(() => {
-  const rows = localLandingVisits.value
+  const rows = landingVisitsDisplay.value
   if (landingVisitFilter.value === 'mine') return rows.filter((r) => isMyLandingVisit(r))
   if (landingVisitFilter.value === 'others') return rows.filter((r) => !isMyLandingVisit(r))
   if (landingVisitFilter.value === 'linkedin') return rows.filter((r) => isLinkedInLandingVisit(r))
@@ -1061,57 +1070,105 @@ function formatSiteTrafficTime(value?: string | number) {
   return d.toLocaleString()
 }
 
+function mapServerLandingVisit(raw: any): LocalLandingVisitEntry {
+  const tsRaw = raw?.ts
+  let ts = Date.now()
+  if (typeof tsRaw === 'number') ts = tsRaw
+  else if (typeof tsRaw === 'string') {
+    const parsed = Date.parse(tsRaw)
+    if (!Number.isNaN(parsed)) ts = parsed
+  }
+  const channel =
+    raw?.channel ||
+    detectTrafficChannel(
+      String(raw?.referrer || ''),
+      raw?.utm_source ? `?utm_source=${raw.utm_source}` : '',
+    ).channel
+  return {
+    ts,
+    path: String(raw?.path || '/'),
+    referrer: String(raw?.referrer || ''),
+    channel,
+    utmSource: raw?.utm_source || undefined,
+    utmMedium: raw?.utm_medium || undefined,
+    utmCampaign: raw?.utm_campaign || undefined,
+    email: raw?.email || undefined,
+    name: raw?.name || undefined,
+    userId: raw?.userId ?? undefined,
+  }
+}
+
+async function refreshLandingVisitsFromServer() {
+  localLandingVisits.value = readLocalLandingVisitsLog()
+  try {
+    const res = await authenticatedFetch(
+      `${API}/landing-visits?hours=${landingVisitsHours.value}&limit=200`,
+    )
+    if (!res.ok) {
+      landingVisitsFromServer.value = false
+      return
+    }
+    const data = await res.json()
+    const visits = Array.isArray(data?.visits) ? data.visits : Array.isArray(data) ? data : []
+    serverLandingVisits.value = visits.map(mapServerLandingVisit)
+    landingVisitsFromServer.value = true
+    if (typeof data?.hours === 'number') landingVisitsHours.value = data.hours
+  } catch {
+    landingVisitsFromServer.value = false
+  }
+}
+
 async function refreshSiteTraffic(opts?: { quiet?: boolean }) {
   const quiet = Boolean(opts?.quiet)
   if (!quiet) {
     siteTrafficLoading.value = true
   }
   siteTrafficError.value = ''
-  localLandingVisits.value = readLocalLandingVisitsLog()
+  await refreshLandingVisitsFromServer()
 
-  // Prefer live admin API when BE ships it; fall back to static JSON (cron/deploy).
+  let usedApi = false
+  // Prefer live admin API; fall back to static JSON (deploy/cron).
   try {
     const apiRes = await authenticatedFetch(`${API}/site-traffic`)
     if (apiRes.ok) {
       siteTraffic.value = await apiRes.json()
       siteTrafficSource.value = 'api'
       siteTrafficLive.value = true
-      return
-    }
-    if (apiRes.status !== 404) {
+      usedApi = true
+    } else if (apiRes.status !== 404) {
       const text = await apiRes.text().catch(() => '')
       throw new Error(text || `site-traffic API ${apiRes.status}`)
     }
   } catch (e: any) {
-    // Only hard-fail if static fallback also fails
     if (!String(e?.message || '').includes('404')) {
       console.warn('site-traffic API unavailable, trying static snapshot', e)
     }
   }
 
-  try {
-    const res = await fetch(`/site-traffic.json?t=${Date.now()}`, { cache: 'no-store' })
-    if (!res.ok) {
-      throw new Error(
-        res.status === 404
-          ? 'No live feed yet. Need BE GET /api/v1/admin/usage/site-traffic (or cron refreshing site-traffic.json).'
-          : `Failed to load site traffic (${res.status})`,
-      )
+  if (!usedApi) {
+    try {
+      const res = await fetch(`/site-traffic.json?t=${Date.now()}`, { cache: 'no-store' })
+      if (!res.ok) {
+        throw new Error(
+          res.status === 404
+            ? 'No live feed yet. Need BE GET /api/v1/admin/usage/site-traffic (or cron refreshing site-traffic.json).'
+            : `Failed to load site traffic (${res.status})`,
+        )
+      }
+      siteTraffic.value = await res.json()
+      siteTrafficSource.value = 'static'
+      const fetched = siteTraffic.value?.fetchedAt ? new Date(siteTraffic.value.fetchedAt).getTime() : 0
+      siteTrafficLive.value = fetched > 0 && Date.now() - fetched < 3 * 60_000
+    } catch (e: any) {
+      siteTrafficError.value = e?.message || 'Failed to load Cloudflare traffic'
+      if (!siteTraffic.value) {
+        siteTrafficSource.value = null
+        siteTrafficLive.value = false
+      }
     }
-    siteTraffic.value = await res.json()
-    siteTrafficSource.value = 'static'
-    // Cron-refreshed JSON still counts as near-live if fresh (< 3 min)
-    const fetched = siteTraffic.value?.fetchedAt ? new Date(siteTraffic.value.fetchedAt).getTime() : 0
-    siteTrafficLive.value = fetched > 0 && Date.now() - fetched < 3 * 60_000
-  } catch (e: any) {
-    siteTrafficError.value = e?.message || 'Failed to load Cloudflare traffic'
-    if (!siteTraffic.value) {
-      siteTrafficSource.value = null
-      siteTrafficLive.value = false
-    }
-  } finally {
-    if (!quiet) siteTrafficLoading.value = false
   }
+
+  if (!quiet) siteTrafficLoading.value = false
 }
 
 function startSiteTrafficLivePolling() {
