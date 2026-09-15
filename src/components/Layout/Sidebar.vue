@@ -10,12 +10,16 @@
     <!-- Logo -->
     <div class="relative border-b border-slate-300/70 p-6 dark:border-dark-700/80">
       <div class="flex items-center space-x-3">
-        <img
+        <div
           v-if="branding.logo_url"
-          :src="branding.logo_url"
-          alt="Logo"
-          class="h-10 w-10 rounded-xl object-cover shadow-md ring-1 ring-black/5 dark:ring-white/10"
-        />
+          class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-md ring-1 ring-black/5 dark:border-dark-600 dark:bg-dark-800 dark:ring-white/10"
+        >
+          <img
+            :src="branding.logo_url"
+            alt="Logo"
+            class="max-h-full max-w-full object-contain"
+          />
+        </div>
         <div
           v-else
           class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue to-neon-purple shadow-md ring-1 ring-black/5 dark:ring-white/10"
@@ -64,12 +68,16 @@
     <!-- User Profile -->
     <div class="relative border-t border-slate-300/70 p-4 dark:border-dark-700/80">
       <div class="flex items-center space-x-3 rounded-xl border border-slate-200/80 bg-white p-2 shadow-sm dark:border-transparent dark:bg-dark-800/50 dark:shadow-none">
-        <img
+        <div
           v-if="branding.logo_url"
-          :src="branding.logo_url"
-          alt="Brand logo"
-          class="h-10 w-10 rounded-full object-cover shadow-md ring-2 ring-white/40 dark:ring-dark-700"
-        />
+          class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white p-1 shadow-md ring-2 ring-white/40 dark:border-dark-600 dark:bg-dark-800 dark:ring-dark-700"
+        >
+          <img
+            :src="branding.logo_url"
+            alt="Brand logo"
+            class="max-h-full max-w-full object-contain"
+          />
+        </div>
         <div
           v-else
           class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-neon-green to-neon-blue shadow-md shadow-neon-blue/20 ring-2 ring-white/40 dark:ring-dark-700"
