@@ -48,11 +48,27 @@ function isoDate(d) {
   return d.toISOString().slice(0, 10)
 }
 
+async function cfGraphQL(query, variables) {
+  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, variables }),
+  })
+  const body = await res.json()
+  if (body.errors?.length) {
+    throw new Error(JSON.stringify(body.errors))
+  }
+  return body.data
+}
+
 const until = new Date()
 const since = new Date(until)
 since.setUTCDate(since.getUTCDate() - days)
 
-const query = `
+const dailyQuery = `
 query ($zoneTag: string, $since: Date!, $until: Date!) {
   viewer {
     zones(filter: { zoneTag: $zoneTag }) {
@@ -70,30 +86,13 @@ query ($zoneTag: string, $since: Date!, $until: Date!) {
 }
 `
 
-const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
-  method: 'POST',
-  headers: {
-    Authorization: `Bearer ${TOKEN}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    query,
-    variables: {
-      zoneTag: ZONE,
-      since: isoDate(since),
-      until: isoDate(until),
-    },
-  }),
+const dailyData = await cfGraphQL(dailyQuery, {
+  zoneTag: ZONE,
+  since: isoDate(since),
+  until: isoDate(until),
 })
 
-const body = await res.json()
-if (body.errors?.length) {
-  console.error('Cloudflare GraphQL errors:', JSON.stringify(body.errors, null, 2))
-  process.exit(1)
-}
-
-const groups =
-  body?.data?.viewer?.zones?.[0]?.httpRequests1dGroups || []
+const groups = dailyData?.viewer?.zones?.[0]?.httpRequests1dGroups || []
 
 const series = groups.map((g) => ({
   date: g.dimensions?.date,
@@ -114,6 +113,105 @@ const totals = series.reduce(
   { requests: 0, pageViews: 0, cachedRequests: 0, uniques: 0 },
 )
 
+/** Adaptive groups are limited to ~1 day — use UTC today for breakdowns. */
+const dayStart = new Date()
+dayStart.setUTCHours(0, 0, 0, 0)
+const dayEnd = new Date()
+dayEnd.setUTCHours(23, 59, 59, 999)
+
+const detailQuery = `
+query ($zoneTag: string, $since: Time!, $until: Time!) {
+  viewer {
+    zones(filter: { zoneTag: $zoneTag }) {
+      byCountry: httpRequestsAdaptiveGroups(
+        limit: 15
+        orderBy: [count_DESC]
+        filter: { datetime_geq: $since, datetime_lt: $until }
+      ) {
+        count
+        sum { visits }
+        dimensions { clientCountryName }
+      }
+      byPath: httpRequestsAdaptiveGroups(
+        limit: 30
+        orderBy: [count_DESC]
+        filter: { datetime_geq: $since, datetime_lt: $until }
+      ) {
+        count
+        dimensions { clientRequestPath }
+      }
+      byDevice: httpRequestsAdaptiveGroups(
+        limit: 10
+        orderBy: [count_DESC]
+        filter: { datetime_geq: $since, datetime_lt: $until }
+      ) {
+        count
+        dimensions { clientDeviceType }
+      }
+      byBrowser: httpRequestsAdaptiveGroups(
+        limit: 15
+        orderBy: [count_DESC]
+        filter: { datetime_geq: $since, datetime_lt: $until }
+      ) {
+        count
+        dimensions { userAgentBrowser }
+      }
+    }
+  }
+}
+`
+
+let today = null
+try {
+  const detail = await cfGraphQL(detailQuery, {
+    zoneTag: ZONE,
+    since: dayStart.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    until: dayEnd.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  })
+  const z = detail?.viewer?.zones?.[0] || {}
+  const countries = (z.byCountry || []).map((g) => ({
+    country: g.dimensions?.clientCountryName || 'Unknown',
+    requests: g.count || 0,
+    visits: g.sum?.visits ?? 0,
+  }))
+  const allPaths = (z.byPath || []).map((g) => ({
+    path: g.dimensions?.clientRequestPath || '/',
+    requests: g.count || 0,
+  }))
+  const pages = allPaths
+    .filter((p) => {
+      const path = p.path || '/'
+      if (path.startsWith('/api/')) return false
+      if (path.startsWith('/cdn-cgi/')) return false
+      if (path.includes('.')) {
+        // skip hashed assets / files
+        if (/\.(js|css|map|png|jpg|jpeg|svg|ico|woff2?|ttf|webp)(\?|$)/i.test(path)) return false
+      }
+      return true
+    })
+    .slice(0, 15)
+  const apis = allPaths.filter((p) => (p.path || '').startsWith('/api/')).slice(0, 15)
+  const devices = (z.byDevice || []).map((g) => ({
+    device: g.dimensions?.clientDeviceType || 'Unknown',
+    requests: g.count || 0,
+  }))
+  const browsers = (z.byBrowser || []).map((g) => ({
+    browser: g.dimensions?.userAgentBrowser || 'Unknown',
+    requests: g.count || 0,
+  }))
+
+  today = {
+    date: isoDate(dayStart),
+    countries,
+    pages,
+    apis,
+    devices,
+    browsers,
+  }
+} catch (err) {
+  console.warn('Today breakdown failed (continuing with daily totals):', String(err).slice(0, 300))
+}
+
 const payload = {
   source: 'cloudflare',
   zone: ZONE_NAME,
@@ -124,8 +222,9 @@ const payload = {
   fetchedAt: new Date().toISOString(),
   totals,
   note:
-    'Uniques are summed per-day (not de-duplicated across days). Name/email are not available from Cloudflare for anonymous visitors.',
+    'People visited = sum of Cloudflare unique visitors per day (not de-duplicated across days). Includes bots/scanners. No name/email for anonymous visitors. "Today" tables are UTC day breakdowns.',
   series,
+  today,
 }
 
 const outDir = join(root, 'public')
@@ -136,3 +235,8 @@ console.log(`Wrote ${outPath}`)
 console.log(
   `totals requests=${totals.requests} pageViews=${totals.pageViews} uniques(sum/day)=${totals.uniques}`,
 )
+if (today) {
+  console.log(
+    `today pages=${today.pages.length} countries=${today.countries.length} topCountry=${today.countries[0]?.country || '-'}`,
+  )
+}
