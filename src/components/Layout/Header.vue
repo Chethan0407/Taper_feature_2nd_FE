@@ -82,7 +82,17 @@
           ref="profileDropdownRef"
           @click.stop="toggleProfileDropdown"
         >
+          <img
+            v-if="userAvatarUrl"
+            :src="userAvatarUrl"
+            alt="Profile photo"
+            class="h-8 w-8 shrink-0 rounded-full border border-gray-200 object-cover dark:border-dark-600"
+            width="32"
+            height="32"
+            aria-hidden="true"
+          />
           <div
+            v-else
             class="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-gradient-to-br from-neon-blue to-neon-purple text-xs font-semibold text-white dark:border-dark-600"
             aria-hidden="true"
           >
@@ -201,6 +211,10 @@ const profileInitials = computed(() => {
   if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
   return name.slice(0, 2).toUpperCase()
 })
+
+const userAvatarUrl = computed(
+  () => authStore.user?.avatar || authStore.user?.avatar_url || ''
+)
 
 // Smart Suggestions
 const showSmartSuggestions = ref(false)

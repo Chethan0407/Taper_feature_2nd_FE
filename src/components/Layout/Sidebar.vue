@@ -66,7 +66,16 @@
     <!-- User Profile -->
     <div class="relative border-t border-slate-300/70 p-4 dark:border-dark-700/80">
       <div class="flex items-center space-x-3 rounded-xl border border-slate-200/80 bg-white p-2 shadow-sm dark:border-transparent dark:bg-dark-800/50 dark:shadow-none">
+        <img
+          v-if="userAvatarUrl"
+          :src="userAvatarUrl"
+          alt="Profile photo"
+          class="h-10 w-10 shrink-0 rounded-full object-cover shadow-md ring-2 ring-white/40 dark:ring-dark-700"
+          width="40"
+          height="40"
+        />
         <div
+          v-else
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neon-green to-neon-blue shadow-md shadow-neon-blue/20 ring-2 ring-white/40 dark:ring-dark-700"
         >
           <span class="text-sm font-semibold text-white">
@@ -146,6 +155,10 @@ const navigationItems = computed(() => {
   }
   return items
 })
+
+const userAvatarUrl = computed(
+  () => authStore.user?.avatar || authStore.user?.avatar_url || ''
+)
 
 const userInitials = computed(() => {
   const name = (authStore.user?.name || '').trim()
