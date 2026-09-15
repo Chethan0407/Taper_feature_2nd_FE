@@ -50,9 +50,9 @@
             <div>
               <h2 class="module-section-title">Site traffic</h2>
               <p class="mt-1 max-w-3xl text-sm text-slate-400">
-                Cloudflare hits for <strong class="text-slate-200">tapeoutops.com</strong>
-                (anonymous — no name/email). Homepage visits from
-                <strong class="text-slate-200">this browser</strong> include name/email only when the visitor is logged in.
+                <strong class="text-slate-200">Everyone</strong> who hit tapeoutops.com comes from Cloudflare
+                (no emails). <strong class="text-slate-200">Your visits</strong>
+                (e.g. {{ myVisitEmail || 'you@…' }}) are listed separately when you open the homepage while logged in.
               </p>
             </div>
             <button
@@ -68,33 +68,38 @@
           <div v-else-if="siteTrafficError" class="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 text-sm">
             {{ siteTrafficError }}
           </div>
-          <div v-else class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div class="stat-tile !text-left !p-4 border-sky-500/30 bg-sky-500/5">
-              <p class="text-xs font-medium uppercase tracking-wide text-sky-400">Requests ({{ siteTraffic?.rangeDays ?? 7 }}d)</p>
-              <p class="mt-1 font-display text-3xl font-bold text-sky-300">{{ siteTraffic?.totals?.requests ?? '—' }}</p>
+          <template v-else>
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Everyone on tapeoutops.com</h3>
+            <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div class="stat-tile !text-left !p-4 border-violet-500/40 bg-violet-500/10 ring-1 ring-violet-400/20">
+                <p class="text-xs font-medium uppercase tracking-wide text-violet-300">People visited ({{ siteTraffic?.rangeDays ?? 7 }}d)</p>
+                <p class="mt-1 font-display text-3xl font-bold text-violet-200">{{ siteTraffic?.totals?.uniques ?? '—' }}</p>
+                <p class="mt-1 text-[11px] text-violet-300/70">Cloudflare unique visitors (sum of each day)</p>
+              </div>
+              <div class="stat-tile !text-left !p-4 border-emerald-500/30 bg-emerald-500/5">
+                <p class="text-xs font-medium uppercase tracking-wide text-emerald-400">Page views</p>
+                <p class="mt-1 font-display text-3xl font-bold text-emerald-300">{{ siteTraffic?.totals?.pageViews ?? '—' }}</p>
+              </div>
+              <div class="stat-tile !text-left !p-4 border-sky-500/30 bg-sky-500/5">
+                <p class="text-xs font-medium uppercase tracking-wide text-sky-400">Total requests</p>
+                <p class="mt-1 font-display text-3xl font-bold text-sky-300">{{ siteTraffic?.totals?.requests ?? '—' }}</p>
+              </div>
+              <div class="stat-tile !text-left !p-4 border-amber-500/30 bg-amber-500/5">
+                <p class="text-xs font-medium uppercase tracking-wide text-amber-400">People today</p>
+                <p class="mt-1 font-display text-3xl font-bold text-amber-200">{{ latestDayUniques }}</p>
+                <p class="mt-1 text-[11px] text-amber-300/70">{{ latestDayLabel }}</p>
+              </div>
             </div>
-            <div class="stat-tile !text-left !p-4 border-emerald-500/30 bg-emerald-500/5">
-              <p class="text-xs font-medium uppercase tracking-wide text-emerald-400">Page views</p>
-              <p class="mt-1 font-display text-3xl font-bold text-emerald-300">{{ siteTraffic?.totals?.pageViews ?? '—' }}</p>
-            </div>
-            <div class="stat-tile !text-left !p-4 border-violet-500/30 bg-violet-500/5">
-              <p class="text-xs font-medium uppercase tracking-wide text-violet-400">Uniques (sum/day)</p>
-              <p class="mt-1 font-display text-3xl font-bold text-violet-300">{{ siteTraffic?.totals?.uniques ?? '—' }}</p>
-            </div>
-            <div class="stat-tile !text-left !p-4 border-amber-500/30 bg-amber-500/5">
-              <p class="text-xs font-medium uppercase tracking-wide text-amber-400">Updated</p>
-              <p class="mt-1 text-sm font-medium text-amber-200">{{ formatSiteTrafficTime(siteTraffic?.fetchedAt) }}</p>
-            </div>
-          </div>
+          </template>
 
           <div v-if="siteTraffic?.series?.length" class="mb-8 overflow-x-auto rounded-xl border border-sky-500/20 bg-white shadow-lg dark:border-sky-500/20 dark:bg-dark-900/90">
             <table class="min-w-full text-left text-sm">
               <thead class="border-b border-sky-500/15 bg-sky-500/5">
                 <tr>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Date</th>
-                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Requests</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">People</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Page views</th>
-                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Uniques</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Requests</th>
                 </tr>
               </thead>
               <tbody>
@@ -104,19 +109,45 @@
                   class="border-b border-gray-200 dark:border-dark-800"
                 >
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.date }}</td>
-                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.requests }}</td>
+                  <td class="px-4 py-2 font-medium text-violet-300">{{ row.uniques }}</td>
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.pageViews }}</td>
-                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.uniques }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.requests }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <h3 class="mb-3 text-lg font-semibold text-sky-200">Homepage visits (this browser)</h3>
+          <h3 class="mb-3 text-lg font-semibold text-sky-200">Your visits vs everyone else</h3>
+          <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="stat-tile !text-left !p-4 border-fuchsia-500/40 bg-fuchsia-500/10">
+              <p class="text-xs font-medium uppercase tracking-wide text-fuchsia-300">My visits</p>
+              <p class="mt-1 font-display text-2xl font-bold text-fuchsia-200">{{ myLandingVisitCount }}</p>
+              <p class="mt-1 truncate text-[11px] text-fuchsia-300/80">{{ myVisitEmail || 'Log in to tag your email' }}</p>
+            </div>
+            <div class="stat-tile !text-left !p-4 border-slate-500/30 bg-slate-500/5">
+              <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Anonymous / other</p>
+              <p class="mt-1 font-display text-2xl font-bold text-slate-200">{{ otherLandingVisitCount }}</p>
+              <p class="mt-1 text-[11px] text-slate-400">Not tagged as you</p>
+            </div>
+            <div class="stat-tile !text-left !p-4 border-sky-500/30 bg-sky-500/5">
+              <p class="text-xs font-medium uppercase tracking-wide text-sky-400">This browser total</p>
+              <p class="mt-1 font-display text-2xl font-bold text-sky-300">{{ localLandingVisits.length }}</p>
+              <p class="mt-1 text-[11px] text-sky-400/80">Homepage opens logged here</p>
+            </div>
+          </div>
+
           <div class="mb-3 flex flex-wrap items-center gap-3">
-            <p class="text-sm text-slate-400">
-              Captured locally: <strong class="text-slate-200">{{ localLandingVisits.length }}</strong>
-            </p>
+            <select v-model="landingVisitFilter" class="input-field rounded-lg px-3 py-2 text-sm">
+              <option value="all">All rows</option>
+              <option value="mine">Only mine ({{ myVisitEmail || 'me' }})</option>
+              <option value="others">Everyone else / anonymous</option>
+            </select>
+            <input
+              v-model="myVisitEmailOverride"
+              type="email"
+              placeholder="chethan@shurutech.com"
+              class="input-field w-64 rounded-lg px-3 py-2 text-sm"
+            />
             <button
               type="button"
               class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300"
@@ -130,27 +161,40 @@
               <thead class="border-b border-sky-500/15 bg-sky-500/5">
                 <tr>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">When</th>
-                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Path</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Who</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Name</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Email</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Path</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Referrer</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="localLandingVisits.length === 0">
-                  <td colspan="5" class="px-4 py-6 text-center text-gray-400">
-                    No homepage visits logged in this browser yet. Open tapeoutops.com/ then refresh this page.
+                <tr v-if="filteredLandingVisits.length === 0">
+                  <td colspan="6" class="px-4 py-6 text-center text-gray-400">
+                    No matching homepage visits. Open <strong class="text-slate-300">tapeoutops.com/</strong> while logged in as
+                    {{ myVisitEmail || 'yourself' }}, then refresh.
                   </td>
                 </tr>
                 <tr
-                  v-for="(row, idx) in localLandingVisits.slice(0, 50)"
+                  v-for="(row, idx) in filteredLandingVisits.slice(0, 50)"
                   :key="String(row.ts) + String(idx)"
                   class="border-b border-gray-200 dark:border-dark-800"
+                  :class="isMyLandingVisit(row) ? 'bg-fuchsia-500/5' : ''"
                 >
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ formatSiteTrafficTime(row.ts) }}</td>
-                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.path || '/' }}</td>
+                  <td class="px-4 py-2">
+                    <span
+                      class="rounded px-2 py-0.5 text-xs font-medium"
+                      :class="isMyLandingVisit(row)
+                        ? 'bg-fuchsia-500/20 text-fuchsia-200'
+                        : 'bg-slate-500/20 text-slate-300'"
+                    >
+                      {{ isMyLandingVisit(row) ? 'You' : (row.email ? 'Other' : 'Anonymous') }}
+                    </span>
+                  </td>
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.name || '—' }}</td>
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.email || '—' }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.path || '/' }}</td>
                   <td class="px-4 py-2 text-gray-400 truncate max-w-xs">{{ row.referrer || '(direct)' }}</td>
                 </tr>
               </tbody>
@@ -747,6 +791,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import { useAuthStore } from '@/stores/auth'
 import {
   fillDailySeries,
   trendBarPercent,
@@ -762,6 +807,7 @@ import {
   type LocalLandingVisitEntry,
 } from '@/utils/clientTelemetry'
 
+const authStore = useAuthStore()
 const API = '/api/v1/admin/usage'
 
 type SiteTrafficDay = {
@@ -793,6 +839,43 @@ const siteTraffic = ref<SiteTrafficPayload | null>(null)
 const siteTrafficLoading = ref(false)
 const siteTrafficError = ref('')
 const localLandingVisits = ref<LocalLandingVisitEntry[]>([])
+const landingVisitFilter = ref<'all' | 'mine' | 'others'>('all')
+/** Override so you can set chethan@shurutech.com even if viewing as another account */
+const myVisitEmailOverride = ref('')
+
+const myVisitEmail = computed(() => {
+  const override = myVisitEmailOverride.value.trim().toLowerCase()
+  if (override) return override
+  const fromAuth = String((authStore.user as any)?.email || '').trim().toLowerCase()
+  return fromAuth || 'chethan@shurutech.com'
+})
+
+const latestDay = computed(() => {
+  const series = siteTraffic.value?.series
+  if (!series?.length) return null
+  return series[series.length - 1]
+})
+const latestDayUniques = computed(() => latestDay.value?.uniques ?? '—')
+const latestDayLabel = computed(() => latestDay.value?.date || '—')
+
+function isMyLandingVisit(row: LocalLandingVisitEntry) {
+  const email = String(row.email || '').trim().toLowerCase()
+  return Boolean(email && email === myVisitEmail.value)
+}
+
+const myLandingVisitCount = computed(
+  () => localLandingVisits.value.filter((r) => isMyLandingVisit(r)).length,
+)
+const otherLandingVisitCount = computed(
+  () => localLandingVisits.value.length - myLandingVisitCount.value,
+)
+
+const filteredLandingVisits = computed(() => {
+  const rows = localLandingVisits.value
+  if (landingVisitFilter.value === 'mine') return rows.filter((r) => isMyLandingVisit(r))
+  if (landingVisitFilter.value === 'others') return rows.filter((r) => !isMyLandingVisit(r))
+  return rows
+})
 
 function formatSiteTrafficTime(value?: string | number) {
   if (value == null || value === '') return '—'
