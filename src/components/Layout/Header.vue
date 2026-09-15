@@ -3,7 +3,16 @@
     <div class="flex items-center justify-between">
       <!-- Branding Logo and Name -->
       <div class="flex items-center mr-8">
-        <img v-if="branding.logo_url" :src="branding.logo_url" alt="Logo" class="h-10 w-10 rounded-lg mr-4" />
+        <div
+          v-if="branding.logo_url"
+          class="mr-4 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white p-1 dark:border-dark-600 dark:bg-dark-800"
+        >
+          <img
+            :src="branding.logo_url"
+            alt="Logo"
+            class="max-h-full max-w-full object-contain"
+          />
+        </div>
         <span class="text-xl font-bold tracking-wide text-gray-900 dark:text-white">{{ branding.company_name }}</span>
       </div>
       <!-- Left side - Search -->
