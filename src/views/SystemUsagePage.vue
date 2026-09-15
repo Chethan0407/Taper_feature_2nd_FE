@@ -217,7 +217,12 @@
           </div>
 
           <h3 class="mb-3 text-lg font-semibold text-sky-200">Your visits vs everyone else</h3>
-          <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="stat-tile !text-left !p-4 border-blue-500/40 bg-blue-500/10 ring-1 ring-blue-400/20">
+              <p class="text-xs font-medium uppercase tracking-wide text-blue-300">From LinkedIn</p>
+              <p class="mt-1 font-display text-2xl font-bold text-blue-200">{{ linkedInLandingVisitCount }}</p>
+              <p class="mt-1 text-[11px] text-blue-300/80">referrer or utm_source=linkedin (this browser)</p>
+            </div>
             <div class="stat-tile !text-left !p-4 border-fuchsia-500/40 bg-fuchsia-500/10">
               <p class="text-xs font-medium uppercase tracking-wide text-fuchsia-300">My visits</p>
               <p class="mt-1 font-display text-2xl font-bold text-fuchsia-200">{{ myLandingVisitCount }}</p>
@@ -234,10 +239,16 @@
               <p class="mt-1 text-[11px] text-sky-400/80">Homepage opens logged here</p>
             </div>
           </div>
+          <p class="mb-3 max-w-3xl text-xs text-slate-400">
+            Tip: post LinkedIn links as
+            <code class="text-sky-300">https://tapeoutops.com/?utm_source=linkedin&amp;utm_medium=social</code>
+            so clicks always count even if the browser hides the referrer. Cloudflare plan can’t show LinkedIn referrers site-wide.
+          </p>
 
           <div class="mb-3 flex flex-wrap items-center gap-3">
             <select v-model="landingVisitFilter" class="input-field rounded-lg px-3 py-2 text-sm">
               <option value="all">All rows</option>
+              <option value="linkedin">From LinkedIn only</option>
               <option value="mine">Only mine ({{ myVisitEmail || 'me' }})</option>
               <option value="others">Everyone else / anonymous</option>
             </select>
@@ -261,6 +272,7 @@
                 <tr>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">When</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Who</th>
+                  <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Channel</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Name</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Email</th>
                   <th class="px-4 py-3 font-semibold text-sky-700 dark:text-sky-200">Path</th>
@@ -269,7 +281,7 @@
               </thead>
               <tbody>
                 <tr v-if="filteredLandingVisits.length === 0">
-                  <td colspan="6" class="px-4 py-6 text-center text-gray-400">
+                  <td colspan="7" class="px-4 py-6 text-center text-gray-400">
                     No matching homepage visits. Open <strong class="text-slate-300">tapeoutops.com/</strong> while logged in as
                     {{ myVisitEmail || 'yourself' }}, then refresh.
                   </td>
@@ -289,6 +301,16 @@
                         : 'bg-slate-500/20 text-slate-300'"
                     >
                       {{ isMyLandingVisit(row) ? 'You' : (row.email ? 'Other' : 'Anonymous') }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2">
+                    <span
+                      class="rounded px-2 py-0.5 text-xs font-medium"
+                      :class="isLinkedInLandingVisit(row)
+                        ? 'bg-blue-500/20 text-blue-200'
+                        : 'bg-slate-500/15 text-slate-400'"
+                    >
+                      {{ row.channel || detectChannelLabel(row) }}
                     </span>
                   </td>
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.name || '—' }}</td>
@@ -902,6 +924,8 @@ import {
   clearLocalSignupLeadsLog,
   readLocalLandingVisitsLog,
   clearLocalLandingVisitsLog,
+  isLinkedInLandingVisit,
+  detectTrafficChannel,
   type LocalSignupLeadEntry,
   type LocalLandingVisitEntry,
 } from '@/utils/clientTelemetry'
@@ -946,7 +970,7 @@ const siteTraffic = ref<SiteTrafficPayload | null>(null)
 const siteTrafficLoading = ref(false)
 const siteTrafficError = ref('')
 const localLandingVisits = ref<LocalLandingVisitEntry[]>([])
-const landingVisitFilter = ref<'all' | 'mine' | 'others'>('all')
+const landingVisitFilter = ref<'all' | 'mine' | 'others' | 'linkedin'>('all')
 /** Override so you can set chethan@shurutech.com even if viewing as another account */
 const myVisitEmailOverride = ref('')
 
@@ -970,17 +994,26 @@ function isMyLandingVisit(row: LocalLandingVisitEntry) {
   return Boolean(email && email === myVisitEmail.value)
 }
 
+function detectChannelLabel(row: LocalLandingVisitEntry) {
+  if (row.channel) return row.channel
+  return detectTrafficChannel(row.referrer || '', '').channel
+}
+
 const myLandingVisitCount = computed(
   () => localLandingVisits.value.filter((r) => isMyLandingVisit(r)).length,
 )
 const otherLandingVisitCount = computed(
   () => localLandingVisits.value.length - myLandingVisitCount.value,
 )
+const linkedInLandingVisitCount = computed(
+  () => localLandingVisits.value.filter((r) => isLinkedInLandingVisit(r)).length,
+)
 
 const filteredLandingVisits = computed(() => {
   const rows = localLandingVisits.value
   if (landingVisitFilter.value === 'mine') return rows.filter((r) => isMyLandingVisit(r))
   if (landingVisitFilter.value === 'others') return rows.filter((r) => !isMyLandingVisit(r))
+  if (landingVisitFilter.value === 'linkedin') return rows.filter((r) => isLinkedInLandingVisit(r))
   return rows
 })
 
