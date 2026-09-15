@@ -59,6 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
   )
   const isLoading = ref(false)
   let authCheckInProgress = false // Flag to prevent multiple simultaneous auth checks
+  let authCheckPromise: Promise<boolean> | null = null
 
   const isAuthenticated = computed(() => {
     const authenticated = !!token.value && !!user.value
@@ -367,78 +368,75 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const checkAuth = async () => {
-    // Prevent multiple simultaneous calls
-    if (authCheckInProgress) {
-      console.log('⏸️ Auth check already in progress, skipping duplicate call')
-      return false
+    // Share one in-flight /me check across Dashboard/Stats/Checklists/router
+    if (authCheckPromise) {
+      console.log('⏸️ Auth check already in progress, joining in-flight promise')
+      return authCheckPromise
     }
-    
+
     console.log('🔍 checkAuth called')
     console.log('Token exists:', !!token.value)
     console.log('Token value:', token.value)
-    
+
     if (!token.value || token.value === 'undefined' || token.value === 'null') {
       console.log('❌ No valid token found')
       return false
     }
-    
+
     authCheckInProgress = true
-    try {
-      const authHeaders = getAuthHeader()
-      console.log('🔗 Making auth check request to:', `${API_BASE}/me`)
-      console.log('📋 Headers:', authHeaders)
-      
-      // Add timeout to prevent hanging
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
-      
-      const response = await fetch(`${API_BASE}/me`, {
-        ...(authHeaders ? { headers: authHeaders } : {}),
-        signal: controller.signal
-      })
-      
-      clearTimeout(timeoutId)
-      console.log('📡 Response status:', response.status)
-      console.log('📡 Response ok:', response.ok)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.log('❌ Auth check failed:', response.status, errorText)
-        // Only logout if it's a clear 401/403 - don't logout on network errors
-        if (response.status === 401 || response.status === 403) {
-          console.log('🚪 Token is invalid, clearing auth state')
-          user.value = null
-          token.value = null
-          localStorage.removeItem('tapeout_token')
+    authCheckPromise = (async () => {
+      try {
+        const authHeaders = getAuthHeader()
+        console.log('🔗 Making auth check request to:', `${API_BASE}/me`)
+        console.log('📋 Headers:', authHeaders)
+
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+        const response = await fetch(`${API_BASE}/me`, {
+          ...(authHeaders ? { headers: authHeaders } : {}),
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+        console.log('📡 Response status:', response.status)
+        console.log('📡 Response ok:', response.ok)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.log('❌ Auth check failed:', response.status, errorText)
+          if (response.status === 401 || response.status === 403) {
+            console.log('🚪 Token is invalid, clearing auth state')
+            user.value = null
+            token.value = null
+            localStorage.removeItem('tapeout_token')
+          }
+          return false
         }
+
+        const userData = await response.json()
+        console.log('✅ Auth check successful, user data:', userData)
+        user.value = normalizeUser(userData)
+        console.log('🔑 is_superuser normalized:', user.value?.is_superuser)
+        return true
+      } catch (error: any) {
+        console.log('💥 Auth check error:', error)
+        if (error.name === 'AbortError') {
+          console.log('⏱️ Auth check timed out after 5 seconds')
+        }
+        console.log('⚠️ Network or other error during auth check - not clearing token')
         return false
+      } finally {
+        authCheckInProgress = false
+        authCheckPromise = null
       }
-      
-      const userData = await response.json()
-      console.log('✅ Auth check successful, user data:', userData)
-      user.value = normalizeUser(userData)
-      console.log('🔑 is_superuser normalized:', user.value?.is_superuser)
-      authCheckInProgress = false
-      return true
-    } catch (error: any) {
-      console.log('💥 Auth check error:', error)
-      // Don't logout on network errors or timeouts - just return false
-      if (error.name === 'AbortError') {
-        console.log('⏱️ Auth check timed out after 5 seconds')
-      }
-      console.log('⚠️ Network or other error during auth check - not clearing token')
-      authCheckInProgress = false
-      return false
-    }
+    })()
+
+    return authCheckPromise
   }
 
   // Auto-load user data if token exists but user is missing
   const initializeAuth = async () => {
-    // Prevent multiple simultaneous auth checks
-    if (authCheckInProgress) {
-      console.log('⏸️ Auth check already in progress, skipping initializeAuth...')
-      return
-    }
     try {
       if (token.value && token.value !== 'undefined' && token.value !== 'null' && !user.value) {
         console.log('🔄 Auto-loading user data for existing token')

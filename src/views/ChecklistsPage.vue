@@ -322,13 +322,21 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
-import { onMounted, ref, computed, nextTick } from 'vue'
+import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChecklistsStore } from '@/stores/checklists'
 import CreateTemplateModal from '@/components/Checklist/CreateTemplateModal.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
 import { statusBadgeClass } from '@/utils/status-badge'
+import {
+  createRequestScope,
+  isAbortError,
+  mapWithConcurrency,
+} from '@/utils/request-coordinator'
+
+const COMPLETION_CONCURRENCY = 4
+const pageScope = createRequestScope('checklists-page')
 
 const router = useRouter()
 
@@ -462,6 +470,8 @@ const fetchTemplates = async () => {
 
 const fetchActiveChecklists = async (opts?: { silent?: boolean }) => {
   const silent = Boolean(opts?.silent) || activeChecklists.value.length > 0
+  // Cancel any prior completion fan-out when refreshing / switching context
+  pageScope.begin()
   if (!silent) {
     activeChecklistsLoading.value = true
   }
@@ -535,13 +545,43 @@ const fetchActiveChecklists = async (opts?: { silent?: boolean }) => {
     // Use a new array reference to ensure Vue reactivity picks up the change
     activeChecklists.value = [...normalizedData]
 
-    // Recompute completion after any refresh of active checklists.
-    // Fire these requests in parallel so we don't block the UI.
-    const ids = activeChecklists.value.map((checklist) => checklist.id)
-    ids.forEach((id) => {
-      fetchChecklistCompletion(id)
-    })
+    // Seed completion from list payload when present; only fetch missing ones with capped concurrency.
+    const signal = pageScope.signal
+    const needingFetch: string[] = []
+    for (const checklist of activeChecklists.value) {
+      const id = String(checklist.id)
+      if (typeof checklist.completion_percent === 'number') {
+        const percent = Math.round(checklist.completion_percent)
+        checklistCompletion.value[id] = {
+          progress: percent,
+          total: 100,
+          percent,
+          loading: false,
+        }
+      } else if (Array.isArray(checklist.items) && checklist.items.length > 0) {
+        const total = checklist.items.length
+        const progress = checklist.items.filter((i: any) => i.completed || i.is_completed || i.status === 'done').length
+        const percent = total > 0 ? Math.round((progress / total) * 100) : 0
+        checklistCompletion.value[id] = { progress, total, percent, loading: false }
+      } else {
+        needingFetch.push(id)
+      }
+    }
+    if (needingFetch.length > 0 && !signal.aborted) {
+      void mapWithConcurrency(
+        needingFetch,
+        COMPLETION_CONCURRENCY,
+        async (id, _index, workerSignal) => {
+          await fetchChecklistCompletion(id, workerSignal)
+          return id
+        },
+        signal,
+      ).catch((e) => {
+        if (!isAbortError(e)) console.error('Completion fan-out failed:', e)
+      })
+    }
   } catch (e: any) {
+    if (isAbortError(e)) return
     activeChecklistsError.value = e.message || 'Failed to fetch active checklists'
     // Don't auto-logout - just show the error
     // The user can manually refresh or try again
@@ -555,7 +595,7 @@ const fetchActiveChecklists = async (opts?: { silent?: boolean }) => {
   }
 }
 
-const fetchChecklistCompletion = async (checklistId: string) => {
+const fetchChecklistCompletion = async (checklistId: string, signal?: AbortSignal) => {
   const existing = checklistCompletion.value[checklistId]
   checklistCompletion.value[checklistId] = {
     progress: existing?.progress ?? 0,
@@ -564,8 +604,9 @@ const fetchChecklistCompletion = async (checklistId: string) => {
     loading: true,
   }
   try {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     // BE: GET /completion (no trailing slash) returns { completion_percent } and/or { progress, total }
-    const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion`)
+    const res = await authenticatedFetch(`/api/v1/checklists/active/${checklistId}/completion`, { signal })
     if (!res.ok) {
       console.error(`Failed to fetch completion for checklist ${checklistId}:`, res.status, res.statusText)
       throw new Error('Failed to fetch completion')
@@ -590,6 +631,15 @@ const fetchChecklistCompletion = async (checklistId: string) => {
       loading: false,
     }
   } catch (e: any) {
+    if (isAbortError(e)) {
+      checklistCompletion.value[checklistId] = {
+        progress: existing?.progress ?? 0,
+        total: existing?.total ?? 0,
+        percent: existing?.percent ?? 0,
+        loading: false,
+      }
+      return
+    }
     console.error(`Error fetching completion for checklist ${checklistId}:`, e)
     checklistCompletion.value[checklistId] = {
       progress: existing?.progress ?? 0,
@@ -782,10 +832,11 @@ const useTemplate = async (templateId: string | number) => {
 }
 
 onMounted(async () => {
+  pageScope.begin()
   // Ensure user is authenticated before fetching
   const authStore = useAuthStore()
   
-  // Always check auth first to ensure token is loaded
+  // Shell first: auth, then page data staged (list → completions capped separately)
   const authResult = await authStore.checkAuth()
   if (!authResult) {
     console.warn('⚠️ Authentication check failed. User may need to log in again.')
@@ -800,12 +851,16 @@ onMounted(async () => {
   }
   
   console.log('✅ Authentication verified, token available:', !!authStore.token)
-  
-  await Promise.all([
-    fetchTemplates(),
-    fetchActiveChecklists(),
-    checklistsStore.fetchStats() // Fetch statistics on page load
-  ])
+
+  // Stage: templates + active list first; stats can follow without blocking cards
+  await Promise.all([fetchTemplates(), fetchActiveChecklists()])
+  if (!pageScope.signal.aborted) {
+    void checklistsStore.fetchStats()
+  }
+})
+
+onUnmounted(() => {
+  pageScope.abort()
 })
 
 // Get progress class based on percentage (0-100)

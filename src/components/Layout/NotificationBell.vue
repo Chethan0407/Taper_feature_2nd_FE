@@ -94,6 +94,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { fetchUnreadNotifications } from '@/utils/shell-data'
+import { isAbortError } from '@/utils/request-coordinator'
 import { authenticatedFetch } from '@/utils/auth-requests'
 
 interface Notification {
@@ -125,41 +127,14 @@ const displayedNotifications = computed(() => {
   return notifications.value.slice(0, 10)
 })
 
-// Load notifications (unread only)
+// Load notifications (unread only) — shares one GET with Smart Suggestions / other shell readers
 const loadNotifications = async () => {
   try {
     loading.value = true
     error.value = ''
-    // Primary endpoint from spec: GET /api/v1/notifications?is_read=false
-    let res = await authenticatedFetch('/api/v1/notifications?is_read=false')
-
-    // Some backends are mounted with a trailing slash before query params (e.g. /notifications/?...)
-    if (res.status === 404) {
-      console.warn('Notifications endpoint /api/v1/notifications?is_read=false returned 404, trying /api/v1/notifications/?is_read=false fallback')
-      res = await authenticatedFetch('/api/v1/notifications/?is_read=false')
-    }
-
-    if (!res.ok) {
-      let message = 'Failed to load notifications'
-      try {
-        const text = await res.text()
-        if (text) {
-          try {
-            const parsed = JSON.parse(text)
-            message = parsed.detail || parsed.message || message
-          } catch {
-            message = text
-          }
-        }
-      } catch {
-        // ignore, keep default message
-      }
-      throw new Error(message)
-    }
-
-    const data = await res.json()
-    notifications.value = Array.isArray(data) ? data : (data.results || [])
+    notifications.value = await fetchUnreadNotifications()
   } catch (e: any) {
+    if (isAbortError(e)) return
     error.value = e?.message || 'Failed to load notifications'
     console.error('Failed to load notifications:', e)
   } finally {
