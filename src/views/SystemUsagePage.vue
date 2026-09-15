@@ -58,11 +58,25 @@
             <button
               type="button"
               class="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-500/20"
-              @click="refreshSiteTraffic"
+              @click="refreshSiteTraffic({ quiet: false })"
             >
               Refresh
             </button>
           </div>
+          <p class="mb-3 text-xs text-slate-400">
+            <span
+              class="mr-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5"
+              :class="siteTrafficLive
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                : 'border-amber-500/40 bg-amber-500/10 text-amber-200'"
+            >
+              <span class="h-1.5 w-1.5 rounded-full" :class="siteTrafficLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'" />
+              {{ siteTrafficLive ? 'Live' : 'Snapshot' }}
+            </span>
+            Source: {{ siteTrafficSourceLabel }}
+            <span v-if="siteTrafficFetchedLabel"> · {{ siteTrafficFetchedLabel }}</span>
+            · auto-refresh every {{ Math.round(SITE_TRAFFIC_POLL_MS / 1000) }}s
+          </p>
 
           <div v-if="siteTrafficLoading" class="text-gray-400">Loading site traffic…</div>
           <div v-else-if="siteTrafficError" class="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200 text-sm">
@@ -908,7 +922,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import { authenticatedFetch } from '@/utils/auth-requests'
@@ -970,6 +984,28 @@ type SiteTrafficPayload = {
 const siteTraffic = ref<SiteTrafficPayload | null>(null)
 const siteTrafficLoading = ref(false)
 const siteTrafficError = ref('')
+const siteTrafficSource = ref<'api' | 'static' | null>(null)
+const siteTrafficLive = ref(false)
+const SITE_TRAFFIC_POLL_MS = 30_000
+let siteTrafficPollTimer: number | null = null
+
+const siteTrafficSourceLabel = computed(() => {
+  if (siteTrafficSource.value === 'api') return 'GET /admin/usage/site-traffic'
+  if (siteTrafficSource.value === 'static') return 'site-traffic.json (deploy/cron)'
+  return '—'
+})
+
+const siteTrafficFetchedLabel = computed(() => {
+  const raw = siteTraffic.value?.fetchedAt
+  if (!raw) return ''
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ''
+  const agoSec = Math.max(0, Math.round((Date.now() - d.getTime()) / 1000))
+  if (agoSec < 60) return `updated ${agoSec}s ago`
+  if (agoSec < 3600) return `updated ${Math.round(agoSec / 60)}m ago`
+  return `updated ${d.toLocaleTimeString()}`
+})
+
 const localLandingVisits = ref<LocalLandingVisitEntry[]>([])
 const landingVisitFilter = ref<'all' | 'mine' | 'others' | 'linkedin'>('all')
 /** Override so you can set chethan@shurutech.com even if viewing as another account */
@@ -1025,25 +1061,70 @@ function formatSiteTrafficTime(value?: string | number) {
   return d.toLocaleString()
 }
 
-async function refreshSiteTraffic() {
-  siteTrafficLoading.value = true
+async function refreshSiteTraffic(opts?: { quiet?: boolean }) {
+  const quiet = Boolean(opts?.quiet)
+  if (!quiet) {
+    siteTrafficLoading.value = true
+  }
   siteTrafficError.value = ''
   localLandingVisits.value = readLocalLandingVisitsLog()
+
+  // Prefer live admin API when BE ships it; fall back to static JSON (cron/deploy).
+  try {
+    const apiRes = await authenticatedFetch(`${API}/site-traffic`)
+    if (apiRes.ok) {
+      siteTraffic.value = await apiRes.json()
+      siteTrafficSource.value = 'api'
+      siteTrafficLive.value = true
+      return
+    }
+    if (apiRes.status !== 404) {
+      const text = await apiRes.text().catch(() => '')
+      throw new Error(text || `site-traffic API ${apiRes.status}`)
+    }
+  } catch (e: any) {
+    // Only hard-fail if static fallback also fails
+    if (!String(e?.message || '').includes('404')) {
+      console.warn('site-traffic API unavailable, trying static snapshot', e)
+    }
+  }
+
   try {
     const res = await fetch(`/site-traffic.json?t=${Date.now()}`, { cache: 'no-store' })
     if (!res.ok) {
       throw new Error(
         res.status === 404
-          ? 'site-traffic.json missing — run: node scripts/fetch-cloudflare-traffic.mjs (then redeploy).'
+          ? 'No live feed yet. Need BE GET /api/v1/admin/usage/site-traffic (or cron refreshing site-traffic.json).'
           : `Failed to load site traffic (${res.status})`,
       )
     }
     siteTraffic.value = await res.json()
+    siteTrafficSource.value = 'static'
+    // Cron-refreshed JSON still counts as near-live if fresh (< 3 min)
+    const fetched = siteTraffic.value?.fetchedAt ? new Date(siteTraffic.value.fetchedAt).getTime() : 0
+    siteTrafficLive.value = fetched > 0 && Date.now() - fetched < 3 * 60_000
   } catch (e: any) {
-    siteTrafficError.value = e?.message || 'Failed to load Cloudflare traffic snapshot'
-    siteTraffic.value = null
+    siteTrafficError.value = e?.message || 'Failed to load Cloudflare traffic'
+    if (!siteTraffic.value) {
+      siteTrafficSource.value = null
+      siteTrafficLive.value = false
+    }
   } finally {
-    siteTrafficLoading.value = false
+    if (!quiet) siteTrafficLoading.value = false
+  }
+}
+
+function startSiteTrafficLivePolling() {
+  stopSiteTrafficLivePolling()
+  siteTrafficPollTimer = window.setInterval(() => {
+    void refreshSiteTraffic({ quiet: true })
+  }, SITE_TRAFFIC_POLL_MS)
+}
+
+function stopSiteTrafficLivePolling() {
+  if (siteTrafficPollTimer != null) {
+    clearInterval(siteTrafficPollTimer)
+    siteTrafficPollTimer = null
   }
 }
 
@@ -1554,5 +1635,10 @@ onMounted(async () => {
     fetchDomains(),
     fetchActiveUsers(),
   ])
+  startSiteTrafficLivePolling()
+})
+
+onUnmounted(() => {
+  stopSiteTrafficLivePolling()
 })
 </script>
