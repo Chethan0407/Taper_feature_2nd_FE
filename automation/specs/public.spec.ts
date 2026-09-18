@@ -19,6 +19,18 @@ test.describe('Public / marketing — buttons & links @smoke', () => {
     await expect(page.locator('#demo')).toBeVisible()
   })
 
+  test('landing: product previews have no developer file-path leaks @smoke', async ({ landingPage, page }) => {
+    await landingPage.goto()
+    await expect(page.locator('#product')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /see the workflow/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /speclint on upload/i })).toBeVisible()
+    // Intentional SpecLint demo copy (not a real runtime error)
+    await expect(page.getByText(/\[ERROR\] Block B_CLK/i)).toBeVisible()
+    // Must never show internal asset paths to visitors / VCs
+    await expect(page.locator('#product')).not.toContainText('public/product/')
+    await expect(page.getByRole('button', { name: /get started free/i })).toHaveCount(0)
+  })
+
   test('landing: footer legal links exist', async ({ landingPage }) => {
     await landingPage.goto()
     await expect(landingPage.footerPrivacy()).toBeVisible()

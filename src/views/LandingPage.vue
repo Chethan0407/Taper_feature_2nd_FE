@@ -214,7 +214,6 @@
                   <p class="text-gray-300">spec_v3.xlsx uploaded</p>
                   <p class="mt-1 text-xs font-bold text-red-400">[ERROR] Block B_CLK: Frequency 3.2GHz exceeds 7nm PDK max. Tapeout blocked.</p>
                 </div>
-                <p class="text-xs text-gray-500">Add <code class="text-neon-blue">public/product/speclint-upload.gif</code> for the live clip</p>
               </div>
               <!-- Hidden probe so @load/@error fire even while fallback is visible -->
               <img
@@ -254,7 +253,6 @@
                 <div class="border-l-2 border-neon-blue pl-3 text-xs text-gray-500">
                   Audit · eng.manager@acme.semi · just now
                 </div>
-                <p class="text-xs text-gray-500">Add <code class="text-neon-blue">public/product/checklist-approve.gif</code> for the live clip</p>
               </div>
               <img
                 v-if="!gifReady.checklist"
@@ -290,7 +288,6 @@
                   <p class="text-gray-300">Foundry package · siloed staging</p>
                   <p class="mt-1 text-xs text-gray-500">NDA scope · response SLA 18h</p>
                 </div>
-                <p class="text-xs text-gray-500">Add <code class="text-neon-blue">public/product/vendor-handoff.gif</code> for the live clip</p>
               </div>
               <img
                 v-if="!gifReady.vendor"
