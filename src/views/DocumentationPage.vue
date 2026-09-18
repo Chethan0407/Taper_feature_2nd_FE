@@ -282,9 +282,9 @@
           <div>
             <h4 class="text-white font-bold mb-4">Legal</h4>
             <ul class="space-y-2 text-sm text-gray-300">
-              <li><router-link to="/privacy" class="hover:text-neon-blue transition-colors">Privacy</router-link></li>
-              <li><router-link to="/terms" class="hover:text-neon-blue transition-colors">Terms</router-link></li>
-              <li><router-link to="/security" class="hover:text-neon-blue transition-colors">Security</router-link></li>
+              <li><a href="/privacy" class="hover:text-neon-blue transition-colors">Privacy</a></li>
+              <li><a href="/terms" class="hover:text-neon-blue transition-colors">Terms</a></li>
+              <li><a href="/security" class="hover:text-neon-blue transition-colors">Security</a></li>
             </ul>
           </div>
         </div>

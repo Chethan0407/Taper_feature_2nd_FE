@@ -208,7 +208,7 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           penetration_testing: { status: 'roadmap', notes: 'Not continuous public claim' },
         },
         deployment: {
-          private_vpc: { status: 'ops', notes: 'Isolated cloud VPC' },
+          private_vpc: { control: 'Private VPC', status: 'ops', notes: 'Isolated cloud VPC' },
           on_prem_dedicated_vpc: { status: 'roadmap' },
           aws_govcloud: { status: 'roadmap' },
         },
