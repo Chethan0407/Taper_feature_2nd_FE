@@ -48,13 +48,42 @@ export function bumpNavigationGeneration() {
 }
 
 export function isAbortError(err: unknown): boolean {
-  if (!err) return false
-  if (typeof err === 'object' && err !== null) {
-    const e = err as { name?: string; code?: string; message?: string }
-    if (e.name === 'AbortError' || e.code === 'ABORT_ERR') return true
-    if (typeof e.message === 'string' && /aborted|abort/i.test(e.message)) return true
+  // Strict check only — do NOT match message text. Timeouts and "Network error: aborted"
+  // wrappers used to be swallowed as aborts, leaving Stats/modules empty with no retry UI.
+  if (!err || typeof err !== 'object') return false
+  const e = err as { name?: string; code?: string }
+  return e.name === 'AbortError' || e.code === 'ABORT_ERR'
+}
+
+/** Wait for a shared promise, but stop waiting if the caller scope aborts (without aborting peers). */
+export function raceAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise
+  if (signal.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'))
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException('Aborted', 'AbortError'))
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(value)
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(err)
+      },
+    )
+  })
+}
+
+export function friendlyHttpError(status: number, body = ''): string {
+  if (status === 502 || status === 503 || status === 504) {
+    return 'The API is temporarily unavailable. Please try again in a moment.'
   }
-  return false
+  if (status === 401) return 'Your session expired. Please sign in again.'
+  if (status === 403) return 'You do not have permission to view this data.'
+  const trimmed = String(body || '').trim()
+  if (trimmed && trimmed.length < 180 && !trimmed.startsWith('<')) return trimmed
+  return `Request failed (${status}). Please try again.`
 }
 
 /**

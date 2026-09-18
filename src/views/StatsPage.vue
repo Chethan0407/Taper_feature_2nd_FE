@@ -380,8 +380,8 @@ const fetchStats = async () => {
     statsError.value = ''
   } catch (e: any) {
     if (isAbortError(e)) return
-    // Soft-empty on 404-style messages from shell helper
-    if (String(e?.message || '').includes('404')) {
+    const raw = String(e?.message || '')
+    if (raw.includes('404')) {
       stats.value = {
         approved_specs: 0,
         pending_specs: 0,
@@ -392,7 +392,7 @@ const fetchStats = async () => {
       statsError.value = ''
       return
     }
-    statsError.value = e.message || 'Unable to load dashboard stats.'
+    statsError.value = raw || 'Unable to load dashboard stats.'
     console.error('Error fetching dashboard stats:', e)
     window.dispatchEvent(new CustomEvent('toast', { detail: { message: statsError.value, type: 'error' } }))
   } finally {
