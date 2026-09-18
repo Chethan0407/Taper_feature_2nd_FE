@@ -39,28 +39,30 @@
 
     <!-- Navigation -->
     <nav class="relative flex-1 space-y-1.5 overflow-y-auto p-4">
-      <router-link
+      <button
         v-for="item in navigationItems"
         :key="item.name"
-        :to="item.path"
-        class="group relative flex items-center space-x-3 rounded-xl px-4 py-3 text-slate-600 transition-all duration-200 hover:translate-x-0.5 hover:bg-white hover:text-slate-900 hover:shadow-sm dark:text-gray-300 dark:hover:bg-dark-800/80 dark:hover:text-white dark:hover:shadow-none"
+        type="button"
+        class="group relative flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-left text-slate-600 transition-all duration-200 hover:translate-x-0.5 hover:bg-white hover:text-slate-900 hover:shadow-sm dark:text-gray-300 dark:hover:bg-dark-800/80 dark:hover:text-white dark:hover:shadow-none"
         :class="{
           'border border-neon-blue/30 bg-white text-neon-blue shadow-md shadow-neon-blue/10 dark:border-primary-600/25 dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-sm dark:shadow-primary-600/10':
-            $route.path === item.path || $route.path.startsWith(item.path + '/'),
+            isActive(item.path),
         }"
+        :aria-current="isActive(item.path) ? 'page' : undefined"
+        @click="navigate(item.path)"
       >
         <span
-          v-if="$route.path === item.path || $route.path.startsWith(item.path + '/')"
+          v-if="isActive(item.path)"
           class="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-neon-blue"
           aria-hidden="true"
         />
         <component
           :is="item.icon"
           class="h-5 w-5 transition-transform duration-200 group-hover:scale-110"
-          :class="{ 'text-neon-blue': $route.path === item.path || $route.path.startsWith(item.path + '/') }"
+          :class="{ 'text-neon-blue': isActive(item.path) }"
         />
         <span class="font-medium">{{ item.name }}</span>
-      </router-link>
+      </button>
     </nav>
 
     <!-- User Profile -->
@@ -106,7 +108,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBrandingStore } from '@/stores/branding'
 import {
@@ -123,6 +125,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const branding = useBrandingStore()
 
@@ -155,6 +158,18 @@ const navigationItems = computed(() => {
   }
   return items
 })
+
+/** SpecLint console + rule engine share one nav highlight */
+function isActive(path: string) {
+  if (path === '/speclint/console') {
+    return route.path === '/speclint' || route.path.startsWith('/speclint/')
+  }
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
+
+function navigate(path: string) {
+  if (route.path !== path) void router.push(path)
+}
 
 const userAvatarUrl = computed(
   () => authStore.user?.avatar || authStore.user?.avatar_url || ''
