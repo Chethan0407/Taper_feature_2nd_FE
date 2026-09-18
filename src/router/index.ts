@@ -164,6 +164,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/activity',
+      name: 'ActivityAudit',
+      component: () => import('@/views/ActivityAuditPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/companies',
       name: 'Companies',
       // Code split: Creates "companies" chunk

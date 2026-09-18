@@ -139,64 +139,90 @@ export const useAuthStore = defineStore('auth', () => {
     return undefined
   }
 
-  const login = async (email: string, password: string) => {
-    // Validate inputs
+  const applyAccessToken = async (receivedToken: string) => {
+    let clean = receivedToken
+    if (clean.startsWith('Bearer ')) clean = clean.substring(7)
+    if (!clean || clean === 'undefined' || clean === 'null') {
+      throw new Error('No valid token received from server')
+    }
+    token.value = clean
+    localStorage.setItem('tapeout_token', clean)
+    localStorage.setItem('access_token', clean)
+    const authHeaders = { Authorization: `Bearer ${clean}` }
+    const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
+    if (!profileRes.ok) {
+      const errorText = await profileRes.text()
+      throw new Error(`Failed to fetch profile: ${errorText}`)
+    }
+    user.value = normalizeUser(await profileRes.json())
+    writeCachedUser(user.value)
+  }
+
+  const clearAuthStorage = () => {
+    token.value = null
+    user.value = null
+    localStorage.removeItem('tapeout_token')
+    localStorage.removeItem('access_token')
+    writeCachedUser(null)
+  }
+
+  const login = async (email: string, password: string, mfaCode?: string) => {
     if (!email || !email.trim()) {
-      console.error('❌ Login attempted with empty email')
       return { success: false, error: 'Email is required' }
     }
-
     if (!password || !password.trim()) {
-      console.error('❌ Login attempted with empty password')
       return { success: false, error: 'Password is required' }
     }
-
-    // Prevent multiple simultaneous login attempts
     if (isLoading.value) {
-      console.log('⏸️ Login already in progress, skipping duplicate call')
       return { success: false, error: 'Login already in progress' }
     }
 
     isLoading.value = true
     try {
+      const body: Record<string, string> = {
+        email: email.trim(),
+        password,
+      }
+      if (mfaCode?.trim()) body.mfa_code = mfaCode.trim()
+
       const response = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password })
+        body: JSON.stringify(body),
       })
-      
-      // Handle 403 - Email not verified
+
       if (response.status === 403) {
         const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.detail || errorData.message || 'Email not verified. Please verify your email address first. Check your email for the OTP code or request a new one.'
-        return { 
-          success: false, 
-          error: errorMessage,
+        return {
+          success: false,
+          error:
+            errorData.detail ||
+            errorData.message ||
+            'Email not verified. Please verify your email address first.',
           requiresVerification: true,
-          email: email.trim()
+          email: email.trim(),
         }
       }
-      
-      // Handle 401 - Invalid credentials
+
       if (response.status === 401) {
         const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.detail || errorData.message || 'Invalid email or password'
         return {
           success: false,
-          error: errorMessage
+          error: errorData.detail || errorData.message || 'Invalid email or password',
         }
       }
-      
-      // Handle 429 - Account locked
+
       if (response.status === 429) {
         const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.detail || errorData.message || 'Account temporarily locked due to too many failed login attempts. Please try again later.'
         return {
           success: false,
-          error: errorMessage
+          error:
+            errorData.detail ||
+            errorData.message ||
+            'Account temporarily locked due to too many failed login attempts. Please try again later.',
         }
       }
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         let errorMessage = 'Invalid credentials'
@@ -208,47 +234,64 @@ export const useAuthStore = defineStore('auth', () => {
         }
         throw new Error(errorMessage)
       }
-      
+
       const data = await response.json()
-      let receivedToken = data.token || data.access_token
-      
-      // Validate token before storing
-      if (!receivedToken || receivedToken === 'undefined' || receivedToken === 'null' || receivedToken.trim() === '') {
+
+      if (data.requires_mfa === true && data.mfa_token) {
+        return {
+          success: false,
+          requiresMfa: true,
+          mfaToken: data.mfa_token as string,
+          email: email.trim(),
+        }
+      }
+
+      const receivedToken = data.token || data.access_token
+      if (!receivedToken) {
         throw new Error('No valid token received from server')
       }
-      
-      // Remove "Bearer " prefix if present (we'll add it when using the token)
-      if (receivedToken.startsWith('Bearer ')) {
-        receivedToken = receivedToken.substring(7)
-        console.log('⚠️ Token had "Bearer " prefix, removed before storing')
-      }
-      
-      // Store token first (without Bearer prefix)
-      // Store in both tapeout_token (for backward compatibility) and access_token (as per backend standard)
-      token.value = receivedToken
-      localStorage.setItem('tapeout_token', receivedToken)
-      localStorage.setItem('access_token', receivedToken) // Also store as access_token for standard compatibility
-      console.log('✅ Token stored after login (without Bearer prefix) - stored in both tapeout_token and access_token')
-      
-      // Then fetch user profile
-      const authHeaders = { 'Authorization': `Bearer ${receivedToken}` }
-      const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
-      if (!profileRes.ok) {
-        const errorText = await profileRes.text()
-        throw new Error(`Failed to fetch profile: ${errorText}`)
-      }
-      user.value = normalizeUser(await profileRes.json())
-      writeCachedUser(user.value)
-      console.log('✅ User profile loaded after login:', user.value?.email, 'superuser:', user.value?.is_superuser)
-      
+      await applyAccessToken(receivedToken)
       return { success: true }
     } catch (error: any) {
-      console.error('❌ Login error:', error)
-      // Clear any partial state on error
-      token.value = null
-      user.value = null
-      localStorage.removeItem('tapeout_token')
+      clearAuthStorage()
       return { success: false, error: error.message || 'Invalid credentials' }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /** Complete MFA after password step (POST /auth/mfa/verify). */
+  const verifyMfa = async (mfaToken: string, mfaCode: string) => {
+    if (!mfaToken || !mfaCode?.trim()) {
+      return { success: false, error: 'MFA code is required' }
+    }
+    if (isLoading.value) {
+      return { success: false, error: 'Login already in progress' }
+    }
+    isLoading.value = true
+    try {
+      const response = await fetch(`${API_BASE}/mfa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mfa_token: mfaToken, mfa_code: mfaCode.trim() }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        return {
+          success: false,
+          error: errorData.detail || errorData.message || 'Invalid MFA code',
+        }
+      }
+      const data = await response.json()
+      const receivedToken = data.token || data.access_token
+      if (!receivedToken) {
+        throw new Error('No valid token received from server')
+      }
+      await applyAccessToken(receivedToken)
+      return { success: true }
+    } catch (error: any) {
+      clearAuthStorage()
+      return { success: false, error: error.message || 'Invalid MFA code' }
     } finally {
       isLoading.value = false
     }
@@ -386,31 +429,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
-    console.log('🚪 LOGOUT CALLED')
-    console.log('📍 Stack trace:', new Error().stack)
-    console.log('👤 Current user:', user.value)
-    console.log('🎫 Current token:', token.value)
-    
     try {
       if (token.value && token.value !== 'undefined' && token.value !== 'null') {
         const authHeaders = getAuthHeader()
-        console.log('🔗 Calling backend logout endpoint')
         await fetch(`${API_BASE}/logout`, {
           method: 'POST',
-          headers: authHeaders
+          headers: authHeaders,
         })
-        console.log('✅ Backend logout successful')
       }
-    } catch (error) {
-      console.log('⚠️ Backend logout failed:', error)
+    } catch {
+      /* discard client token even if revoke fails */
     }
-    
-    user.value = null
-    token.value = null
-    localStorage.removeItem('tapeout_token')
-    writeCachedUser(null)
-    
-    console.log('✅ Logout completed - user and token cleared')
+    clearAuthStorage()
   }
 
   const checkAuth = async () => {
@@ -535,6 +565,7 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperuser,
     canManageDataTransfer,
     login,
+    verifyMfa,
     loginWithGoogle,
     logout,
     checkAuth,

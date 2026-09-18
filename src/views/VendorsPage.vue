@@ -81,6 +81,10 @@
           </div>
         </div>
 
+        <div class="mt-8 page-enter">
+          <VendorPerformancePanel />
+        </div>
+
         <!-- Vendor Preview Card - Centered Modal (like Edit Project) -->
         <Transition name="modal">
           <div v-if="selectedVendorPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="vendor-preview-modal" @click.self="closeVendorPreview">
@@ -629,6 +633,7 @@
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import LinkModal from '@/components/LinkModal.vue'
+import VendorPerformancePanel from '@/components/Vendors/VendorPerformancePanel.vue'
 import { onMounted, ref, computed } from 'vue'
 import { useVendorsStore } from '@/stores/vendors'
 import { useAuthStore } from '@/stores/auth'

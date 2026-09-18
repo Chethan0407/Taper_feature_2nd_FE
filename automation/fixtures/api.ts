@@ -39,9 +39,9 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
     }
 
     if (path.includes('/auth/login') && method === 'POST') {
-      let body: { email?: string; password?: string } = {}
+      let body: { email?: string; password?: string; mfa_code?: string } = {}
       try {
-        body = req.postDataJSON() as { email?: string; password?: string }
+        body = req.postDataJSON() as { email?: string; password?: string; mfa_code?: string }
       } catch {
         /* ignore */
       }
@@ -51,18 +51,303 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
       if (body?.email?.includes('unverified@')) {
         return json(route, { detail: 'Email not verified. Please verify your email address first.' }, 403)
       }
+      if (body?.email?.includes('mfa@') && !body?.mfa_code) {
+        return json(route, {
+          access_token: null,
+          token_type: 'mfa_pending',
+          requires_mfa: true,
+          mfa_token: 'e2e-mfa-pending-token',
+          expires_in_minutes: 5,
+        })
+      }
       if (body?.email?.includes('engineer@')) {
         return json(route, {
           access_token: 'e2e-engineer-token',
           token_type: 'bearer',
+          requires_mfa: false,
           user: ENGINEER_USER,
         })
       }
       return json(route, {
         access_token: 'e2e-login-token',
         token_type: 'bearer',
+        requires_mfa: false,
         user: TEST_USER,
       })
+    }
+
+    if (path.includes('/auth/mfa/verify') && method === 'POST') {
+      let body: { mfa_token?: string; mfa_code?: string } = {}
+      try {
+        body = req.postDataJSON() as { mfa_token?: string; mfa_code?: string }
+      } catch {
+        /* ignore */
+      }
+      if (body?.mfa_code === '000000' || (body?.mfa_code && body.mfa_code.length >= 6)) {
+        return json(route, {
+          access_token: 'e2e-login-token-after-mfa',
+          token_type: 'bearer',
+          requires_mfa: false,
+        })
+      }
+      return json(route, { detail: 'Invalid MFA code' }, 401)
+    }
+
+    if (path.includes('/auth/password-policy') && method === 'GET') {
+      return json(route, {
+        min_length: 8,
+        max_length: 128,
+        max_bytes: 72,
+        require_uppercase: true,
+        require_lowercase: true,
+        require_number: true,
+        require_special: true,
+        special_chars: '!@#$%^&*(),.?":{}|<>',
+        block_common_passwords: true,
+        notes: 'Enforced on signup and password reset.',
+      })
+    }
+
+    if (path.includes('/auth/session') && method === 'GET') {
+      return json(route, {
+        user_id: user.id,
+        email: user.email,
+        mfa_enabled: false,
+        absolute_timeout_minutes: 60,
+        expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        rbac_role: user.role || 'engineer',
+      })
+    }
+
+    if (path.includes('/public/security-report') && method === 'POST') {
+      return json(route, { ok: true, id: 1 }, 201)
+    }
+
+    if (path.includes('/public/demo-request') && method === 'POST') {
+      return json(route, { ok: true, id: 1 }, 201)
+    }
+
+    if (path.includes('/public/capabilities') && method === 'GET') {
+      return json(route, {
+        product: 'TapeOutOps',
+        updated_at: '2026-09-18T20:00:00Z',
+        capabilities: [
+          { claim: 'Inbound Jira / GitLab / GitHub / Jenkins webhooks', status: 'live' },
+          { claim: 'Bidirectional issue sync', status: 'roadmap' },
+          { claim: 'Calibre / GDSII layout mutation', status: 'out_of_scope' },
+          { claim: 'TLS 1.3 + AES-256', status: 'ops' },
+        ],
+      })
+    }
+
+    if (path.includes('/public/integrations') && method === 'GET') {
+      return json(route, {
+        live: [
+          { name: 'Jira', kind: 'inbound', notes: 'Inbound webhook only' },
+          { name: 'GitLab', kind: 'inbound', notes: 'Inbound webhook only' },
+          { name: 'GitHub', kind: 'inbound', notes: 'Inbound webhook only' },
+          { name: 'Jenkins', kind: 'inbound', notes: 'CI hook + X-TapeOutOps-Secret' },
+        ],
+        roadmap: [
+          { name: 'Bidirectional Jira sync', kind: 'sync', notes: 'Not live' },
+        ],
+        out_of_scope: [
+          { name: 'Calibre / GDSII layout mutation', kind: 'eda', notes: 'TapeOutOps does not mutate layout databases' },
+        ],
+        note: 'Inbound connectors are live. Bidirectional sync is roadmap. Layout EDA stays out of scope.',
+      })
+    }
+
+    if (path.includes('/public/security') && method === 'GET') {
+      return json(route, {
+        product: 'TapeOutOps',
+        updated_at: '2026-09-18T20:00:00Z',
+        contact: { security_email: 'security@tapeoutops.com' },
+        encryption: {
+          in_transit: { control: 'TLS 1.3', status: 'ops', notes: 'TLS at edge' },
+          at_rest: { control: 'AES-256', status: 'ops', notes: 'At rest' },
+        },
+        authentication_access: {
+          mfa: { control: 'TOTP MFA', status: 'live' },
+        },
+        infrastructure: {
+          network_security: { status: 'ops', notes: 'Firewalls / VPC' },
+        },
+        data_protection: {
+          backups: { status: 'ops', notes: 'Automated backups' },
+        },
+        monitoring: {
+          alerting: { status: 'ops', notes: 'Datadog monitoring' },
+          penetration_testing: { status: 'roadmap', notes: 'Not continuous public claim' },
+        },
+        deployment: {
+          private_vpc: { status: 'ops', notes: 'Isolated cloud VPC' },
+          on_prem_dedicated_vpc: { status: 'roadmap' },
+          aws_govcloud: { status: 'roadmap' },
+        },
+        compliance: {
+          encryption_summary: 'TLS 1.3 in transit; AES-256 at rest.',
+          access_summary: 'JWT auth, RBAC, MFA.',
+          soc2: {
+            control: 'SOC 2 Type II',
+            status: 'roadmap',
+            notes: 'Controls aligned; not certified.',
+          },
+        },
+        reporting: { security_email: 'security@tapeoutops.com', api: 'POST /api/v1/public/security-report' },
+        data_boundary: 'TapeOutOps does not ingest GDSII/OASIS layout databases.',
+        user_best_practices: ['Enable multi-factor authentication'],
+      })
+    }
+
+    if (path.includes('/settings/security/mfa/status') && method === 'GET') {
+      return json(route, { mfa_enabled: false, method: 'totp' })
+    }
+    if (path.includes('/settings/security/mfa/setup') && method === 'POST') {
+      return json(route, {
+        secret: 'JBSWY3DPEHPK3PXP',
+        otpauth_url: 'otpauth://totp/TapeOutOps:e2e@tapeoutops.com?secret=JBSWY3DPEHPK3PXP&issuer=TapeOutOps',
+        issuer: 'TapeOutOps',
+      })
+    }
+    if (path.includes('/settings/security/mfa/enable') && method === 'POST') {
+      return json(route, { ok: true, mfa_enabled: true })
+    }
+    if (path.includes('/settings/security/mfa/disable') && method === 'POST') {
+      return json(route, { ok: true, mfa_enabled: false })
+    }
+    if (path.includes('/settings/security/access-review') && method === 'GET') {
+      return json(route, {
+        company_id: 1,
+        company_name: 'E2E Tapeout Corp',
+        users: [
+          {
+            user_id: 1,
+            email: user.email,
+            full_name: user.name || 'E2E',
+            role: user.role || 'admin',
+            is_active: true,
+            mfa_enabled: false,
+            last_login_at: null,
+          },
+        ],
+        reviewed_at: '2026-09-18T20:00:00Z',
+      })
+    }
+    if (path.includes('/settings/security/retention') && method === 'GET') {
+      return json(route, {
+        company_id: 1,
+        data_retention_days: 365,
+        deletion_policy: 'soft_delete',
+        notes: 'Soft-deleted accounts remain until retention window elapses.',
+      })
+    }
+    if (path.includes('/settings/security/retention') && method === 'PATCH') {
+      let body: { data_retention_days?: number; deletion_policy?: string; company_id?: number } = {}
+      try {
+        body = req.postDataJSON() as typeof body
+      } catch {
+        /* ignore */
+      }
+      return json(route, {
+        ok: true,
+        company_id: body.company_id || 1,
+        data_retention_days: body.data_retention_days || 365,
+        deletion_policy: body.deletion_policy || 'soft_delete',
+      })
+    }
+    if (path.includes('/settings/security/deletion-request') && method === 'POST') {
+      return json(route, {
+        ok: true,
+        status: 'soft_deleted',
+        message: 'Account deactivated.',
+        deleted_at: '2026-09-18T20:00:00Z',
+      }, 202)
+    }
+
+    if (path.includes('/vendors/performance') && method === 'GET') {
+      return json(route, {
+        count: 2,
+        note: 'SLA hours are advisory from recent acknowledgements.',
+        vendors: [
+          {
+            vendor_id: 1,
+            name: 'E2E Foundry Co',
+            type: 'foundry',
+            status: 'active',
+            linked_specifications: 3,
+            acknowledgements: 2,
+            last_activity_at: '2026-09-18T12:00:00Z',
+            response_sla_hours: 48,
+            sla_breached: false,
+            staging: 'secure_upload',
+          },
+          {
+            vendor_id: 2,
+            name: 'IP Partner LLC',
+            type: 'ip',
+            status: 'active',
+            linked_specifications: 1,
+            acknowledgements: 0,
+            last_activity_at: null,
+            response_sla_hours: 24,
+            sla_breached: true,
+            staging: 'pending',
+          },
+        ],
+      })
+    }
+
+    if (path.includes('/integrations/connectors') && method === 'GET') {
+      return json(route, [
+        {
+          id: 10,
+          company_id: 1,
+          provider: 'jira',
+          name: 'Prod Jira inbound',
+          is_active: true,
+          created_by: user.email,
+          created_at: '2026-09-18T10:00:00Z',
+          inbound_path: '/api/v1/integrations/webhooks/jira/inbound',
+          secret_hint: '••••ab12',
+        },
+      ])
+    }
+
+    if (path.includes('/integrations/connectors') && method === 'POST') {
+      let body: { provider?: string; company_id?: number; name?: string; secret?: string } = {}
+      try {
+        body = req.postDataJSON() as typeof body
+      } catch {
+        /* ignore */
+      }
+      return json(route, {
+        id: 99,
+        company_id: body.company_id || 1,
+        provider: body.provider || 'jira',
+        name: body.name || null,
+        is_active: true,
+        created_by: user.email,
+        created_at: '2026-09-18T20:00:00Z',
+        inbound_path: `/api/v1/integrations/webhooks/${body.provider || 'jira'}/inbound`,
+        secret_hint: '••••e2e1',
+        secret: body.secret || 'e2e-generated-secret',
+      }, 201)
+    }
+
+    if (path.includes('/integrations/events') && method === 'GET') {
+      return json(route, [
+        {
+          id: 1,
+          connector_id: 10,
+          company_id: 1,
+          provider: 'jira',
+          event_type: 'issue_updated',
+          external_id: 'PROJ-1',
+          status: 'accepted',
+          created_at: '2026-09-18T11:00:00Z',
+        },
+      ])
     }
 
     if (path.includes('/auth/signup') && method === 'POST') {
@@ -301,6 +586,33 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           ],
         })
       }
+      if (path.includes('/signoff-matrix')) {
+        return json(route, {
+          project_id: 101,
+          count: 2,
+          gates: [
+            {
+              gate_id: 'g-drc',
+              gate: 'DRC',
+              owner: 'PD owner',
+              status: 'Pending',
+              status_raw: 'pending',
+              approved_by: null,
+              when: null,
+            },
+            {
+              gate_id: 'g-lvs',
+              gate: 'LVS',
+              owner: 'PD owner',
+              status: 'Pass',
+              status_raw: 'pass',
+              approved_by: 'e2e@tapeoutops.com',
+              when: '2026-09-17T10:00:00Z',
+            },
+          ],
+          default_gate_types: ['DRC', 'LVS', 'STA', 'IR_EM', 'DFT'],
+        })
+      }
       if (path.includes('/signoff-gates')) {
         return json(route, [
           { id: 'g-drc', gate_type: 'DRC', status: 'pending' },
@@ -308,6 +620,28 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           { id: 'g-sta', gate_type: 'STA', status: 'pending' },
           { id: 'g-irem', gate_type: 'IR_EM', status: 'pending' },
           { id: 'g-dft', gate_type: 'DFT', status: 'pending' },
+        ])
+      }
+      if (path.includes('/activity')) {
+        return json(route, [
+          {
+            id: 1,
+            timestamp: '2026-09-18T12:00:00Z',
+            user: user.email,
+            action: 'vendor.acknowledged',
+            entity: 'vendor',
+            entity_id: 1,
+            details: { note: 'E2E ack' },
+          },
+          {
+            id: 2,
+            timestamp: '2026-09-18T11:00:00Z',
+            user: user.email,
+            action: 'signoff.approved',
+            entity: 'project',
+            entity_id: 101,
+            details: { gate: 'LVS' },
+          },
         ])
       }
       if (path.includes('/waivers')) {
@@ -431,6 +765,9 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
         return json(route, { message: 'ok', id: 'new-1', status: 'pending' })
       }
       if (path.includes('/signoff-gates') && (method === 'PATCH' || method === 'POST')) {
+        if (path.includes('/approve')) {
+          return json(route, { ok: true, status: 'pass', approved_by: user.email })
+        }
         return json(route, { id: 'g-drc', gate_type: 'DRC', status: 'pass', tool_name: 'Calibre' })
       }
       if (path.includes('/settings/branding') && method === 'PUT') {
