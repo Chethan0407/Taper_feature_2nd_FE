@@ -40,6 +40,8 @@ test.describe('Public / marketing — buttons & links @smoke', () => {
     await expect(page.getByText(/TLS 1\.3/i).first()).toBeVisible()
     await expect(page.getByText(/AES-256/i).first()).toBeVisible()
     await expect(page.getByText(/SOC 2 Type II/i).first()).toBeVisible()
+    await expect(page.getByText(/not certified/i).first()).toBeVisible()
+    await expect(page.getByText(/Datadog monitoring/i).first()).toBeVisible()
     await expect(page.getByText(/completely isolated from your raw physical layout files/i)).toBeVisible()
     await expect(page.getByRole('heading', { name: /Sign-Off Matrices & DRC\/LVS Tracking Gates/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Secure Foundry & OSAT Handovers/i })).toBeVisible()

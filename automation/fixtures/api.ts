@@ -39,9 +39,9 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
     }
 
     if (path.includes('/auth/login') && method === 'POST') {
-      let body: { email?: string; password?: string } = {}
+      let body: { email?: string; password?: string; mfa_code?: string } = {}
       try {
-        body = req.postDataJSON() as { email?: string; password?: string }
+        body = req.postDataJSON() as { email?: string; password?: string; mfa_code?: string }
       } catch {
         /* ignore */
       }
@@ -51,18 +51,183 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
       if (body?.email?.includes('unverified@')) {
         return json(route, { detail: 'Email not verified. Please verify your email address first.' }, 403)
       }
+      if (body?.email?.includes('mfa@') && !body?.mfa_code) {
+        return json(route, {
+          access_token: null,
+          token_type: 'mfa_pending',
+          requires_mfa: true,
+          mfa_token: 'e2e-mfa-pending-token',
+          expires_in_minutes: 5,
+        })
+      }
       if (body?.email?.includes('engineer@')) {
         return json(route, {
           access_token: 'e2e-engineer-token',
           token_type: 'bearer',
+          requires_mfa: false,
           user: ENGINEER_USER,
         })
       }
       return json(route, {
         access_token: 'e2e-login-token',
         token_type: 'bearer',
+        requires_mfa: false,
         user: TEST_USER,
       })
+    }
+
+    if (path.includes('/auth/mfa/verify') && method === 'POST') {
+      let body: { mfa_token?: string; mfa_code?: string } = {}
+      try {
+        body = req.postDataJSON() as { mfa_token?: string; mfa_code?: string }
+      } catch {
+        /* ignore */
+      }
+      if (body?.mfa_code === '000000' || (body?.mfa_code && body.mfa_code.length >= 6)) {
+        return json(route, {
+          access_token: 'e2e-login-token-after-mfa',
+          token_type: 'bearer',
+          requires_mfa: false,
+        })
+      }
+      return json(route, { detail: 'Invalid MFA code' }, 401)
+    }
+
+    if (path.includes('/auth/password-policy') && method === 'GET') {
+      return json(route, {
+        min_length: 8,
+        max_length: 128,
+        max_bytes: 72,
+        require_uppercase: true,
+        require_lowercase: true,
+        require_number: true,
+        require_special: true,
+        special_chars: '!@#$%^&*(),.?":{}|<>',
+        block_common_passwords: true,
+        notes: 'Enforced on signup and password reset.',
+      })
+    }
+
+    if (path.includes('/auth/session') && method === 'GET') {
+      return json(route, {
+        user_id: user.id,
+        email: user.email,
+        mfa_enabled: false,
+        absolute_timeout_minutes: 60,
+        expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        rbac_role: user.role || 'engineer',
+      })
+    }
+
+    if (path.includes('/public/security-report') && method === 'POST') {
+      return json(route, { ok: true, id: 1 }, 201)
+    }
+
+    if (path.includes('/public/security') && method === 'GET') {
+      return json(route, {
+        product: 'TapeOutOps',
+        updated_at: '2026-09-18T20:00:00Z',
+        contact: { security_email: 'security@tapeoutops.com' },
+        encryption: {
+          in_transit: { control: 'TLS 1.3', status: 'ops', notes: 'TLS at edge' },
+          at_rest: { control: 'AES-256', status: 'ops', notes: 'At rest' },
+        },
+        authentication_access: {
+          mfa: { control: 'TOTP MFA', status: 'live' },
+        },
+        infrastructure: {
+          network_security: { status: 'ops', notes: 'Firewalls / VPC' },
+        },
+        data_protection: {
+          backups: { status: 'ops', notes: 'Automated backups' },
+        },
+        monitoring: {
+          alerting: { status: 'ops', notes: 'Datadog monitoring' },
+          penetration_testing: { status: 'roadmap', notes: 'Not continuous public claim' },
+        },
+        deployment: {
+          private_vpc: { status: 'ops', notes: 'Isolated cloud VPC' },
+          on_prem_dedicated_vpc: { status: 'roadmap' },
+          aws_govcloud: { status: 'roadmap' },
+        },
+        compliance: {
+          encryption_summary: 'TLS 1.3 in transit; AES-256 at rest.',
+          access_summary: 'JWT auth, RBAC, MFA.',
+          soc2: {
+            control: 'SOC 2 Type II',
+            status: 'roadmap',
+            notes: 'Controls aligned; not certified.',
+          },
+        },
+        reporting: { security_email: 'security@tapeoutops.com', api: 'POST /api/v1/public/security-report' },
+        data_boundary: 'TapeOutOps does not ingest GDSII/OASIS layout databases.',
+        user_best_practices: ['Enable multi-factor authentication'],
+      })
+    }
+
+    if (path.includes('/settings/security/mfa/status') && method === 'GET') {
+      return json(route, { mfa_enabled: false, method: 'totp' })
+    }
+    if (path.includes('/settings/security/mfa/setup') && method === 'POST') {
+      return json(route, {
+        secret: 'JBSWY3DPEHPK3PXP',
+        otpauth_url: 'otpauth://totp/TapeOutOps:e2e@tapeoutops.com?secret=JBSWY3DPEHPK3PXP&issuer=TapeOutOps',
+        issuer: 'TapeOutOps',
+      })
+    }
+    if (path.includes('/settings/security/mfa/enable') && method === 'POST') {
+      return json(route, { ok: true, mfa_enabled: true })
+    }
+    if (path.includes('/settings/security/mfa/disable') && method === 'POST') {
+      return json(route, { ok: true, mfa_enabled: false })
+    }
+    if (path.includes('/settings/security/access-review') && method === 'GET') {
+      return json(route, {
+        company_id: 1,
+        company_name: 'E2E Tapeout Corp',
+        users: [
+          {
+            user_id: 1,
+            email: user.email,
+            full_name: user.name || 'E2E',
+            role: user.role || 'admin',
+            is_active: true,
+            mfa_enabled: false,
+            last_login_at: null,
+          },
+        ],
+        reviewed_at: '2026-09-18T20:00:00Z',
+      })
+    }
+    if (path.includes('/settings/security/retention') && method === 'GET') {
+      return json(route, {
+        company_id: 1,
+        data_retention_days: 365,
+        deletion_policy: 'soft_delete',
+        notes: 'Soft-deleted accounts remain until retention window elapses.',
+      })
+    }
+    if (path.includes('/settings/security/retention') && method === 'PATCH') {
+      let body: { data_retention_days?: number; deletion_policy?: string; company_id?: number } = {}
+      try {
+        body = req.postDataJSON() as typeof body
+      } catch {
+        /* ignore */
+      }
+      return json(route, {
+        ok: true,
+        company_id: body.company_id || 1,
+        data_retention_days: body.data_retention_days || 365,
+        deletion_policy: body.deletion_policy || 'soft_delete',
+      })
+    }
+    if (path.includes('/settings/security/deletion-request') && method === 'POST') {
+      return json(route, {
+        ok: true,
+        status: 'soft_deleted',
+        message: 'Account deactivated.',
+        deleted_at: '2026-09-18T20:00:00Z',
+      }, 202)
     }
 
     if (path.includes('/auth/signup') && method === 'POST') {

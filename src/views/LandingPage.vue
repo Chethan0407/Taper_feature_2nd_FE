@@ -338,13 +338,16 @@
             </div>
             <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
               <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Deployment options</p>
-              <h4 class="text-white font-semibold mb-2">Isolated Cloud Tenant or Private VPC / On-Prem</h4>
-              <p class="text-gray-400 text-sm">Secure private VPC today; on-prem / dedicated tenant path for IP-sensitive orgs.</p>
+              <h4 class="text-white font-semibold mb-2">Isolated cloud VPC <span class="text-xs font-medium text-sky-300">(ops)</span></h4>
+              <p class="text-gray-400 text-sm">
+                TLS 1.3, AES-256, VPC segmentation, backups, firewalls, Datadog monitoring.
+                On-prem / dedicated VPC and GovCloud are roadmap.
+              </p>
             </div>
             <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
               <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Compliance roadmap</p>
-              <h4 class="text-white font-semibold mb-2">SOC 2 Type II Controls Embedded</h4>
-              <p class="text-gray-400 text-sm">Audit trails and access controls aligned toward SOC 2 Type II for enterprise pilots.</p>
+              <h4 class="text-white font-semibold mb-2">SOC 2 Type II <span class="text-xs font-medium text-violet-300">(roadmap)</span></h4>
+              <p class="text-gray-400 text-sm">Controls aligned toward SOC 2 Type II — not certified. Questionnaires available for pilots.</p>
             </div>
           </div>
         </div>
@@ -379,8 +382,8 @@
           </div>
           <div class="glass-effect rounded-xl p-6 border border-dark-700">
             <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Compliance</p>
-            <h3 class="text-white font-semibold mb-2">SOC 2 roadmap</h3>
-            <p class="text-gray-400 text-sm">Controls aligned toward SOC 2 Type II; security reviews available for pilots.</p>
+            <h3 class="text-white font-semibold mb-2">SOC 2 Type II (roadmap)</h3>
+            <p class="text-gray-400 text-sm">Not certified. Controls aligned toward SOC 2 Type II; security reviews available for pilots.</p>
           </div>
         </div>
 

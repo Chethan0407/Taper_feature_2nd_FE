@@ -135,6 +135,15 @@
               </li>
               <li>
                 <router-link 
+                  to="/settings?section=security" 
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
+                  @click="closeProfileDropdown"
+                >
+                  Security
+                </router-link>
+              </li>
+              <li>
+                <router-link 
                   to="/settings?section=branding" 
                   class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
                   @click="closeProfileDropdown"

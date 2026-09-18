@@ -36,7 +36,7 @@
         </div>
 
         <!-- Login Form (prevent native submit to avoid any full-page reload while typing) -->
-        <form class="space-y-6" @submit="onLoginSubmit">
+        <form v-if="!mfaPending" class="space-y-6" @submit="onLoginSubmit">
           <!-- Email Input -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -126,8 +126,49 @@
           </button>
         </form>
 
+        <!-- MFA step (after password when requires_mfa) -->
+        <form v-else class="space-y-6" data-testid="login-mfa-form" @submit.prevent="handleMfaVerify">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Authenticator code</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Enter the 6-digit code from your authenticator app for {{ email }}
+            </p>
+          </div>
+          <div>
+            <label for="mfa-code" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              MFA code
+            </label>
+            <input
+              id="mfa-code"
+              v-model="mfaCode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="8"
+              required
+              class="input-field w-full"
+              placeholder="000000"
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn-primary w-full py-3 text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="isLoading || mfaCode.trim().length < 6"
+          >
+            <span v-if="isLoading">Verifying…</span>
+            <span v-else>Verify &amp; sign in</span>
+          </button>
+          <button
+            type="button"
+            class="w-full text-sm text-gray-500 hover:text-neon-blue"
+            @click="cancelMfa"
+          >
+            Back to password
+          </button>
+        </form>
+
         <!-- Sign Up Link -->
-        <div class="mt-8 text-center">
+        <div v-if="!mfaPending" class="mt-8 text-center">
           <p class="text-gray-600 dark:text-gray-400">
             Don't have an account?
             <a href="#" @click.prevent="openSignUpModal" class="text-neon-blue hover:text-neon-blue/80 font-medium transition-colors">
@@ -377,6 +418,7 @@
             <Transition name="fade">
               <div v-if="showPasswordRequirements && signupPassword && !passwordValidation?.isValid" class="mt-3 p-3 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600">
                 <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Password Requirements:</p>
+                <p v-if="passwordPolicy?.notes" class="mb-2 text-xs text-gray-500 dark:text-gray-400">{{ passwordPolicy.notes }}</p>
                 <ul class="space-y-1.5">
                   <li 
                     v-for="req in passwordRequirements" 
@@ -570,6 +612,8 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { validatePassword, getPasswordRequirements, type PasswordValidationResult } from '@/utils/passwordValidation'
+import { fetchPasswordPolicy } from '@/api/security'
+import type { PasswordPolicy } from '@/types/security'
 import { reportUiEvent, reportSignupEmailLead, isSignupEmailEnoughForLead } from '@/utils/clientTelemetry'
 
 const router = useRouter()
@@ -581,6 +625,9 @@ const successMessage = ref('')
 
 const email = ref('')
 const password = ref('')
+const mfaPending = ref(false)
+const mfaToken = ref('')
+const mfaCode = ref('')
 const showPassword = ref(false)
 const rememberMe = ref(false)
 const isLoading = ref(false)
@@ -759,6 +806,13 @@ onMounted(() => {
     }, 5000)
   }
   window.addEventListener('pagehide', onPageHideForSignupAbandon)
+  void fetchPasswordPolicy()
+    .then((p) => {
+      passwordPolicy.value = p
+    })
+    .catch(() => {
+      /* keep local validation if policy endpoint unavailable */
+    })
 })
 
 onBeforeUnmount(() => {
@@ -823,6 +877,7 @@ watch(signupName, () => {
 const passwordValidation = ref<PasswordValidationResult | null>(null)
 const passwordRequirements = getPasswordRequirements()
 const showPasswordRequirements = ref(false)
+const passwordPolicy = ref<PasswordPolicy | null>(null)
 
 // Watch password changes for real-time validation
 watch(signupPassword, (newPassword) => {
@@ -1015,6 +1070,11 @@ const handleLogin = async () => {
     const result = await authStore.login(email.value.trim(), password.value)
     if (result.success) {
       router.push('/dashboard')
+    } else if ((result as any).requiresMfa && (result as any).mfaToken) {
+      mfaPending.value = true
+      mfaToken.value = (result as any).mfaToken
+      mfaCode.value = ''
+      loginError.value = ''
     } else {
       // Check if email verification is required
       if (result.requiresVerification) {
@@ -1029,6 +1089,35 @@ const handleLogin = async () => {
     loginError.value = 'Wrong email or password.'
     loginRequiresVerification.value = false
     console.error('Login failed:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const cancelMfa = () => {
+  mfaPending.value = false
+  mfaToken.value = ''
+  mfaCode.value = ''
+  loginError.value = ''
+}
+
+const handleMfaVerify = async () => {
+  if (isLoading.value) return
+  if (mfaCode.value.trim().length < 6) {
+    loginError.value = 'Enter your authenticator code.'
+    return
+  }
+  isLoading.value = true
+  loginError.value = ''
+  try {
+    const result = await authStore.verifyMfa(mfaToken.value, mfaCode.value.trim())
+    if (result.success) {
+      router.push('/dashboard')
+    } else {
+      loginError.value = result.error || 'Invalid MFA code'
+    }
+  } catch {
+    loginError.value = 'Invalid MFA code'
   } finally {
     isLoading.value = false
   }
