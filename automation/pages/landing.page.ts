@@ -49,6 +49,10 @@ export class LandingPage extends BasePage {
     await this.expectVisible(this.signInButton())
   }
 
+  productSection(): Locator {
+    return this.page.locator('#product')
+  }
+
   async goToLoginViaSignIn() {
     await this.signInButton().click()
     await this.page.waitForURL(/\/login/)
