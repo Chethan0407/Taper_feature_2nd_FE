@@ -35,7 +35,7 @@
               @click="scrollToSection('demo')"
               class="px-6 py-2 text-sm font-medium bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-neon-blue/50"
             >
-              Request a Demo
+              Request Enterprise Pilot
             </button>
           </div>
         </div>
@@ -58,8 +58,8 @@
         </h1>
 
         <p class="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto">
-          Specs, quality checklists, sign-offs, and vendor collaboration—built for teams that cannot
-          put proprietary design data behind a self-serve free signup.
+          Gated tapeout operations for ASIC and semiconductor teams—sign-off matrices, SpecLint, and
+          foundry handovers without exposing classified layout IP to a self-serve free portal.
         </p>
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -67,7 +67,7 @@
             @click="scrollToSection('demo')"
             class="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl hover:opacity-90 transition-opacity shadow-2xl shadow-neon-blue/50 flex items-center space-x-2"
           >
-            <span>Request a Demo</span>
+            <span>Request an Enterprise Pilot</span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
@@ -76,7 +76,7 @@
             @click="scrollToSection('demo')"
             class="px-8 py-4 text-lg font-semibold bg-dark-800 text-gray-300 border border-dark-700 rounded-xl hover:bg-dark-700 transition-colors"
           >
-            Join Enterprise Pilot
+            Join the Private Beta
           </button>
         </div>
 
@@ -147,34 +147,34 @@
         <div class="text-center mb-16">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Built for tapeout operations</h2>
           <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            Specs, checklists, lint, and vendor workflows in one operational layer
+            Sign-off matrices, SpecLint, and foundry/OSAT handovers in one gated operational layer
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
-            <h3 class="text-xl font-semibold text-white mb-2">Specifications Management</h3>
-            <p class="text-gray-400">Versioned specs with approval workflows and full change history.</p>
+            <h3 class="text-xl font-semibold text-white mb-2">Engineering Parameter Sheets</h3>
+            <p class="text-gray-400">Versioned specs and config sheets with approval workflows—not raw layout databases.</p>
           </div>
           <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
-            <h3 class="text-xl font-semibold text-white mb-2">Checklist Automation</h3>
-            <p class="text-gray-400">Reusable templates for DRC/LVS closure and packaging handovers.</p>
+            <h3 class="text-xl font-semibold text-white mb-2">Sign-Off Matrices &amp; DRC/LVS Tracking Gates</h3>
+            <p class="text-gray-400">Reusable templates for design-rule closure, ERC clean, and packaging handovers.</p>
           </div>
           <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
             <h3 class="text-xl font-semibold text-white mb-2">SpecLint Engine</h3>
-            <p class="text-gray-400">Automated quality rules, keyword detection, and NDA clause checks.</p>
+            <p class="text-gray-400">Automated quality rules on project configs—keyword, PDK bound, and NDA clause checks.</p>
           </div>
           <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
-            <h3 class="text-xl font-semibold text-white mb-2">Vendor Collaboration</h3>
-            <p class="text-gray-400">Track foundry / OSAT communications under controlled access.</p>
+            <h3 class="text-xl font-semibold text-white mb-2">Secure Foundry &amp; OSAT Handovers</h3>
+            <p class="text-gray-400">Siloed staging for foundry / OSAT partners under NDA-scoped API access.</p>
           </div>
           <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
-            <h3 class="text-xl font-semibold text-white mb-2">Audit Trails</h3>
-            <p class="text-gray-400">Who approved which gate, when—immutable activity for compliance reviews.</p>
+            <h3 class="text-xl font-semibold text-white mb-2">Immutable Gate Audit Trails</h3>
+            <p class="text-gray-400">Who signed which tapeout gate, when—compliance-ready activity history.</p>
           </div>
           <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
-            <h3 class="text-xl font-semibold text-white mb-2">Enterprise Access</h3>
-            <p class="text-gray-400">JWT auth, RBAC, API keys—gated onboarding, not open free signup.</p>
+            <h3 class="text-xl font-semibold text-white mb-2">Enterprise Access Control</h3>
+            <p class="text-gray-400">JWT auth, RBAC, API keys—provisioned pilots only; no open free signup.</p>
           </div>
         </div>
       </div>
@@ -304,18 +304,48 @@
         <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div>
             <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mx-auto mb-4 text-lg font-bold text-white">1</div>
-            <h3 class="text-lg font-semibold text-white mb-2">Create Projects</h3>
-            <p class="text-gray-400 text-sm">Configure teams, gates, and approval chains.</p>
+            <h3 class="text-lg font-semibold text-white mb-2">Configure Tapeout Programs</h3>
+            <p class="text-gray-400 text-sm">Teams, design-rule gates, and multi-level approval chains per block.</p>
           </div>
           <div>
             <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mx-auto mb-4 text-lg font-bold text-white">2</div>
             <h3 class="text-lg font-semibold text-white mb-2">Upload &amp; Validate</h3>
-            <p class="text-gray-400 text-sm">Specs + SpecLint + checklists for DRC/LVS closure.</p>
+            <p class="text-gray-400 text-sm">
+              Upload and version engineering parameter sheets, checklist logs, and sign-off matrices.
+              Execute automated linting on project configuration files—completely isolated from your raw physical layout files.
+            </p>
           </div>
           <div>
             <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mx-auto mb-4 text-lg font-bold text-white">3</div>
-            <h3 class="text-lg font-semibold text-white mb-2">Track &amp; Approve</h3>
-            <p class="text-gray-400 text-sm">Sign-offs with audit trails vendors and PMs can trust.</p>
+            <h3 class="text-lg font-semibold text-white mb-2">Gate Sign-Off &amp; Foundry Handover</h3>
+            <p class="text-gray-400 text-sm">DRC/LVS tracking gates with audit trails foundry PMs and OSATs can trust.</p>
+          </div>
+        </div>
+
+        <!-- Security pillars — immediately under the 3-step story -->
+        <div class="mt-16" data-testid="security-pillars">
+          <div class="text-center mb-8">
+            <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">Security pillars</h3>
+            <p class="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
+              Built for foundry NDAs—isolation and encryption before any pilot starts
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
+              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Data protection</p>
+              <h4 class="text-white font-semibold mb-2">End-to-End TLS 1.3 &amp; AES-256</h4>
+              <p class="text-gray-400 text-sm">Transit encryption plus AES-256 storage encryption for operational metadata at rest.</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
+              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Deployment options</p>
+              <h4 class="text-white font-semibold mb-2">Isolated Cloud Tenant or Private VPC / On-Prem</h4>
+              <p class="text-gray-400 text-sm">Secure private VPC today; on-prem / dedicated tenant path for IP-sensitive orgs.</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
+              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Compliance roadmap</p>
+              <h4 class="text-white font-semibold mb-2">SOC 2 Type II Controls Embedded</h4>
+              <p class="text-gray-400 text-sm">Audit trails and access controls aligned toward SOC 2 Type II for enterprise pilots.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -435,10 +465,10 @@
       <div class="max-w-3xl mx-auto">
         <div class="text-center mb-10">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">
-            Request a Demo
+            Request an Enterprise Pilot
           </h2>
           <p class="text-xl text-gray-400">
-            Join the enterprise pilot—gated access for teams handling proprietary IP.
+            Join the private beta—gated access for teams handling proprietary IP under foundry NDAs.
           </p>
         </div>
 
@@ -495,8 +525,8 @@
               v-model="demoForm.interest"
               class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none"
             >
-              <option value="request_demo">Request a Demo</option>
-              <option value="enterprise_pilot">Join Enterprise Pilot</option>
+              <option value="request_demo">Request an Enterprise Pilot</option>
+              <option value="enterprise_pilot">Join the Private Beta</option>
               <option value="security_review">Security / architecture review</option>
               <option value="investor_data_room">Investor / Data Room Access</option>
             </select>
@@ -545,13 +575,13 @@
           <div class="glass-effect rounded-2xl p-8 border border-dark-700 h-full flex flex-col">
             <h3 class="text-2xl font-bold text-white mb-4">Our Mission</h3>
             <p class="text-gray-400 leading-relaxed mb-4">
-              Semiconductor tapeout workflows are complex, fragmented, and often stuck in email + spreadsheets.
-              TapeOutOps unifies specs, quality checklists, and vendor collaboration so design teams can close
-              gates without losing the audit trail.
+              Semiconductor tapeout workflows are fragmented across email and spreadsheets—while foundry NDAs
+              demand isolation. TapeOutOps is gated workflow infrastructure for sign-off matrices, SpecLint,
+              and secure foundry/OSAT handovers with an immutable audit trail.
             </p>
             <p class="text-gray-400 leading-relaxed grow">
-              We sell workflow infrastructure into hardware engineering orgs that treat GDSII, PDK rules, and
-              foundry packages as crown-jewel IP—so access is gated, not self-serve free.
+              We never ask you to park GDSII or PDK crown jewels behind a free self-serve signup. Pilots are
+              provisioned with tenant isolation, encryption, and a SOC 2–aligned control roadmap.
             </p>
           </div>
 
@@ -633,7 +663,7 @@
             <h4 class="text-white font-semibold mb-4">Company</h4>
             <ul class="space-y-2 text-sm text-gray-400">
               <li><a href="#about" class="hover:text-neon-blue transition-colors">About</a></li>
-              <li><a href="#demo" class="hover:text-neon-blue transition-colors">Request a Demo</a></li>
+              <li><a href="#demo" class="hover:text-neon-blue transition-colors">Request Enterprise Pilot</a></li>
               <li>
                 <a href="mailto:support@tapeoutops.com" class="hover:text-neon-blue transition-colors">Contact</a>
               </li>

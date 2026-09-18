@@ -137,7 +137,7 @@ export class PublicStaticPage extends BasePage {
   }
 
   getStartedButton(): Locator {
-    return this.page.getByRole('button', { name: /request a demo|get started/i }).first()
+    return this.page.getByRole('button', { name: /request an enterprise pilot|request enterprise pilot|request a demo|get started/i }).first()
   }
 
   brandHome(): Locator {

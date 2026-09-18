@@ -13,7 +13,7 @@ test.describe('Public / marketing — buttons & links @smoke', () => {
     await landingPage.goToLoginViaSignIn()
   })
 
-  test('landing: Request a Demo scrolls to demo form', async ({ landingPage, page }) => {
+  test('landing: Request Enterprise Pilot scrolls to demo form', async ({ landingPage, page }) => {
     await landingPage.goto()
     await landingPage.getStartedButton().click()
     await expect(page.locator('#demo')).toBeVisible()
@@ -29,6 +29,20 @@ test.describe('Public / marketing — buttons & links @smoke', () => {
     // Must never show internal asset paths to visitors / VCs
     await expect(page.locator('#product')).not.toContainText('public/product/')
     await expect(page.getByRole('button', { name: /get started free/i })).toHaveCount(0)
+  })
+
+  test('landing: enterprise CTAs + security pillars + metadata copy @smoke', async ({ landingPage, page }) => {
+    await landingPage.goto()
+    await expect(page.getByRole('button', { name: /request an enterprise pilot/i }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /join the private beta/i }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /get started free/i })).toHaveCount(0)
+    await expect(page.getByTestId('security-pillars')).toBeVisible()
+    await expect(page.getByText(/TLS 1\.3/i).first()).toBeVisible()
+    await expect(page.getByText(/AES-256/i).first()).toBeVisible()
+    await expect(page.getByText(/SOC 2 Type II/i).first()).toBeVisible()
+    await expect(page.getByText(/completely isolated from your raw physical layout files/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Sign-Off Matrices & DRC\/LVS Tracking Gates/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Secure Foundry & OSAT Handovers/i })).toBeVisible()
   })
 
   test('landing: footer legal links exist', async ({ landingPage }) => {
