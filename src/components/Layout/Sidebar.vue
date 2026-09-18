@@ -138,7 +138,7 @@ const mainNavItems = [
   { name: 'Projects', path: '/projects', icon: Folder },
   { name: 'Specs', path: '/specs', icon: FileText },
   { name: 'Checklists', path: '/checklists', icon: CheckSquare },
-  { name: 'SpecLint', path: '/speclint', icon: Search },
+  { name: 'SpecLint', path: '/speclint/console', icon: Search },
   { name: 'Vendors', path: '/vendors', icon: Users },
   { name: 'Companies', path: '/companies', icon: Building2 },
   { name: 'Settings', path: '/settings', icon: Settings },

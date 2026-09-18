@@ -151,6 +151,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/speclint/console',
+      name: 'SpecLintConsole',
+      component: () => import('@/views/SpecLintConsole.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/vendors',
       name: 'Vendors',
       // Code split: Creates "vendors" chunk

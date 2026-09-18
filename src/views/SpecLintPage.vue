@@ -9,9 +9,19 @@
       <Header />
       <main class="p-8">
         <div class="mb-8 page-enter">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700/80 dark:text-teal-300/80">Quality automation</p>
-          <h1 class="page-title-gradient mb-1">SpecLint Engine</h1>
-          <p class="page-subtitle">Define rules, pick a spec, run validation — one clear flow</p>
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700/80 dark:text-teal-300/80">Quality automation</p>
+              <h1 class="page-title-gradient mb-1">SpecLint Engine</h1>
+              <p class="page-subtitle">Define rules, pick a spec, run validation — one clear flow</p>
+            </div>
+            <router-link
+              to="/speclint/console"
+              class="rounded-lg bg-gradient-to-r from-fuchsia-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-fuchsia-900/30 hover:opacity-95"
+            >
+              Open Console →
+            </router-link>
+          </div>
         </div>
 
         <!-- Workflow workspace (structure change: not two identical blue cards) -->
