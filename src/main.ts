@@ -4,6 +4,7 @@ import router from './router'
 import App from './App.vue'
 import './style.css'
 import { initTheme } from './utils/theme'
+import { useAuthStore } from './stores/auth'
 
 initTheme()
 
@@ -38,14 +39,10 @@ try {
   const pinia = createPinia()
   app.use(pinia)
 
-  // Start /me hydrate ASAP (does not block mount)
+  // Start /me hydrate ASAP (does not block mount / first paint)
   try {
-    const { useAuthStore } = await import('./stores/auth')
     const auth = useAuthStore(pinia)
-    if (auth.token && !auth.user) {
-      void auth.checkAuth()
-    } else if (auth.token && auth.user) {
-      // Refresh cache in background after instant paint from session cache
+    if (auth.token) {
       void auth.checkAuth()
     }
   } catch {
