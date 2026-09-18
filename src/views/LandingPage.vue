@@ -652,7 +652,7 @@
                 </svg>
                 LinkedIn
               </a>
-              <a href="mailto:support@tapeoutops.com" class="text-gray-400 hover:text-neon-blue transition-colors flex items-center">
+              <a href="mailto:chethan@tapeoutops.com" class="text-gray-400 hover:text-neon-blue transition-colors flex items-center">
                 Contact
               </a>
             </div>
