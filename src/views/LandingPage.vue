@@ -186,85 +186,82 @@
         <div class="text-center mb-16">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">See the workflow</h2>
           <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            High-fidelity previews of gates, checklists, and approvals enterprise buyers ask for
+            Live product clips of SpecLint, gate approvals, and vendor handoff—not vaporware mockups
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <!-- Sign-off matrix -->
+          <!-- GIF 1: SpecLint -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
-              <h3 class="text-white font-semibold">Automated sign-off matrix</h3>
-              <p class="text-xs text-gray-500 mt-1">Tapeout gates by owner &amp; status</p>
+              <h3 class="text-white font-semibold">SpecLint on upload</h3>
+              <p class="text-xs text-gray-500 mt-1">Out-of-bounds parameter flagged automatically</p>
             </div>
-            <div class="p-5 space-y-3 text-sm">
-              <div class="flex justify-between items-center p-3 bg-dark-800/60 rounded-lg border border-dark-600/50">
-                <span class="text-gray-300">RTL freeze</span>
-                <span class="text-green-400 text-xs font-medium">APPROVED</span>
-              </div>
-              <div class="flex justify-between items-center p-3 bg-dark-800/60 rounded-lg border border-dark-600/50">
-                <span class="text-gray-300">DRC / LVS</span>
-                <span class="text-yellow-400 text-xs font-medium">IN REVIEW</span>
-              </div>
-              <div class="flex justify-between items-center p-3 bg-dark-800/60 rounded-lg border border-dark-600/50">
-                <span class="text-gray-300">GDSII release</span>
-                <span class="text-gray-500 text-xs font-medium">LOCKED</span>
+            <div class="relative aspect-video bg-dark-950">
+              <img
+                v-show="!gifFailed.speclint"
+                src="/product/speclint-upload.gif"
+                alt="Spec upload triggering SpecLint error flag"
+                class="h-full w-full object-cover"
+                @error="gifFailed.speclint = true"
+              />
+              <div v-if="gifFailed.speclint" class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+                <div class="rounded-lg border border-dark-600 bg-dark-800/60 p-3">
+                  <p class="text-gray-300">spec_v3.xlsx uploaded</p>
+                  <p class="mt-1 text-xs text-red-400">SpecLint · ERROR · clock skew out of bounds</p>
+                </div>
+                <p class="text-xs text-gray-500">Drop <code class="text-neon-blue">/public/product/speclint-upload.gif</code> to replace this preview.</p>
               </div>
             </div>
           </div>
 
-          <!-- Checklist tracking -->
+          <!-- GIF 2: Checklist approve -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
-              <h3 class="text-white font-semibold">Checklist tracking</h3>
-              <p class="text-xs text-gray-500 mt-1">DRC/LVS &amp; packaging house handover</p>
+              <h3 class="text-white font-semibold">DRC/LVS gate approve</h3>
+              <p class="text-xs text-gray-500 mt-1">Manager approve → audit trail updates live</p>
             </div>
-            <div class="p-5 space-y-3 text-sm">
-              <div class="flex items-start gap-3">
-                <span class="mt-0.5 w-4 h-4 rounded border border-green-500 bg-green-500/20 flex-shrink-0"></span>
-                <div>
-                  <p class="text-gray-300">Metal density checks complete</p>
-                  <p class="text-xs text-gray-500">Closed by PD lead</p>
+            <div class="relative aspect-video bg-dark-950">
+              <img
+                v-show="!gifFailed.checklist"
+                src="/product/checklist-approve.gif"
+                alt="Approving DRC LVS checklist with live audit history"
+                class="h-full w-full object-cover"
+                @error="gifFailed.checklist = true"
+              />
+              <div v-if="gifFailed.checklist" class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+                <div class="flex justify-between rounded-lg border border-dark-600 bg-dark-800/60 p-3">
+                  <span class="text-gray-300">DRC / LVS closure</span>
+                  <span class="text-xs font-medium text-green-400">APPROVED</span>
                 </div>
-              </div>
-              <div class="flex items-start gap-3">
-                <span class="mt-0.5 w-4 h-4 rounded border border-green-500 bg-green-500/20 flex-shrink-0"></span>
-                <div>
-                  <p class="text-gray-300">LVS netlist match report attached</p>
-                  <p class="text-xs text-gray-500">Artifact linked to gate</p>
+                <div class="border-l-2 border-neon-blue pl-3 text-xs text-gray-500">
+                  Audit · eng.manager@acme.semi · just now
                 </div>
-              </div>
-              <div class="flex items-start gap-3">
-                <span class="mt-0.5 w-4 h-4 rounded border border-yellow-500 flex-shrink-0"></span>
-                <div>
-                  <p class="text-gray-300">OSAT BOM &amp; substrate notes</p>
-                  <p class="text-xs text-gray-500">Awaiting package eng</p>
-                </div>
+                <p class="text-xs text-gray-500">Drop <code class="text-neon-blue">/public/product/checklist-approve.gif</code> to replace this preview.</p>
               </div>
             </div>
           </div>
 
-          <!-- Audit trail -->
+          <!-- GIF 3: Vendor handoff -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
-              <h3 class="text-white font-semibold">Approval audit trail</h3>
-              <p class="text-xs text-gray-500 mt-1">Who signed which spec change</p>
+              <h3 class="text-white font-semibold">Vendor performance view</h3>
+              <p class="text-xs text-gray-500 mt-1">Siloed staging for foundry / OSAT handoff</p>
             </div>
-            <div class="p-5 space-y-4 text-sm">
-              <div class="border-l-2 border-neon-blue pl-4">
-                <p class="text-gray-300">Spec v3.2 approved</p>
-                <p class="text-xs text-gray-500">m.patel@acme.semi · Floorplan constraints</p>
-                <p class="text-xs text-neon-blue/80 mt-1">Mar 18, 2026 · 14:22 UTC</p>
-              </div>
-              <div class="border-l-2 border-neon-purple pl-4">
-                <p class="text-gray-300">Checklist item reopened</p>
-                <p class="text-xs text-gray-500">j.kim@acme.semi · Antenna rule waiver</p>
-                <p class="text-xs text-neon-purple/80 mt-1">Mar 17, 2026 · 09:01 UTC</p>
-              </div>
-              <div class="border-l-2 border-dark-500 pl-4">
-                <p class="text-gray-300">Vendor NDA package shared</p>
-                <p class="text-xs text-gray-500">Scoped link · OSAT partner</p>
-                <p class="text-xs text-gray-500 mt-1">Mar 16, 2026 · 18:44 UTC</p>
+            <div class="relative aspect-video bg-dark-950">
+              <img
+                v-show="!gifFailed.vendor"
+                src="/product/vendor-handoff.gif"
+                alt="Vendor performance view with secure file staging"
+                class="h-full w-full object-cover"
+                @error="gifFailed.vendor = true"
+              />
+              <div v-if="gifFailed.vendor" class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+                <div class="rounded-lg border border-dark-600 bg-dark-800/60 p-3">
+                  <p class="text-gray-300">Foundry package · siloed staging</p>
+                  <p class="mt-1 text-xs text-gray-500">NDA scope · response SLA 18h</p>
+                </div>
+                <p class="text-xs text-gray-500">Drop <code class="text-neon-blue">/public/product/vendor-handoff.gif</code> to replace this preview.</p>
               </div>
             </div>
           </div>
@@ -342,32 +339,58 @@
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Fits how teams already work</h2>
-          <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            Compatibility and roadmap integration points with industry-standard tooling
+          <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+            Operational connectors for sign-off automation—plus a clear boundary with EDA and foundry layout tools
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
-            <h3 class="text-lg font-semibold text-white mb-4">Version control &amp; ticketing</h3>
-            <div class="flex flex-wrap gap-2">
-              <span v-for="name in ['Jira', 'GitLab', 'GitHub']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
+        <!-- Tier 1: Live / operational connectors -->
+        <div class="mb-12">
+          <h3 class="text-xl font-semibold text-white mb-2">Live connectors — operational data</h3>
+          <p class="text-gray-400 text-sm mb-6 max-w-3xl">
+            Automate sign-off updates natively via your existing CI/CD pipelines and ticketing systems.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+              <h4 class="text-lg font-semibold text-white mb-4">Version control &amp; ticketing</h4>
+              <div class="flex flex-wrap gap-2">
+                <span v-for="name in ['Jira', 'GitLab', 'GitHub']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-4">Roadmap: sync gates ↔ issues and MR/PR status</p>
             </div>
-            <p class="text-xs text-gray-500 mt-4">Roadmap: sync gates ↔ issues and MR/PR status</p>
+            <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+              <h4 class="text-lg font-semibold text-white mb-4">CI/CD &amp; EDA scripting hooks</h4>
+              <div class="flex flex-wrap gap-2">
+                <span v-for="name in ['Python', 'TCL', 'Jenkins']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-4">Roadmap: webhook / CLI hooks from regression farms</p>
+            </div>
           </div>
-          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
-            <h3 class="text-lg font-semibold text-white mb-4">CI/CD &amp; EDA scripting</h3>
+          <div class="mt-6 glass-effect rounded-2xl p-6 border border-dark-700">
+            <h4 class="text-sm font-semibold text-white mb-3">Cloud &amp; on-prem artifact refs</h4>
             <div class="flex flex-wrap gap-2">
-              <span v-for="name in ['Python', 'TCL', 'Jenkins']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
+              <span v-for="name in ['Perforce', 'AWS', 'Azure']" :key="'store-' + name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
             </div>
-            <p class="text-xs text-gray-500 mt-4">Roadmap: webhook / CLI hooks from regression farms</p>
+            <p class="text-xs text-gray-500 mt-3">Depot-aware references without forcing layout data out of your VPC</p>
           </div>
-          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
-            <h3 class="text-lg font-semibold text-white mb-4">Cloud &amp; on-prem storage</h3>
-            <div class="flex flex-wrap gap-2">
-              <span v-for="name in ['Perforce', 'AWS', 'Azure']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
-            </div>
-            <p class="text-xs text-gray-500 mt-4">Roadmap: depot-aware artifact refs without leaving your VPC</p>
+        </div>
+
+        <!-- Tier 2: EDA & Foundry firewall -->
+        <div class="glass-effect rounded-2xl p-8 md:p-10 border border-neon-blue/30 bg-neon-blue/5">
+          <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-3">The EDA &amp; Foundry firewall</p>
+          <h3 class="text-2xl font-bold text-white mb-4">We orchestrate metadata and sign-offs—not raw GDSII</h3>
+          <p class="text-gray-300 leading-relaxed mb-4 max-w-4xl">
+            TapeOutOps manages checklists, SpecLint results, approval status, and vendor collaboration metadata.
+            We do <span class="text-white font-medium">not</span> ingest or rewrite multi-gigabyte GDSII/OASIS layout databases.
+            Layout stays inside your existing EDA vault and foundry NDA perimeter.
+          </p>
+          <p class="text-gray-400 text-sm mb-4">Planned compatibility with tool <span class="text-gray-300">states and reports</span> (roadmaps—not layout mutation):</p>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="name in ['Siemens Calibre', 'Synopsys IC Compiler II', 'Cadence Pegasus']"
+              :key="name"
+              class="px-3 py-1.5 text-sm bg-dark-900/80 border border-dark-600 rounded-lg text-gray-300"
+            >{{ name }}</span>
           </div>
         </div>
       </div>
@@ -441,6 +464,7 @@
               <option value="request_demo">Request a Demo</option>
               <option value="enterprise_pilot">Join Enterprise Pilot</option>
               <option value="security_review">Security / architecture review</option>
+              <option value="investor_data_room">Investor / Data Room Access</option>
             </select>
           </div>
           <div>
@@ -621,6 +645,11 @@ const demoForm = reactive({
 const demoSubmitting = ref(false)
 const demoError = ref('')
 const demoSuccess = ref('')
+const gifFailed = reactive({
+  speclint: false,
+  checklist: false,
+  vendor: false,
+})
 
 onMounted(async () => {
   if (authStore.token && !authStore.user) {
@@ -677,7 +706,12 @@ async function submitDemoRequest() {
             : body.message
       throw new Error(msg || `Request failed (${res.status})`)
     }
-    demoSuccess.value = "Thanks — we'll follow up shortly about the enterprise pilot."
+    const payload = await res.json().catch(() => ({}))
+    demoSuccess.value =
+      payload.message ||
+      (demoForm.interest === 'investor_data_room'
+        ? 'Thanks — check your inbox for Data Room access (or we will follow up shortly).'
+        : "Thanks — we'll follow up shortly about the enterprise pilot.")
     demoForm.name = ''
     demoForm.email = ''
     demoForm.company = ''

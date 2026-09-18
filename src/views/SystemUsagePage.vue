@@ -379,6 +379,8 @@
               <option value="all">All interests</option>
               <option value="request_demo">Request a Demo</option>
               <option value="enterprise_pilot">Join Enterprise Pilot</option>
+              <option value="security_review">Security / architecture review</option>
+              <option value="investor_data_room">Investor / Data Room</option>
             </select>
             <input
               v-model="demoRequestQuery"
@@ -411,6 +413,11 @@
                   v-for="(row, idx) in filteredDemoRequests.slice(0, 100)"
                   :key="String(row.id || row.email) + String(idx)"
                   class="border-b border-gray-200 dark:border-dark-800"
+                  :class="
+                    row.is_investor || row.interest === 'investor_data_room'
+                      ? 'bg-amber-500/5'
+                      : ''
+                  "
                 >
                   <td class="px-4 py-2 whitespace-nowrap text-gray-800 dark:text-gray-200">
                     {{ formatSiteTrafficTime(row.created_at || row.createdAt || row.ts) }}
@@ -420,7 +427,14 @@
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.company || '—' }}</td>
                   <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.role || '—' }}</td>
                   <td class="px-4 py-2">
-                    <span class="rounded px-2 py-0.5 text-xs font-medium bg-violet-500/20 text-violet-200">
+                    <span
+                      class="rounded px-2 py-0.5 text-xs font-medium"
+                      :class="
+                        row.is_investor || row.interest === 'investor_data_room'
+                          ? 'bg-amber-500/25 text-amber-100'
+                          : 'bg-violet-500/20 text-violet-200'
+                      "
+                    >
                       {{ formatDemoInterest(row.interest) }}
                     </span>
                   </td>
@@ -1229,13 +1243,32 @@ const demoRequests = ref<DemoRequestRow[]>([])
 const demoRequestsLoading = ref(false)
 const demoRequestsFromServer = ref(false)
 const demoRequestsError = ref('')
-const demoRequestInterestFilter = ref<'all' | 'request_demo' | 'enterprise_pilot'>('all')
+const demoRequestInterestFilter = ref<
+  'all' | 'request_demo' | 'enterprise_pilot' | 'security_review' | 'investor_data_room'
+>('all')
 const demoRequestQuery = ref('')
+let demoRequestsPollTimer: ReturnType<typeof setInterval> | null = null
 
 function formatDemoInterest(interest?: string) {
   if (interest === 'enterprise_pilot') return 'Enterprise Pilot'
   if (interest === 'request_demo') return 'Request a Demo'
+  if (interest === 'security_review') return 'Security Review'
+  if (interest === 'investor_data_room') return 'Investor / Data Room'
   return interest || '—'
+}
+
+function startDemoRequestsLivePolling() {
+  stopDemoRequestsLivePolling()
+  demoRequestsPollTimer = setInterval(() => {
+    void fetchDemoRequests()
+  }, 15000)
+}
+
+function stopDemoRequestsLivePolling() {
+  if (demoRequestsPollTimer) {
+    clearInterval(demoRequestsPollTimer)
+    demoRequestsPollTimer = null
+  }
 }
 
 const filteredDemoRequests = computed(() => {
@@ -1864,9 +1897,11 @@ onMounted(async () => {
     fetchActiveUsers(),
   ])
   startSiteTrafficLivePolling()
+  startDemoRequestsLivePolling()
 })
 
 onUnmounted(() => {
   stopSiteTrafficLivePolling()
+  stopDemoRequestsLivePolling()
 })
 </script>
