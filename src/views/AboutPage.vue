@@ -36,7 +36,7 @@
               @click="router.push('/#demo')"
               class="px-6 py-2 text-sm font-medium bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-neon-blue/50"
             >
-              Request a Demo
+              Request Enterprise Pilot
             </button>
           </div>
         </div>
@@ -50,7 +50,7 @@
           About <span class="text-gradient">TapeOutOps</span>
         </h1>
         <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-          Empowering semiconductor teams with intelligent tapeout workflow management
+          Gated tapeout operations for semiconductor teams—isolation and audit trails for foundry NDAs
         </p>
       </div>
     </section>
@@ -199,17 +199,17 @@
     <section class="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-neon-blue/10 via-neon-purple/10 to-neon-blue/10">
       <div class="max-w-4xl mx-auto text-center">
         <h2 class="text-4xl font-bold text-white mb-6">
-          Ready to Transform Your Workflow?
+          Ready for a gated enterprise pilot?
         </h2>
         <p class="text-xl text-gray-400 mb-8">
-          Join the teams using TapeOutOps to streamline their tapeout processes.
+          Provisioned access for teams that cannot put classified IP behind a free signup.
         </p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             @click="router.push('/#demo')"
             class="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl hover:opacity-90 transition-opacity shadow-2xl shadow-neon-blue/50"
           >
-            Request a Demo
+            Request an Enterprise Pilot
           </button>
           <button
             @click="router.push('/')"

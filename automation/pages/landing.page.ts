@@ -13,11 +13,11 @@ export class LandingPage extends BasePage {
   }
 
   getStartedButton(): Locator {
-    return this.page.getByRole('button', { name: /request a demo/i }).first()
+    return this.page.getByRole('button', { name: /request an enterprise pilot|request enterprise pilot/i }).first()
   }
 
   getStartedFree(): Locator {
-    return this.page.getByRole('button', { name: /request a demo|join enterprise pilot/i }).first()
+    return this.page.getByRole('button', { name: /join the private beta|enterprise pilot/i }).first()
   }
 
   navFeatures(): Locator {
