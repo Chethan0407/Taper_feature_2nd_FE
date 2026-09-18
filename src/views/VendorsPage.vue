@@ -13,91 +13,52 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <!-- Vendor List -->
-          <div class="min-w-0 lg:col-span-2">
-            <div class="module-panel module-panel-accent overflow-hidden p-6">
-              <div class="flex items-center justify-between mb-6">
-                <h2 class="module-section-title">Vendor Partners</h2>
-                <button class="btn-primary" @click="showVendorModal = true">Add Vendor</button>
-              </div>
-              <div v-if="error" class="text-red-500 text-center mb-4">{{ error }}</div>
-              <div v-if="loading" class="text-gray-400 text-center mb-4">Loading...</div>
-              <div v-if="!loading && vendorList.length === 0" class="text-gray-400 text-center mb-4">No vendors yet.</div>
-              <div v-else class="space-y-4">
-                <div v-for="vendor in vendorList" :key="vendor.id" 
-                     class="overflow-hidden p-4 bg-gray-50 dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors cursor-pointer"
-                     @click="viewVendorPreview(vendor)">
-                  <div class="flex min-w-0 items-center gap-3">
-                    <div class="flex min-w-0 flex-1 items-center gap-4">
-                      <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-neon-blue to-neon-purple">
-                        <span class="font-semibold text-white">{{ vendor.name?.charAt(0) || 'V' }}</span>
-                      </div>
-                      <div class="min-w-0 flex-1">
-                        <h3 class="truncate font-medium text-gray-900 dark:text-white" :title="vendor.name">{{ vendor.name }}</h3>
-                        <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ vendor.type }} • {{ vendor.status }}</p>
-                      </div>
-                    </div>
-                    <div class="flex flex-shrink-0 items-center gap-2">
-                      <span :class="getStatusClass(vendor.status)">
-                        {{ vendor.status }}
-                      </span>
-                      <button class="p-2 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-300" @click.stop="handleEdit(vendor)">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
-                        </svg>
-                      </button>
-                      <button class="p-2 text-red-400 transition-colors hover:text-red-600" @click.stop="confirmDelete(vendor)">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <div class="space-y-6">
+          <div class="module-panel module-panel-accent overflow-hidden p-6">
+            <div class="mb-6 flex items-center justify-between">
+              <h2 class="module-section-title">Vendor Partners</h2>
+              <button class="btn-primary" @click="showVendorModal = true">Add Vendor</button>
             </div>
-          </div>
-
-          <!-- Recent Activity - Always Visible -->
-          <div class="min-w-0 lg:col-span-1">
-            <div class="module-panel module-panel-accent flex flex-col overflow-hidden" style="max-height: 600px;">
-              <div class="mb-4 flex flex-shrink-0 items-center justify-between px-6 pt-6">
-                <h2 class="module-section-title !mb-0">Recent Activity</h2>
-                <button
-                  type="button"
-                  class="text-sm font-medium text-neon-blue hover:underline disabled:opacity-50"
-                  :disabled="activitiesLoading"
-                  @click="fetchActivities"
-                >
-                  Refresh
-                </button>
-              </div>
-              <div class="flex-1 overflow-y-auto px-6 pb-6 custom-scrollbar">
-                <div v-if="activitiesLoading && activities.length === 0" class="text-center text-gray-400 py-4">Loading...</div>
-                <div v-else-if="activitiesError && activities.length === 0" class="text-center py-4">
-                  <p class="text-red-400 text-sm">{{ activitiesError }}</p>
-                  <button type="button" class="mt-2 text-sm font-medium text-neon-blue hover:underline" @click="fetchActivities">
-                    Try again
-                  </button>
-                </div>
-                <div v-else-if="activities.length === 0" class="text-center text-gray-400 py-4">No recent activity.</div>
-                <div v-else class="space-y-4">
-                  <p v-if="activitiesError" class="text-xs text-amber-400">{{ activitiesError }}</p>
-                  <div v-for="activity in recentActivities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
-                    <div class="w-2 h-2 bg-neon-blue rounded-full mt-2 flex-shrink-0"></div>
+            <div v-if="error" class="mb-4 text-center text-red-500">{{ error }}</div>
+            <div v-if="loading" class="mb-4 text-center text-gray-400">Loading...</div>
+            <div v-if="!loading && vendorList.length === 0" class="mb-4 text-center text-gray-400">No vendors yet.</div>
+            <div v-else class="space-y-4">
+              <div
+                v-for="vendor in vendorList"
+                :key="vendor.id"
+                class="cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-4 transition-colors hover:bg-gray-100 dark:border-dark-600 dark:bg-dark-800 dark:hover:bg-dark-700"
+                @click="viewVendorPreview(vendor)"
+              >
+                <div class="flex min-w-0 items-center gap-3">
+                  <div class="flex min-w-0 flex-1 items-center gap-4">
+                    <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-neon-blue to-neon-purple">
+                      <span class="font-semibold text-white">{{ vendor.name?.charAt(0) || 'V' }}</span>
+                    </div>
                     <div class="min-w-0 flex-1">
-                      <p class="line-clamp-2 break-all text-sm text-gray-900 dark:text-white" :title="activity.action">{{ activity.action }}</p>
-                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ formatActivityDate(activity.timestamp) }}</p>
+                      <h3 class="truncate font-medium text-gray-900 dark:text-white" :title="vendor.name">{{ vendor.name }}</h3>
+                      <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ vendor.type }} • {{ vendor.status }}</p>
                     </div>
+                  </div>
+                  <div class="flex flex-shrink-0 items-center gap-2">
+                    <span :class="getStatusClass(vendor.status)">
+                      {{ vendor.status }}
+                    </span>
+                    <button class="p-2 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-300" @click.stop="handleEdit(vendor)">
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                      </svg>
+                    </button>
+                    <button class="p-2 text-red-400 transition-colors hover:text-red-600" @click.stop="confirmDelete(vendor)">
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="mt-8 page-enter">
           <VendorPerformancePanel />
         </div>
 
@@ -652,20 +613,9 @@ import LinkModal from '@/components/LinkModal.vue'
 import VendorPerformancePanel from '@/components/Vendors/VendorPerformancePanel.vue'
 import { onMounted, ref, computed } from 'vue'
 import { useVendorsStore } from '@/stores/vendors'
-import { useAuthStore } from '@/stores/auth'
 import { authenticatedFetch } from '@/utils/auth-requests'
-import { fetchActivity } from '@/api/product-surfaces'
 import type { Vendor } from '@/stores/vendors'
 import { statusBadgeClass } from '@/utils/status-badge'
-
-// Replace VendorActivity interface and activities ref with new structure
-interface Activity {
-  timestamp: string;
-  user: string;
-  action: string;
-  entity: string;
-  entity_id: number | string;
-}
 
 const vendorsStore = useVendorsStore()
 const loading = computed(() => vendorsStore.loading)
@@ -693,9 +643,6 @@ function showToast(message: string, isError = false) {
   }, 4000)
 }
 
-const activities = ref<Activity[]>([])
-const activitiesLoading = ref(false)
-const activitiesError = ref('')
 const showVendorModal = ref(false)
 const editingVendor = ref<Vendor | null>(null)
 const vendorForm = ref({ name: '', type: '', status: '' as '' | 'active' | 'pending' | 'inactive', linkedSpecs: [] as (string | number)[], linkedChecklists: [] as (string | number)[] })
@@ -717,7 +664,6 @@ const ackSpecId = ref('')
 const ackBusy = ref(false)
 
 const vendorList = computed(() => vendorsStore.vendors as Vendor[])
-const authStore = useAuthStore()
 
 const allSpecs = ref<any[]>([])
 const allChecklists = ref<any[]>([])
@@ -846,83 +792,12 @@ const closeModal = () => {
   showChecklistDropdown.value = false
 }
 
-// Limit for recent activities display
-const MAX_RECENT_ACTIVITIES = 15
-
-// Helper function to safely parse timestamp for sorting
-const parseTimestampForSort = (timestamp: string): number => {
-  if (!timestamp) return 0
-  try {
-    let cleanTimestamp = timestamp.trim()
-    // Remove trailing Z if it exists after timezone offset
-    if (cleanTimestamp.endsWith('Z') && (cleanTimestamp.includes('+') || cleanTimestamp.includes('-'))) {
-      cleanTimestamp = cleanTimestamp.slice(0, -1)
-    }
-    const date = new Date(cleanTimestamp)
-    if (isNaN(date.getTime())) {
-      // Fallback: try without timezone
-      const withoutTimezone = cleanTimestamp.split(/[+-]/)[0]
-      const utcDate = new Date(withoutTimezone + 'Z')
-      return isNaN(utcDate.getTime()) ? 0 : utcDate.getTime()
-    }
-    return date.getTime()
-  } catch {
-    return 0
-  }
-}
-
-// Computed property to show only recent activities
-const recentActivities = computed(() => {
-  // Sort by timestamp (newest first) and limit to MAX_RECENT_ACTIVITIES
-  return [...activities.value]
-    .sort((a, b) => {
-      const dateA = parseTimestampForSort(a.timestamp)
-      const dateB = parseTimestampForSort(b.timestamp)
-      return dateB - dateA // Descending order (newest first)
-    })
-    .slice(0, MAX_RECENT_ACTIVITIES)
-})
-
-// Fetch recent activity from API — soft-fail only (never logout / never block the page)
-const fetchActivities = async () => {
-  activitiesLoading.value = true
-  activitiesError.value = ''
-  try {
-    const rows = await fetchActivity({ limit: MAX_RECENT_ACTIVITIES })
-    const sortedActivities = [...rows]
-      .map((row) => ({
-        timestamp: String(row.timestamp || ''),
-        user: String(row.user || ''),
-        action: String(row.action || ''),
-        entity: String(row.entity || ''),
-        entity_id: row.entity_id ?? '',
-      }))
-      .sort((a, b) => {
-        const dateA = parseTimestampForSort(a.timestamp)
-        const dateB = parseTimestampForSort(b.timestamp)
-        return dateB - dateA
-      })
-      .slice(0, MAX_RECENT_ACTIVITIES)
-    activities.value = sortedActivities
-  } catch (e: any) {
-    // Do NOT logout here — a flaky activity feed was kicking the session and
-    // making Vendor performance appear then disappear on /vendors.
-    activitiesError.value = e?.message || 'Activity feed unavailable'
-  } finally {
-    activitiesLoading.value = false
-  }
-}
-
 onMounted(() => {
-  // Load shell data in parallel so a slow activity call cannot stall vendors/performance
   void vendorsStore.fetchVendors()
-  void fetchActivities()
-
-  const headers = authStore.token ? { Authorization: `Bearer ${authStore.token}` } : undefined
 
   void (async () => {
     try {
-      const specsRes = await authenticatedFetch('/api/v1/specifications', { headers })
+      const specsRes = await authenticatedFetch('/api/v1/specifications')
       if (specsRes.ok) {
         const specsData = await specsRes.json()
         allSpecs.value = Array.isArray(specsData) ? specsData : (specsData?.items ?? specsData?.data ?? [])
@@ -932,7 +807,7 @@ onMounted(() => {
     }
 
     try {
-      const checklistsRes = await authenticatedFetch('/api/v1/checklists/templates', { headers })
+      const checklistsRes = await authenticatedFetch('/api/v1/checklists/templates')
       if (checklistsRes.ok) {
         const checklistData = await checklistsRes.json()
         allChecklists.value = Array.isArray(checklistData)
@@ -948,54 +823,6 @@ onMounted(() => {
 })
 
 const getStatusClass = (status: string) => statusBadgeClass(status)
-
-// Format activity date safely - handles various timestamp formats from API
-const formatActivityDate = (timestamp: string) => {
-  if (!timestamp) return 'Unknown date'
-  
-  try {
-    let cleanTimestamp = timestamp.trim()
-    
-    // Handle malformed timestamps like "2026-01-06T16:25:27.499454+00:00Z" (has both offset and Z)
-    // Remove trailing Z if it exists after timezone offset
-    if (cleanTimestamp.endsWith('Z') && (cleanTimestamp.includes('+') || cleanTimestamp.includes('-'))) {
-      // Check if there's a timezone offset before the Z
-      const offsetMatch = cleanTimestamp.match(/[+-]\d{2}:\d{2}Z$/)
-      if (offsetMatch) {
-        cleanTimestamp = cleanTimestamp.slice(0, -1) // Remove the trailing Z
-      }
-    }
-    
-    // Try to parse the date
-    let date = new Date(cleanTimestamp)
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      // If parsing fails, try removing microseconds and timezone, then add Z for UTC
-      const withoutMicroseconds = cleanTimestamp.replace(/\.\d+/, '') // Remove microseconds
-      const withoutTimezone = withoutMicroseconds.split(/[+-]/)[0] // Remove timezone offset
-      
-      if (withoutTimezone) {
-        date = new Date(withoutTimezone + 'Z')
-        if (!isNaN(date.getTime())) {
-          return date.toLocaleString()
-        }
-      }
-      
-      // Last resort: try parsing as-is without any modifications
-      date = new Date(timestamp)
-      if (isNaN(date.getTime())) {
-        console.warn('Unable to parse timestamp:', timestamp)
-        return 'Invalid date'
-      }
-    }
-    
-    return date.toLocaleString()
-  } catch (error) {
-    console.error('Error formatting date:', timestamp, error)
-    return 'Invalid date'
-  }
-}
 
 // Validate form before submission
 const validateForm = () => {
@@ -1020,16 +847,12 @@ const validateForm = () => {
   return isValid
 }
 
-// Call fetchActivities after vendor CRUD
 const handleSubmit = async (e?: Event) => {
-  // Prevent default form submission
   if (e) {
     e.preventDefault()
   }
-  
-  // Validate form
+
   if (!validateForm()) {
-    // Scroll to first error field
     const firstErrorField = document.querySelector('.border-red-500')
     if (firstErrorField) {
       firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -1044,22 +867,18 @@ const handleSubmit = async (e?: Event) => {
     } else {
       await vendorsStore.createVendor(vendorForm.value)
     }
-    
-    // Only close if successful
+
     if (!vendorsStore.error) {
       const updatedVendorId = editingVendor.value?.id
       closeModal()
       vendorForm.value = { name: '', type: '', status: '', linkedSpecs: [], linkedChecklists: [] }
       editingVendor.value = null
-      // Refresh preview if it's open and showing the updated vendor
       if (selectedVendorPreview.value && updatedVendorId === selectedVendorPreview.value.id) {
-        // Refresh the preview with updated data
         const updatedVendor = vendorsStore.vendors.find(v => v.id === updatedVendorId)
         if (updatedVendor) {
           await viewVendorPreview(updatedVendor)
         }
       }
-      await fetchActivities()
     }
   } catch (error: any) {
     console.error('Error submitting vendor form:', error)
@@ -1136,7 +955,6 @@ async function deleteVendor() {
       closeVendorPreview()
     }
     vendorToDelete.value = null
-    await fetchActivities()
   } catch (e: any) {
     deleteError.value = e.message || 'Failed to delete vendor'
   } finally {

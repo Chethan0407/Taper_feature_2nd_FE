@@ -424,24 +424,35 @@ export async function authenticatedFetch(
                                errorDetail.toLowerCase().includes('not authenticated') ||
                                errorDetail.toLowerCase().includes('authentication required')
         
-        // For data endpoints, let components handle errors gracefully (don't auto-redirect)
-        // This prevents auto-logout when clicking on pages like Checklists
-        const isDataEndpoint = cleanUrl.includes('/specifications') || 
-                               cleanUrl.includes('/specs/') ||
-                               cleanUrl.includes('/lint-results') ||
-                               cleanUrl.includes('/projects/') ||
-                               cleanUrl.includes('/checklists')
+        // Soft-fail page data 401s — never auto-logout from vendors/activity/etc.
+        // Hard session clears belong only to explicit /auth/me (and similar) checks.
+        const isDataEndpoint =
+          cleanUrl.includes('/specifications') ||
+          cleanUrl.includes('/specs/') ||
+          cleanUrl.includes('/lint-results') ||
+          cleanUrl.includes('/projects') ||
+          cleanUrl.includes('/checklists') ||
+          cleanUrl.includes('/vendors') ||
+          cleanUrl.includes('/activity') ||
+          cleanUrl.includes('/dashboard') ||
+          cleanUrl.includes('/notifications') ||
+          cleanUrl.includes('/companies') ||
+          cleanUrl.includes('/settings')
+
+        const isSessionProbe =
+          cleanUrl.includes('/auth/me') ||
+          cleanUrl.endsWith('/me') ||
+          cleanUrl.includes('/users/user/profile')
         
-        if (isDataEndpoint) {
-          // For data endpoints, just log but don't redirect or clear tokens
-          // Components should handle these errors gracefully
-          console.warn('⚠️ 401 error on data endpoint - not redirecting, not clearing tokens, letting component handle:', cleanUrl, errorDetail)
+        if (isDataEndpoint || !isSessionProbe) {
+          // For data endpoints (and anything that is not a session probe), do not redirect
+          console.warn('⚠️ 401 on API call — not auto-logging out:', cleanUrl, errorDetail)
           return response
         }
         
-        // For all other 401 errors (auth endpoints, etc.), handle globally
+        // Session probe failed with invalid token — clear and redirect
         if (isTokenInvalid) {
-          console.warn('⚠️ 401 Unauthorized - Token invalid or expired. Clearing tokens and redirecting to login.')
+          console.warn('⚠️ 401 Unauthorized on session probe. Clearing tokens and redirecting to login.')
           
           // Clear all possible token keys from localStorage
           const tokenKeys = ['tapeout_token', 'token', 'authToken', 'access_token']
