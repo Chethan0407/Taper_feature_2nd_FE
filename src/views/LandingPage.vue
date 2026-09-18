@@ -409,6 +409,14 @@
           <p class="text-xl text-gray-400 max-w-3xl mx-auto">
             {{ integrationsNote || 'Inbound connectors are live. Bidirectional sync is roadmap. Layout EDA stays out of scope.' }}
           </p>
+          <div
+            v-if="mcpAgentLive"
+            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200"
+            data-testid="landing-mcp-badge"
+          >
+            <span class="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+            Cursor / Claude MCP — live (API key)
+          </div>
         </div>
 
         <div v-if="integrationsError" class="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
@@ -722,7 +730,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { reportLandingVisit } from '@/utils/clientTelemetry'
@@ -739,6 +747,14 @@ const integrationsOutOfScope = ref<IntegrationItem[]>([])
 const integrationsNote = ref('')
 const integrationsError = ref('')
 const capabilityClaims = ref<CapabilityClaim[]>([])
+
+const mcpAgentLive = computed(() =>
+  capabilityClaims.value.some((c) => {
+    const claim = (c.claim || '').toLowerCase()
+    const status = (c.status || '').toLowerCase()
+    return status === 'live' && claim.includes('mcp') && (claim.includes('cursor') || claim.includes('claude'))
+  }),
+)
 
 function claimTone(status: string) {
   const s = (status || '').toLowerCase()

@@ -8,9 +8,11 @@
       <div>
         <h2 class="module-section-title text-lg">Integrations</h2>
         <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-          Inbound connectors for Jira / GitLab / GitHub / Jenkins are live. Bidirectional sync remains roadmap.
+          Cursor / Claude MCP (API keys), plus inbound Jira / GitLab / GitHub / Jenkins. Bidirectional sync remains roadmap.
         </p>
       </div>
+
+      <SettingsAgentAccessPanel />
 
       <div class="rounded-xl border border-slate-200 p-4 dark:border-dark-600">
         <h3 class="text-sm font-semibold text-slate-800 dark:text-gray-100">Create inbound connector</h3>
@@ -118,6 +120,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import SettingsAgentAccessPanel from '@/components/Settings/SettingsAgentAccessPanel.vue'
 import {
   createIntegrationConnector,
   listIntegrationConnectors,

@@ -136,6 +136,11 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           { claim: 'Bidirectional issue sync', status: 'roadmap' },
           { claim: 'Calibre / GDSII layout mutation', status: 'out_of_scope' },
           { claim: 'TLS 1.3 + AES-256', status: 'ops' },
+          {
+            claim: 'Cursor / Claude MCP agent access',
+            status: 'live',
+            api: ['GET /api/v1/public/agent-access', 'mcp-tapeoutops/server.py'],
+          },
         ],
       })
     }
@@ -155,6 +160,28 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           { name: 'Calibre / GDSII layout mutation', kind: 'eda', notes: 'TapeOutOps does not mutate layout databases' },
         ],
         note: 'Inbound connectors are live. Bidirectional sync is roadmap. Layout EDA stays out of scope.',
+      })
+    }
+
+    if (path.includes('/public/agent-access') && method === 'GET') {
+      return json(route, {
+        product: 'TapeOutOps',
+        auth: {
+          headers: [
+            'X-API-Key: <api_key>',
+            'Authorization: Bearer <api_key>',
+            'Authorization: Bearer <jwt>',
+          ],
+          create_key: 'POST /api/v1/settings/api-keys/ (logged-in user)',
+          openapi: '/api/v1/openapi.json',
+        },
+        mcp: {
+          path: 'mcp-tapeoutops/server.py',
+          env: ['TAPEOUTOPS_API_URL', 'TAPEOUTOPS_API_KEY'],
+          docs: 'mcp-tapeoutops/README.md',
+        },
+        notes:
+          'API keys inherit the creating user\'s RBAC. Use a dedicated least-privilege user for agents when possible.',
       })
     }
 

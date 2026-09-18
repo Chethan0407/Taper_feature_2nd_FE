@@ -14,6 +14,8 @@ test.describe('Landing honesty from public APIs @smoke', () => {
     await expect(page.getByText(/^Jira$/i).first()).toBeVisible()
     await expect(page.getByText(/Bidirectional Jira sync/i).first()).toBeVisible()
     await expect(page.getByText(/Calibre \/ GDSII layout mutation/i).first()).toBeVisible()
+    await expect(page.getByTestId('landing-mcp-badge')).toBeVisible()
+    await expect(page.getByText(/Cursor \/ Claude MCP — live \(API key\)/i)).toBeVisible()
     await expect(page.getByText(/SOC 2 certified/i)).toHaveCount(0)
   })
 
@@ -67,6 +69,10 @@ test.describe('Product surfaces from live APIs @authenticated @smoke', () => {
     void authenticated
     await page.goto('/settings?section=integrations')
     await expect(page.getByTestId('settings-integrations')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByTestId('settings-agent-access')).toBeVisible()
+    await expect(page.getByText(/Connect Cursor or Claude/i)).toBeVisible()
+    await expect(page.getByText(/X-API-Key/i).first()).toBeVisible()
+    await expect(page.getByText(/least-privilege/i)).toBeVisible()
     await expect(page.getByText(/Prod Jira inbound/i)).toBeVisible()
     await expect(page.getByText(/issue_updated/i)).toBeVisible()
     await page.getByRole('button', { name: /create connector/i }).click()
