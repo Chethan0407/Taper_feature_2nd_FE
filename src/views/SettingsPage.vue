@@ -11,6 +11,29 @@
           <p class="page-subtitle">Manage your account and organization settings</p>
         </div>
 
+        <nav
+          class="mb-8 flex flex-wrap gap-1 border-b border-slate-200 dark:border-dark-700"
+          data-testid="settings-tabs"
+          aria-label="Settings sections"
+        >
+          <button
+            v-for="tab in visibleTabs"
+            :key="tab.id"
+            type="button"
+            class="border-b-2 px-4 py-2.5 text-sm font-semibold transition"
+            :class="activeTab === tab.id
+              ? 'border-neon-blue text-neon-blue'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200'"
+            :data-testid="`settings-tab-${tab.id}`"
+            :aria-current="activeTab === tab.id ? 'page' : undefined"
+            @click="selectTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
+
+        <!-- Account: profile, API keys, notifications -->
+        <div v-show="activeTab === 'account'" class="page-enter">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <!-- 1. User Profile -->
           <section
@@ -234,8 +257,13 @@
               </button>
             </div>
           </section>
+        </div>
+        </div>
 
-          <!-- 4. Branding & Organization -->
+        <!-- Organization: branding -->
+        <div v-show="activeTab === 'organization'" class="page-enter">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <!-- Branding & Organization -->
           <section
             ref="brandingSectionRef"
             id="branding"
@@ -309,17 +337,22 @@
             </div>
           </section>
         </div>
+        </div>
 
-        <div class="mt-6 page-enter">
+        <div v-show="activeTab === 'security'" class="page-enter">
           <SettingsSecurityPanel />
         </div>
 
-        <div class="mt-6 page-enter">
+        <div v-show="activeTab === 'integrations'" class="page-enter">
           <SettingsIntegrationsPanel />
         </div>
 
         <!-- Admin / superuser data transfer (header: Settings → Data) -->
-        <div ref="dataSectionRef" class="mt-6 page-enter">
+        <div
+          v-show="activeTab === 'data'"
+          ref="dataSectionRef"
+          class="page-enter"
+        >
           <SettingsDataTransfer />
         </div>
       </main>
@@ -471,6 +504,52 @@ const brandingStore = useBrandingStore()
 const router = useRouter()
 const route = useRoute()
 
+type SettingsTab = 'account' | 'organization' | 'security' | 'integrations' | 'data'
+
+const SETTINGS_TABS: Array<{ id: SettingsTab; label: string; adminOnly?: boolean }> = [
+  { id: 'account', label: 'Account' },
+  { id: 'organization', label: 'Organization' },
+  { id: 'security', label: 'Security' },
+  { id: 'integrations', label: 'Integrations' },
+  { id: 'data', label: 'Data', adminOnly: true },
+]
+
+const SECTION_TO_TAB: Record<string, SettingsTab> = {
+  account: 'account',
+  profile: 'account',
+  appearance: 'account',
+  notifications: 'account',
+  apikeys: 'account',
+  'api-keys': 'account',
+  organization: 'organization',
+  branding: 'organization',
+  security: 'security',
+  integrations: 'integrations',
+  connectors: 'integrations',
+  data: 'data',
+  'data-transfer': 'data',
+}
+
+const activeTab = ref<SettingsTab>('account')
+
+const visibleTabs = computed(() =>
+  SETTINGS_TABS.filter((t) => !t.adminOnly || authStore.canManageDataTransfer),
+)
+
+function selectTab(tab: SettingsTab) {
+  activeTab.value = tab
+  const current = typeof route.query.section === 'string' ? route.query.section : ''
+  // Keep deep-links stable: prefer canonical tab id in the URL
+  if (SECTION_TO_TAB[current] !== tab) {
+    router.replace({ query: { ...route.query, section: tab } })
+  }
+}
+
+function resolveTabFromSection(section?: string | null): SettingsTab {
+  if (!section) return 'account'
+  return SECTION_TO_TAB[section] || 'account'
+}
+
 // Refs for section scrolling
 const profileSectionRef = ref<HTMLElement | null>(null)
 const notificationsSectionRef = ref<HTMLElement | null>(null)
@@ -545,12 +624,14 @@ const brandingSuccess = ref(false)
 const logoFile = ref<File | null>(null)
 const logoUploading = ref(false)
 
-// Scroll to section based on query parameter
+// Switch tab (and optionally scroll) based on query parameter
 const scrollToSection = async (section: string) => {
+  const tab = resolveTabFromSection(section)
+  activeTab.value = tab
   await nextTick()
+
   const sectionMap: Record<string, HTMLElement | null> = {
     profile: profileSectionRef.value,
-    // Legacy ?section=appearance links land on profile (theme is dark-only now)
     appearance: profileSectionRef.value,
     notifications: notificationsSectionRef.value,
     branding: brandingSectionRef.value,
@@ -561,9 +642,8 @@ const scrollToSection = async (section: string) => {
   const element =
     sectionMap[section] ||
     (typeof document !== 'undefined' ? document.getElementById(section) : null)
-  if (element) {
+  if (element && (section === 'profile' || section === 'notifications' || section === 'branding' || section === 'appearance')) {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    // Highlight the section briefly
     element.classList.add('ring-2', 'ring-neon-blue', 'ring-opacity-50')
     setTimeout(() => {
       element.classList.remove('ring-2', 'ring-neon-blue', 'ring-opacity-50')

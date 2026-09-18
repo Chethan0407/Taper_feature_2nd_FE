@@ -65,7 +65,7 @@ test.describe('Product surfaces from live APIs @authenticated @smoke', () => {
 
   test('settings integrations connectors', { tag: [Tags.smoke] }, async ({ authenticated, page }) => {
     void authenticated
-    await page.goto('/settings')
+    await page.goto('/settings?section=integrations')
     await expect(page.getByTestId('settings-integrations')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/Prod Jira inbound/i)).toBeVisible()
     await expect(page.getByText(/issue_updated/i)).toBeVisible()
