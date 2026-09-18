@@ -526,6 +526,9 @@ const SECTION_TO_TAB: Record<string, SettingsTab> = {
   security: 'security',
   integrations: 'integrations',
   connectors: 'integrations',
+  developers: 'integrations',
+  agents: 'integrations',
+  mcp: 'integrations',
   data: 'data',
   'data-transfer': 'data',
 }

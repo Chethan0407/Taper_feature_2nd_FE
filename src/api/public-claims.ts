@@ -6,6 +6,7 @@ export interface CapabilityClaim {
   claim: string
   status: ClaimStatus | string
   api?: string[]
+  notes?: string
 }
 
 export interface PublicCapabilities {
@@ -28,6 +29,22 @@ export interface PublicIntegrations {
   note?: string
 }
 
+/** GET /api/v1/public/agent-access — Cursor / Claude MCP discovery */
+export interface PublicAgentAccess {
+  product?: string
+  auth: {
+    headers: string[]
+    create_key?: string
+    openapi?: string
+  }
+  mcp: {
+    path: string
+    env: string[]
+    docs?: string
+  }
+  notes?: string
+}
+
 async function readError(res: Response): Promise<string> {
   const text = await res.text().catch(() => '')
   try {
@@ -46,6 +63,12 @@ export async function fetchPublicCapabilities(): Promise<PublicCapabilities> {
 
 export async function fetchPublicIntegrations(): Promise<PublicIntegrations> {
   const res = await fetch(resolveApiUrl('/api/v1/public/integrations'))
+  if (!res.ok) throw new Error(await readError(res))
+  return res.json()
+}
+
+export async function fetchPublicAgentAccess(): Promise<PublicAgentAccess> {
+  const res = await fetch(resolveApiUrl('/api/v1/public/agent-access'))
   if (!res.ok) throw new Error(await readError(res))
   return res.json()
 }
