@@ -300,6 +300,32 @@ export async function seedFeatureData(page: Page) {
       if (path.includes('/gaps')) {
         return fulfillJson(route, { gaps: [{ id: 1, title: 'PDK incomplete', message: 'Confirm PDK version.' }] })
       }
+      if (path.includes('/signoff-matrix')) {
+        return fulfillJson(route, {
+          project_id: 101,
+          count: 2,
+          gates: [
+            {
+              gate_id: 'g-drc',
+              gate: 'DRC',
+              owner: 'PD owner',
+              status: 'Pending',
+              status_raw: 'pending',
+              approved_by: null,
+              when: null,
+            },
+            {
+              gate_id: 'g-lvs',
+              gate: 'LVS',
+              owner: 'PD owner',
+              status: 'Pass',
+              status_raw: 'pass',
+              approved_by: 'e2e@tapeoutops.com',
+              when: '2026-09-17T10:00:00Z',
+            },
+          ],
+        })
+      }
       if (path.includes('/signoff-gates')) {
         return fulfillJson(route, [
           { id: 'g-drc', gate_type: 'DRC', status: 'pending' },

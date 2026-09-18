@@ -13,6 +13,7 @@ test.describe('App navigation & logout @authenticated', () => {
       { label: /^Checklists$/i, url: /\/checklists/ },
       { label: /^SpecLint$/i, url: /\/speclint/ },
       { label: /^Vendors$/i, url: /\/vendors/ },
+      { label: /^Activity$/i, url: /\/activity/ },
       { label: /^Companies$/i, url: /\/companies/ },
       { label: /^Settings$/i, url: /\/settings(?!\/)/ },
     ]

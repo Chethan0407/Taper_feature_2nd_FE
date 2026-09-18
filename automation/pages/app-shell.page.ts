@@ -10,8 +10,8 @@ export class SidebarComponent {
   }
 
   navLink(name: string | RegExp): Locator {
-    // includeHidden: System Usage sits below the fold in the scrollable nav after Stats was added
-    return this.page.locator('nav').getByRole('link', { name, includeHidden: true }).first()
+    // Sidebar uses <button> items (not <a>); includeHidden for scrollable overflow
+    return this.page.locator('nav').getByRole('button', { name, includeHidden: true }).first()
   }
 
   logoutButton(): Locator {

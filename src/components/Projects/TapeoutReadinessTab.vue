@@ -117,6 +117,65 @@
         </div>
       </section>
 
+      <!-- Sign-off matrix (GET /projects/{id}/signoff-matrix) -->
+      <section data-testid="signoff-matrix" class="settings-card">
+        <div class="settings-card-body">
+          <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Sign-off matrix</h3>
+              <p class="text-sm text-slate-500 dark:text-gray-400">
+                DRC / LVS / packaging / foundry gates from the live matrix API. Approve records an audit trail — does not run Calibre.
+              </p>
+            </div>
+            <button type="button" class="text-sm font-medium text-neon-blue hover:underline" @click="loadMatrix">
+              Refresh
+            </button>
+          </div>
+          <p v-if="matrixError" class="mb-3 text-sm text-amber-400">{{ matrixError }}</p>
+          <div v-if="matrixLoading" class="py-6 text-center text-sm text-slate-500">Loading matrix…</div>
+          <div v-else-if="!matrixRows.length" class="rounded-xl border border-dashed border-slate-300 py-8 text-center text-sm text-slate-500 dark:border-dark-600">
+            No matrix rows yet.
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead class="text-xs uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th class="py-2 pr-3">Gate</th>
+                  <th class="py-2 pr-3">Owner</th>
+                  <th class="py-2 pr-3">Status</th>
+                  <th class="py-2 pr-3">Approved by</th>
+                  <th class="py-2 pr-3">When</th>
+                  <th class="py-2">Action</th>
+                </tr>
+              </thead>
+              <tbody class="text-slate-700 dark:text-gray-300">
+                <tr
+                  v-for="row in matrixRows"
+                  :key="String(row.gate_id)"
+                  class="border-t border-slate-100 dark:border-dark-700"
+                >
+                  <td class="py-2 pr-3 font-medium">{{ row.gate }}</td>
+                  <td class="py-2 pr-3">{{ row.owner || '—' }}</td>
+                  <td class="py-2 pr-3">{{ row.status }}</td>
+                  <td class="py-2 pr-3">{{ row.approved_by || '—' }}</td>
+                  <td class="py-2 pr-3">{{ row.when || '—' }}</td>
+                  <td class="py-2">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300 disabled:opacity-50"
+                      :disabled="matrixBusyId === row.gate_id || String(row.status_raw || '').toLowerCase() === 'pass'"
+                      @click="approveMatrixGate(row)"
+                    >
+                      Approve
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- Gate cards -->
       <section data-testid="readiness-gates">
         <div class="mb-4 flex items-end justify-between gap-3">
@@ -217,6 +276,11 @@ import {
   type SignoffGate,
   type ReadinessBlocker,
 } from '@/utils/readiness-api'
+import {
+  fetchSignoffMatrix,
+  approveSignoffGate,
+  type SignoffMatrixRow,
+} from '@/api/product-surfaces'
 
 const props = defineProps<{
   projectId: string | number
@@ -237,6 +301,11 @@ const freezeBusy = ref(false)
 const gateBusyId = ref<string | number | null>(null)
 const actionMessage = ref('')
 const actionIsError = ref(false)
+
+const matrixRows = ref<SignoffMatrixRow[]>([])
+const matrixLoading = ref(false)
+const matrixError = ref('')
+const matrixBusyId = ref<string | number | null>(null)
 
 const isFrozen = computed(() => Boolean(readiness.value?.is_design_frozen))
 
@@ -311,11 +380,38 @@ async function loadGates() {
   }
 }
 
+async function loadMatrix() {
+  matrixLoading.value = true
+  matrixError.value = ''
+  try {
+    const data = await fetchSignoffMatrix(props.projectId)
+    matrixRows.value = Array.isArray(data.gates) ? data.gates : []
+  } catch (e: any) {
+    matrixError.value = e?.message || 'Failed to load sign-off matrix'
+    matrixRows.value = []
+  } finally {
+    matrixLoading.value = false
+  }
+}
+
+async function approveMatrixGate(row: SignoffMatrixRow) {
+  matrixBusyId.value = row.gate_id
+  try {
+    await approveSignoffGate(props.projectId, row.gate_id)
+    flash(`${row.gate} approved`)
+    await Promise.all([loadMatrix(), loadGates(), loadReadiness()])
+  } catch (e: any) {
+    flash(e?.message || 'Approve failed', true)
+  } finally {
+    matrixBusyId.value = null
+  }
+}
+
 async function reload() {
   loading.value = true
   fatalError.value = ''
   try {
-    await Promise.all([loadReadiness(), loadGaps(), loadGates()])
+    await Promise.all([loadReadiness(), loadGaps(), loadGates(), loadMatrix()])
   } catch (e: any) {
     fatalError.value = e?.message || 'Failed to load readiness board'
   } finally {

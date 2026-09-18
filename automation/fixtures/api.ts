@@ -123,6 +123,41 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
       return json(route, { ok: true, id: 1 }, 201)
     }
 
+    if (path.includes('/public/demo-request') && method === 'POST') {
+      return json(route, { ok: true, id: 1 }, 201)
+    }
+
+    if (path.includes('/public/capabilities') && method === 'GET') {
+      return json(route, {
+        product: 'TapeOutOps',
+        updated_at: '2026-09-18T20:00:00Z',
+        capabilities: [
+          { claim: 'Inbound Jira / GitLab / GitHub / Jenkins webhooks', status: 'live' },
+          { claim: 'Bidirectional issue sync', status: 'roadmap' },
+          { claim: 'Calibre / GDSII layout mutation', status: 'out_of_scope' },
+          { claim: 'TLS 1.3 + AES-256', status: 'ops' },
+        ],
+      })
+    }
+
+    if (path.includes('/public/integrations') && method === 'GET') {
+      return json(route, {
+        live: [
+          { name: 'Jira', kind: 'inbound', notes: 'Inbound webhook only' },
+          { name: 'GitLab', kind: 'inbound', notes: 'Inbound webhook only' },
+          { name: 'GitHub', kind: 'inbound', notes: 'Inbound webhook only' },
+          { name: 'Jenkins', kind: 'inbound', notes: 'CI hook + X-TapeOutOps-Secret' },
+        ],
+        roadmap: [
+          { name: 'Bidirectional Jira sync', kind: 'sync', notes: 'Not live' },
+        ],
+        out_of_scope: [
+          { name: 'Calibre / GDSII layout mutation', kind: 'eda', notes: 'TapeOutOps does not mutate layout databases' },
+        ],
+        note: 'Inbound connectors are live. Bidirectional sync is roadmap. Layout EDA stays out of scope.',
+      })
+    }
+
     if (path.includes('/public/security') && method === 'GET') {
       return json(route, {
         product: 'TapeOutOps',
@@ -228,6 +263,91 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
         message: 'Account deactivated.',
         deleted_at: '2026-09-18T20:00:00Z',
       }, 202)
+    }
+
+    if (path.includes('/vendors/performance') && method === 'GET') {
+      return json(route, {
+        count: 2,
+        note: 'SLA hours are advisory from recent acknowledgements.',
+        vendors: [
+          {
+            vendor_id: 1,
+            name: 'E2E Foundry Co',
+            type: 'foundry',
+            status: 'active',
+            linked_specifications: 3,
+            acknowledgements: 2,
+            last_activity_at: '2026-09-18T12:00:00Z',
+            response_sla_hours: 48,
+            sla_breached: false,
+            staging: 'secure_upload',
+          },
+          {
+            vendor_id: 2,
+            name: 'IP Partner LLC',
+            type: 'ip',
+            status: 'active',
+            linked_specifications: 1,
+            acknowledgements: 0,
+            last_activity_at: null,
+            response_sla_hours: 24,
+            sla_breached: true,
+            staging: 'pending',
+          },
+        ],
+      })
+    }
+
+    if (path.includes('/integrations/connectors') && method === 'GET') {
+      return json(route, [
+        {
+          id: 10,
+          company_id: 1,
+          provider: 'jira',
+          name: 'Prod Jira inbound',
+          is_active: true,
+          created_by: user.email,
+          created_at: '2026-09-18T10:00:00Z',
+          inbound_path: '/api/v1/integrations/webhooks/jira/inbound',
+          secret_hint: '••••ab12',
+        },
+      ])
+    }
+
+    if (path.includes('/integrations/connectors') && method === 'POST') {
+      let body: { provider?: string; company_id?: number; name?: string; secret?: string } = {}
+      try {
+        body = req.postDataJSON() as typeof body
+      } catch {
+        /* ignore */
+      }
+      return json(route, {
+        id: 99,
+        company_id: body.company_id || 1,
+        provider: body.provider || 'jira',
+        name: body.name || null,
+        is_active: true,
+        created_by: user.email,
+        created_at: '2026-09-18T20:00:00Z',
+        inbound_path: `/api/v1/integrations/webhooks/${body.provider || 'jira'}/inbound`,
+        secret_hint: '••••e2e1',
+        secret: body.secret || 'e2e-generated-secret',
+      }, 201)
+    }
+
+    if (path.includes('/integrations/events') && method === 'GET') {
+      return json(route, [
+        {
+          id: 1,
+          connector_id: 10,
+          company_id: 1,
+          provider: 'jira',
+          event_type: 'issue_updated',
+          external_id: 'PROJ-1',
+          status: 'accepted',
+          created_at: '2026-09-18T11:00:00Z',
+        },
+      ])
     }
 
     if (path.includes('/auth/signup') && method === 'POST') {
@@ -466,6 +586,33 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           ],
         })
       }
+      if (path.includes('/signoff-matrix')) {
+        return json(route, {
+          project_id: 101,
+          count: 2,
+          gates: [
+            {
+              gate_id: 'g-drc',
+              gate: 'DRC',
+              owner: 'PD owner',
+              status: 'Pending',
+              status_raw: 'pending',
+              approved_by: null,
+              when: null,
+            },
+            {
+              gate_id: 'g-lvs',
+              gate: 'LVS',
+              owner: 'PD owner',
+              status: 'Pass',
+              status_raw: 'pass',
+              approved_by: 'e2e@tapeoutops.com',
+              when: '2026-09-17T10:00:00Z',
+            },
+          ],
+          default_gate_types: ['DRC', 'LVS', 'STA', 'IR_EM', 'DFT'],
+        })
+      }
       if (path.includes('/signoff-gates')) {
         return json(route, [
           { id: 'g-drc', gate_type: 'DRC', status: 'pending' },
@@ -473,6 +620,28 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
           { id: 'g-sta', gate_type: 'STA', status: 'pending' },
           { id: 'g-irem', gate_type: 'IR_EM', status: 'pending' },
           { id: 'g-dft', gate_type: 'DFT', status: 'pending' },
+        ])
+      }
+      if (path.includes('/activity')) {
+        return json(route, [
+          {
+            id: 1,
+            timestamp: '2026-09-18T12:00:00Z',
+            user: user.email,
+            action: 'vendor.acknowledged',
+            entity: 'vendor',
+            entity_id: 1,
+            details: { note: 'E2E ack' },
+          },
+          {
+            id: 2,
+            timestamp: '2026-09-18T11:00:00Z',
+            user: user.email,
+            action: 'signoff.approved',
+            entity: 'project',
+            entity_id: 101,
+            details: { gate: 'LVS' },
+          },
         ])
       }
       if (path.includes('/waivers')) {
@@ -596,6 +765,9 @@ export async function mockApi(page: Page, user: MockUser = TEST_USER) {
         return json(route, { message: 'ok', id: 'new-1', status: 'pending' })
       }
       if (path.includes('/signoff-gates') && (method === 'PATCH' || method === 'POST')) {
+        if (path.includes('/approve')) {
+          return json(route, { ok: true, status: 'pass', approved_by: user.email })
+        }
         return json(route, { id: 'g-drc', gate_type: 'DRC', status: 'pass', tool_name: 'Calibre' })
       }
       if (path.includes('/settings/branding') && method === 'PUT') {

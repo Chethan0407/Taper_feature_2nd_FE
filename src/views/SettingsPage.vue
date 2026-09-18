@@ -314,6 +314,10 @@
           <SettingsSecurityPanel />
         </div>
 
+        <div class="mt-6 page-enter">
+          <SettingsIntegrationsPanel />
+        </div>
+
         <!-- Admin / superuser data transfer (header: Settings → Data) -->
         <div ref="dataSectionRef" class="mt-6 page-enter">
           <SettingsDataTransfer />
@@ -454,6 +458,7 @@ import Sidebar from '@/components/Layout/Sidebar.vue'
 import Header from '@/components/Layout/Header.vue'
 import SettingsDataTransfer from '@/components/Common/SettingsDataTransfer.vue'
 import SettingsSecurityPanel from '@/components/Settings/SettingsSecurityPanel.vue'
+import SettingsIntegrationsPanel from '@/components/Settings/SettingsIntegrationsPanel.vue'
 import { onMounted, onActivated, onUnmounted, ref, computed, watch, nextTick } from 'vue'
 import { apiClient, parseApiError } from '@/utils/api-client'
 import { useAuthStore } from '@/stores/auth'

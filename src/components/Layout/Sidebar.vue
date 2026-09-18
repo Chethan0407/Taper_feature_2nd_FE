@@ -122,6 +122,7 @@ import {
   Building2,
   BarChart3,
   Activity,
+  History,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -143,6 +144,7 @@ const mainNavItems = [
   { name: 'Checklists', path: '/checklists', icon: CheckSquare },
   { name: 'SpecLint', path: '/speclint/console', icon: Search },
   { name: 'Vendors', path: '/vendors', icon: Users },
+  { name: 'Activity', path: '/activity', icon: History },
   { name: 'Companies', path: '/companies', icon: Building2 },
   { name: 'Settings', path: '/settings', icon: Settings },
 ]

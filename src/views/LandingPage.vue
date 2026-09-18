@@ -401,63 +401,93 @@
       </div>
     </section>
 
-    <!-- Integrations -->
+    <!-- Integrations — honesty from GET /public/integrations -->
     <section id="integrations" class="py-20 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Fits how teams already work</h2>
           <p class="text-xl text-gray-400 max-w-3xl mx-auto">
-            Operational connectors for sign-off automation—plus a clear boundary with EDA and foundry layout tools
+            {{ integrationsNote || 'Inbound connectors are live. Bidirectional sync is roadmap. Layout EDA stays out of scope.' }}
           </p>
         </div>
 
-        <!-- Tier 1: Live / operational connectors -->
-        <div class="mb-12">
-          <h3 class="text-xl font-semibold text-white mb-2">Live connectors — operational data</h3>
-          <p class="text-gray-400 text-sm mb-6 max-w-3xl">
-            Automate sign-off updates natively via your existing CI/CD pipelines and ticketing systems.
-          </p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass-effect rounded-2xl p-8 border border-dark-700">
-              <h4 class="text-lg font-semibold text-white mb-4">Version control &amp; ticketing</h4>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="name in ['Jira', 'GitLab', 'GitHub']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
-              </div>
-              <p class="text-xs text-gray-500 mt-4">Roadmap: sync gates ↔ issues and MR/PR status</p>
+        <div v-if="integrationsError" class="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+          {{ integrationsError }}
+        </div>
+
+        <div class="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div class="glass-effect rounded-2xl border border-dark-700 p-8">
+            <div class="mb-4 flex items-center gap-2">
+              <h3 class="text-xl font-semibold text-white">Live — inbound only</h3>
+              <span class="rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">Live</span>
             </div>
-            <div class="glass-effect rounded-2xl p-8 border border-dark-700">
-              <h4 class="text-lg font-semibold text-white mb-4">CI/CD &amp; EDA scripting hooks</h4>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="name in ['Python', 'TCL', 'Jenkins']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
-              </div>
-              <p class="text-xs text-gray-500 mt-4">Roadmap: webhook / CLI hooks from regression farms</p>
-            </div>
+            <p class="mb-4 text-sm text-gray-400">
+              Jira / GitLab / GitHub / Jenkins receive events. We do not push back yet.
+            </p>
+            <ul class="space-y-3">
+              <li
+                v-for="item in integrationsLive"
+                :key="item.name"
+                class="rounded-lg border border-dark-600 bg-dark-900/50 px-4 py-3"
+              >
+                <p class="font-medium text-white">{{ item.name }}</p>
+                <p v-if="item.notes" class="mt-1 text-xs text-gray-500">{{ item.notes }}</p>
+                <p v-if="item.api" class="mt-1 font-mono text-[11px] text-gray-600">{{ item.api }}</p>
+              </li>
+            </ul>
           </div>
-          <div class="mt-6 glass-effect rounded-2xl p-6 border border-dark-700">
-            <h4 class="text-sm font-semibold text-white mb-3">Cloud &amp; on-prem artifact refs</h4>
-            <div class="flex flex-wrap gap-2">
-              <span v-for="name in ['Perforce', 'AWS', 'Azure']" :key="'store-' + name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
+
+          <div class="glass-effect rounded-2xl border border-dark-700 p-8">
+            <div class="mb-4 flex items-center gap-2">
+              <h3 class="text-xl font-semibold text-white">Roadmap</h3>
+              <span class="rounded-md border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-violet-300">Roadmap</span>
             </div>
-            <p class="text-xs text-gray-500 mt-3">Depot-aware references without forcing layout data out of your VPC</p>
+            <p class="mb-4 text-sm text-gray-400">Bidirectional sync and additional depot refs — not live.</p>
+            <ul class="space-y-3">
+              <li
+                v-for="item in integrationsRoadmap"
+                :key="item.name"
+                class="rounded-lg border border-dark-600 bg-dark-900/50 px-4 py-3"
+              >
+                <p class="font-medium text-white">{{ item.name }}</p>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <!-- Tier 2: EDA & Foundry firewall -->
-        <div class="glass-effect rounded-2xl p-8 md:p-10 border border-neon-blue/30 bg-neon-blue/5">
-          <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-3">The EDA &amp; Foundry firewall</p>
-          <h3 class="text-2xl font-bold text-white mb-4">We orchestrate metadata and sign-offs—not raw GDSII</h3>
-          <p class="text-gray-300 leading-relaxed mb-4 max-w-4xl">
-            TapeOutOps manages checklists, SpecLint results, approval status, and vendor collaboration metadata.
-            We do <span class="text-white font-medium">not</span> ingest or rewrite multi-gigabyte GDSII/OASIS layout databases.
-            Layout stays inside your existing EDA vault and foundry NDA perimeter.
+        <div class="glass-effect rounded-2xl border border-neon-blue/30 bg-neon-blue/5 p-8 md:p-10">
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-neon-blue">Out of scope — layout EDA</p>
+          <h3 class="mb-4 text-2xl font-bold text-white">We orchestrate metadata and sign-offs—not raw GDSII</h3>
+          <p class="mb-4 max-w-4xl leading-relaxed text-gray-300">
+            TapeOutOps does <span class="font-medium text-white">not</span> mutate Calibre / ICC2 / Pegasus layouts
+            or ingest multi-gigabyte GDSII/OASIS databases. Layout stays in your EDA vault.
           </p>
-          <p class="text-gray-400 text-sm mb-4">Planned compatibility with tool <span class="text-gray-300">states and reports</span> (roadmaps—not layout mutation):</p>
-          <div class="flex flex-wrap gap-2">
-            <span
-              v-for="name in ['Siemens Calibre', 'Synopsys IC Compiler II', 'Cadence Pegasus']"
-              :key="name"
-              class="px-3 py-1.5 text-sm bg-dark-900/80 border border-dark-600 rounded-lg text-gray-300"
-            >{{ name }}</span>
+          <ul class="flex flex-wrap gap-2">
+            <li
+              v-for="item in integrationsOutOfScope"
+              :key="item.name"
+              class="rounded-lg border border-dark-600 bg-dark-900/80 px-3 py-1.5 text-sm text-gray-300"
+            >
+              {{ item.name }}
+            </li>
+          </ul>
+        </div>
+
+        <!-- Capabilities matrix from API -->
+        <div v-if="capabilityClaims.length" class="mt-12" data-testid="landing-capabilities">
+          <h3 class="mb-4 text-xl font-semibold text-white">Product capabilities</h3>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div
+              v-for="c in capabilityClaims"
+              :key="c.claim"
+              class="flex items-start justify-between gap-3 rounded-xl border border-dark-700 bg-dark-900/40 px-4 py-3"
+            >
+              <p class="text-sm text-gray-200">{{ c.claim }}</p>
+              <span
+                class="shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                :class="claimTone(c.status)"
+              >{{ c.status }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -697,9 +727,26 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { reportLandingVisit } from '@/utils/clientTelemetry'
 import { resolveApiUrl } from '@/config/api'
+import { fetchPublicCapabilities, fetchPublicIntegrations } from '@/api/public-claims'
+import type { CapabilityClaim, IntegrationItem } from '@/api/public-claims'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const integrationsLive = ref<IntegrationItem[]>([])
+const integrationsRoadmap = ref<IntegrationItem[]>([])
+const integrationsOutOfScope = ref<IntegrationItem[]>([])
+const integrationsNote = ref('')
+const integrationsError = ref('')
+const capabilityClaims = ref<CapabilityClaim[]>([])
+
+function claimTone(status: string) {
+  const s = (status || '').toLowerCase()
+  if (s === 'live') return 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+  if (s === 'ops') return 'border-sky-500/40 bg-sky-500/15 text-sky-300'
+  if (s === 'partial') return 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+  return 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+}
 
 const demoForm = reactive({
   name: '',
@@ -742,6 +789,24 @@ onMounted(async () => {
         }
       : undefined,
   )
+
+  try {
+    const [caps, integ] = await Promise.all([
+      fetchPublicCapabilities().catch(() => null),
+      fetchPublicIntegrations().catch(() => null),
+    ])
+    if (caps?.capabilities) capabilityClaims.value = caps.capabilities
+    if (integ) {
+      integrationsLive.value = integ.live || []
+      integrationsRoadmap.value = integ.roadmap || []
+      integrationsOutOfScope.value = integ.out_of_scope || []
+      integrationsNote.value = integ.note || ''
+    } else {
+      integrationsError.value = 'Could not load live integrations matrix from API.'
+    }
+  } catch (e: any) {
+    integrationsError.value = e?.message || 'Failed to load capabilities / integrations'
+  }
 })
 
 const scrollToSection = (id: string) => {
