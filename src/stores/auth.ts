@@ -428,19 +428,45 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const logout = async () => {
-    try {
-      if (token.value && token.value !== 'undefined' && token.value !== 'null') {
-        const authHeaders = getAuthHeader()
+  const logout = async (opts?: { redirectTo?: string }) => {
+    const redirectTo = opts?.redirectTo ?? '/login'
+    // Capture token before wipe so we can still revoke server-side
+    const previousToken = token.value
+    const authHeaders =
+      previousToken && previousToken !== 'undefined' && previousToken !== 'null'
+        ? {
+            Authorization: `Bearer ${
+              previousToken.startsWith('Bearer ') ? previousToken.substring(7) : previousToken
+            }`,
+          }
+        : undefined
+
+    // Clear client session first so protected UI cannot linger with a half-logged-out state
+    clearAuthStorage()
+
+    // Best-effort server revoke — never block leaving the app
+    if (authHeaders) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+      const timeoutId = controller
+        ? window.setTimeout(() => controller.abort(), 3000)
+        : null
+      try {
         await fetch(`${API_BASE}/logout`, {
           method: 'POST',
           headers: authHeaders,
+          ...(controller ? { signal: controller.signal } : {}),
         })
+      } catch {
+        /* discard client token even if revoke fails / times out */
+      } finally {
+        if (timeoutId != null) window.clearTimeout(timeoutId)
       }
-    } catch {
-      /* discard client token even if revoke fails */
     }
-    clearAuthStorage()
+
+    // Hard navigation: router.push can fail to leave a mounted Settings shell
+    if (typeof window !== 'undefined') {
+      window.location.assign(redirectTo)
+    }
   }
 
   const checkAuth = async () => {

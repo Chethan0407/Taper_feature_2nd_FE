@@ -342,30 +342,12 @@ const toggleSmartSuggestions = () => {
 // Handle logout
 const handleLogout = async () => {
   try {
-    // Call logout API
-    if (authStore.token) {
-      try {
-        await authenticatedFetch('/api/v1/auth/logout', {
-          method: 'POST'
-        })
-      } catch (e) {
-        console.error('Logout API call failed:', e)
-        // Continue with logout even if API fails
-      }
-    }
-    
-    // Clear local state
     closeProfileDropdown()
     await authStore.logout()
-    
-    // Redirect to login
-    router.push('/login')
   } catch (e) {
     console.error('Logout failed:', e)
-    // Still clear state and redirect
     closeProfileDropdown()
     await authStore.logout()
-    router.push('/login')
   }
 }
 
