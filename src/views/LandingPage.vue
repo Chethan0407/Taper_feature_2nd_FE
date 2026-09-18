@@ -4,7 +4,6 @@
     <nav class="fixed top-0 left-0 right-0 z-50 bg-dark-950/80 backdrop-blur-lg border-b border-dark-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-          <!-- Logo -->
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center">
               <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -17,15 +16,14 @@
             <span class="text-xl font-bold text-gradient">TapeOutOps</span>
           </div>
 
-          <!-- Navigation Links -->
           <div class="hidden md:flex items-center space-x-8">
             <a href="#features" class="text-gray-300 hover:text-neon-blue transition-colors">Features</a>
-            <a href="#how-it-works" class="text-gray-300 hover:text-neon-blue transition-colors">How It Works</a>
+            <a href="#product" class="text-gray-300 hover:text-neon-blue transition-colors">Product</a>
+            <a href="#security" class="text-gray-300 hover:text-neon-blue transition-colors">Security</a>
+            <a href="#integrations" class="text-gray-300 hover:text-neon-blue transition-colors">Integrations</a>
             <a href="#about" class="text-gray-300 hover:text-neon-blue transition-colors">About</a>
-            <a href="/about" class="text-gray-300 hover:text-neon-blue transition-colors">About Page</a>
           </div>
 
-          <!-- Auth Buttons -->
           <div class="flex items-center space-x-4">
             <button
               @click="router.push('/login')"
@@ -34,10 +32,10 @@
               Sign In
             </button>
             <button
-              @click="router.push('/login')"
+              @click="scrollToSection('demo')"
               class="px-6 py-2 text-sm font-medium bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-neon-blue/50"
             >
-              Get Started
+              Request a Demo
             </button>
           </div>
         </div>
@@ -49,151 +47,93 @@
       <div class="max-w-7xl mx-auto text-center">
         <div class="mb-8">
           <span class="inline-block px-4 py-2 bg-neon-blue/10 text-neon-blue rounded-full text-sm font-medium mb-6">
-            Streamline Your Semiconductor Tapeout Workflow
+            Enterprise tapeout operations for semiconductor &amp; ASIC teams
           </span>
         </div>
-        
+
         <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
           <span class="text-gradient">TapeOutOps</span>
           <br />
-          <span class="text-white">Workflow Management</span>
+          <span class="text-white">Workflow Infrastructure</span>
         </h1>
-        
+
         <p class="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto">
-          Professional platform for managing specifications, checklists, and vendor communications
-          throughout your semiconductor tapeout process.
+          Specs, quality checklists, sign-offs, and vendor collaboration—built for teams that cannot
+          put proprietary design data behind a self-serve free signup.
         </p>
 
-        <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <button
-            @click="router.push('/login')"
+            @click="scrollToSection('demo')"
             class="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl hover:opacity-90 transition-opacity shadow-2xl shadow-neon-blue/50 flex items-center space-x-2"
           >
-            <span>Get Started Free</span>
+            <span>Request a Demo</span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
             </svg>
           </button>
           <button
-            @click="scrollToSection('features')"
+            @click="scrollToSection('demo')"
             class="px-8 py-4 text-lg font-semibold bg-dark-800 text-gray-300 border border-dark-700 rounded-xl hover:bg-dark-700 transition-colors"
           >
-            Learn More
+            Join Enterprise Pilot
           </button>
         </div>
 
-        <!-- Hero Image/Preview -->
+        <!-- Hero preview: sign-off matrix -->
         <div class="relative max-w-6xl mx-auto">
           <div class="glass-effect rounded-3xl p-1 shadow-2xl border border-neon-blue/30 overflow-hidden">
-            <!-- Glow border effect -->
             <div class="absolute inset-0 bg-gradient-to-r from-neon-blue/20 via-neon-purple/20 to-neon-blue/20 blur-xl opacity-50"></div>
-            
-            <!-- Mock Dashboard Preview -->
-            <div class="bg-gradient-to-br from-dark-800 via-dark-800 to-dark-900 rounded-2xl overflow-hidden relative">
-              <!-- Mock Header -->
+            <div class="bg-gradient-to-br from-dark-800 via-dark-800 to-dark-900 rounded-2xl overflow-hidden relative text-left">
               <div class="bg-dark-700/80 backdrop-blur-sm px-6 py-3 flex items-center justify-between border-b border-dark-600/50">
                 <div class="flex items-center space-x-3">
-                  <div class="w-8 h-8 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="3" width="6" height="6" rx="1"/>
-                      <rect x="15" y="3" width="6" height="6" rx="1"/>
-                      <rect x="3" y="15" width="6" height="6" rx="1"/>
-                      <rect x="15" y="15" width="6" height="6" rx="1"/>
-                    </svg>
-                  </div>
-                  <div class="h-3 w-24 bg-dark-600/60 rounded animate-pulse"></div>
+                  <div class="w-8 h-8 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg"></div>
+                  <span class="text-sm text-gray-300 font-medium">Tapeout Gate — Sign-off Matrix</span>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <div class="w-7 h-7 bg-dark-600/60 rounded-full"></div>
-                  <div class="w-7 h-7 bg-dark-600/60 rounded-full"></div>
-                </div>
+                <span class="text-xs text-neon-blue bg-neon-blue/10 px-2 py-1 rounded">LIVE PREVIEW</span>
               </div>
-              
-              <!-- Mock Content -->
-              <div class="p-6 space-y-6">
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-4 gap-4">
-                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-neon-blue/50 transition-colors">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
-                      <div class="w-3 h-3 bg-neon-blue/30 rounded"></div>
-                    </div>
-                    <div class="h-7 w-16 bg-neon-blue/20 rounded-lg mb-1"></div>
-                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
-                  </div>
-                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-green-500/50 transition-colors">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
-                      <div class="w-3 h-3 bg-green-500/30 rounded"></div>
-                    </div>
-                    <div class="h-7 w-16 bg-green-500/20 rounded-lg mb-1"></div>
-                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
-                  </div>
-                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-yellow-500/50 transition-colors">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
-                      <div class="w-3 h-3 bg-yellow-500/30 rounded"></div>
-                    </div>
-                    <div class="h-7 w-16 bg-yellow-500/20 rounded-lg mb-1"></div>
-                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
-                  </div>
-                  <div class="glass-effect rounded-xl p-4 border border-dark-600/50 hover:border-purple-500/50 transition-colors">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="h-2.5 w-20 bg-dark-600/40 rounded"></div>
-                      <div class="w-3 h-3 bg-purple-500/30 rounded"></div>
-                    </div>
-                    <div class="h-7 w-16 bg-purple-500/20 rounded-lg mb-1"></div>
-                    <div class="h-2 w-12 bg-dark-600/30 rounded"></div>
-                  </div>
-                </div>
-                
-                <!-- Main Content Area -->
-                <div class="grid grid-cols-3 gap-4">
-                  <div class="col-span-2 glass-effect rounded-xl p-5 border border-dark-600/50">
-                    <div class="h-4 w-32 bg-dark-600/40 rounded mb-5"></div>
-                    <div class="space-y-3">
-                      <div class="flex items-center space-x-3 p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
-                        <div class="w-10 h-10 bg-neon-blue/20 rounded-lg"></div>
-                        <div class="flex-1 space-y-2">
-                          <div class="h-3 w-3/4 bg-dark-600/40 rounded"></div>
-                          <div class="h-2 w-1/2 bg-dark-600/30 rounded"></div>
-                        </div>
-                      </div>
-                      <div class="flex items-center space-x-3 p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
-                        <div class="w-10 h-10 bg-green-500/20 rounded-lg"></div>
-                        <div class="flex-1 space-y-2">
-                          <div class="h-3 w-2/3 bg-dark-600/40 rounded"></div>
-                          <div class="h-2 w-1/2 bg-dark-600/30 rounded"></div>
-                        </div>
-                      </div>
-                      <div class="flex items-center space-x-3 p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
-                        <div class="w-10 h-10 bg-yellow-500/20 rounded-lg"></div>
-                        <div class="flex-1 space-y-2">
-                          <div class="h-3 w-4/5 bg-dark-600/40 rounded"></div>
-                          <div class="h-2 w-1/2 bg-dark-600/30 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="glass-effect rounded-xl p-5 border border-dark-600/50">
-                    <div class="h-4 w-24 bg-dark-600/40 rounded mb-5"></div>
-                    <div class="space-y-3">
-                      <div class="p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
-                        <div class="h-2.5 w-full bg-dark-600/40 rounded mb-2"></div>
-                        <div class="h-2 w-2/3 bg-dark-600/30 rounded"></div>
-                      </div>
-                      <div class="p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
-                        <div class="h-2.5 w-full bg-dark-600/40 rounded mb-2"></div>
-                        <div class="h-2 w-2/3 bg-dark-600/30 rounded"></div>
-                      </div>
-                      <div class="p-3 bg-dark-700/30 rounded-lg border border-dark-600/30">
-                        <div class="h-2.5 w-full bg-dark-600/40 rounded mb-2"></div>
-                        <div class="h-2 w-2/3 bg-dark-600/30 rounded"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div class="p-6 overflow-x-auto">
+                <table class="w-full text-sm min-w-[640px]">
+                  <thead>
+                    <tr class="text-left text-gray-500 border-b border-dark-600">
+                      <th class="pb-3 font-medium">Gate</th>
+                      <th class="pb-3 font-medium">Owner</th>
+                      <th class="pb-3 font-medium">Status</th>
+                      <th class="pb-3 font-medium">Approved by</th>
+                      <th class="pb-3 font-medium">When</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-300">
+                    <tr class="border-b border-dark-700/80">
+                      <td class="py-3">DRC closure</td>
+                      <td class="py-3 text-gray-400">Physical Design</td>
+                      <td class="py-3"><span class="text-green-400">Signed off</span></td>
+                      <td class="py-3">a.chen@acme.semi</td>
+                      <td class="py-3 text-gray-500">2h ago</td>
+                    </tr>
+                    <tr class="border-b border-dark-700/80">
+                      <td class="py-3">LVS closure</td>
+                      <td class="py-3 text-gray-400">Physical Design</td>
+                      <td class="py-3"><span class="text-yellow-400">In review</span></td>
+                      <td class="py-3 text-gray-500">—</td>
+                      <td class="py-3 text-gray-500">—</td>
+                    </tr>
+                    <tr class="border-b border-dark-700/80">
+                      <td class="py-3">Packaging handover</td>
+                      <td class="py-3 text-gray-400">OSAT / Package</td>
+                      <td class="py-3"><span class="text-gray-400">Pending</span></td>
+                      <td class="py-3 text-gray-500">—</td>
+                      <td class="py-3 text-gray-500">—</td>
+                    </tr>
+                    <tr>
+                      <td class="py-3">Foundry tapeout package</td>
+                      <td class="py-3 text-gray-400">Program Mgmt</td>
+                      <td class="py-3"><span class="text-gray-400">Blocked</span></td>
+                      <td class="py-3 text-gray-500">—</td>
+                      <td class="py-3 text-gray-500">—</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -201,256 +141,400 @@
       </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- Features -->
     <section id="features" class="py-20 px-4 sm:px-6 lg:px-8 bg-dark-900/50">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
-          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Powerful Features</h2>
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Built for tapeout operations</h2>
           <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            Everything you need to manage your tapeout workflow efficiently
+            Specs, checklists, lint, and vendor workflows in one operational layer
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <!-- Feature 1: Specifications -->
-          <div class="glass-effect rounded-2xl p-6 hover:border-neon-blue/50 transition-all border border-dark-700">
-            <div class="w-12 h-12 bg-neon-blue/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-            </div>
+          <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
             <h3 class="text-xl font-semibold text-white mb-2">Specifications Management</h3>
-            <p class="text-gray-400">
-              Upload, version, and track specifications with automated approval workflows and inline previews.
-            </p>
+            <p class="text-gray-400">Versioned specs with approval workflows and full change history.</p>
           </div>
-
-          <!-- Feature 2: Checklists -->
-          <div class="glass-effect rounded-2xl p-6 hover:border-neon-blue/50 transition-all border border-dark-700">
-            <div class="w-12 h-12 bg-neon-blue/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-              </svg>
-            </div>
+          <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
             <h3 class="text-xl font-semibold text-white mb-2">Checklist Automation</h3>
-            <p class="text-gray-400">
-              Create reusable templates and automate multi-level approval workflows with due date tracking.
-            </p>
+            <p class="text-gray-400">Reusable templates for DRC/LVS closure and packaging handovers.</p>
           </div>
-
-          <!-- Feature 3: SpecLint -->
-          <div class="glass-effect rounded-2xl p-6 hover:border-neon-blue/50 transition-all border border-dark-700">
-            <div class="w-12 h-12 bg-neon-blue/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
+          <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
             <h3 class="text-xl font-semibold text-white mb-2">SpecLint Engine</h3>
-            <p class="text-gray-400">
-              Automated quality validation with custom rules, keyword detection, and NDA clause verification.
-            </p>
+            <p class="text-gray-400">Automated quality rules, keyword detection, and NDA clause checks.</p>
           </div>
-
-          <!-- Feature 4: Vendor Management -->
-          <div class="glass-effect rounded-2xl p-6 hover:border-neon-blue/50 transition-all border border-dark-700">
-            <div class="w-12 h-12 bg-neon-blue/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Vendor Management</h3>
-            <p class="text-gray-400">
-              Track vendor communications, NDA management, and response times with timeline visualization.
-            </p>
+          <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
+            <h3 class="text-xl font-semibold text-white mb-2">Vendor Collaboration</h3>
+            <p class="text-gray-400">Track foundry / OSAT communications under controlled access.</p>
           </div>
-
-          <!-- Feature 5: Project Dashboard -->
-          <div class="glass-effect rounded-2xl p-6 hover:border-neon-blue/50 transition-all border border-dark-700">
-            <div class="w-12 h-12 bg-neon-blue/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Project Dashboard</h3>
-            <p class="text-gray-400">
-              Real-time project overview with quality scores, approval rates, and completion tracking.
-            </p>
+          <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
+            <h3 class="text-xl font-semibold text-white mb-2">Audit Trails</h3>
+            <p class="text-gray-400">Who approved which gate, when—immutable activity for compliance reviews.</p>
           </div>
-
-          <!-- Feature 6: Security -->
-          <div class="glass-effect rounded-2xl p-6 hover:border-neon-blue/50 transition-all border border-dark-700">
-            <div class="w-12 h-12 bg-neon-blue/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Enterprise Security</h3>
-            <p class="text-gray-400">
-              JWT authentication, role-based access control, API key management, and audit trails.
-            </p>
+          <div class="glass-effect rounded-2xl p-6 border border-dark-700 hover:border-neon-blue/50 transition-all">
+            <h3 class="text-xl font-semibold text-white mb-2">Enterprise Access</h3>
+            <p class="text-gray-400">JWT auth, RBAC, API keys—gated onboarding, not open free signup.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- How It Works Section -->
-    <section id="how-it-works" class="py-20 px-4 sm:px-6 lg:px-8">
+    <!-- Product previews -->
+    <section id="product" class="py-20 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
-          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">How It Works</h2>
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">See the workflow</h2>
           <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-            Simple workflow to streamline your tapeout process
+            High-fidelity previews of gates, checklists, and approvals enterprise buyers ask for
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Sign-off matrix -->
+          <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
+            <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
+              <h3 class="text-white font-semibold">Automated sign-off matrix</h3>
+              <p class="text-xs text-gray-500 mt-1">Tapeout gates by owner &amp; status</p>
+            </div>
+            <div class="p-5 space-y-3 text-sm">
+              <div class="flex justify-between items-center p-3 bg-dark-800/60 rounded-lg border border-dark-600/50">
+                <span class="text-gray-300">RTL freeze</span>
+                <span class="text-green-400 text-xs font-medium">APPROVED</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-dark-800/60 rounded-lg border border-dark-600/50">
+                <span class="text-gray-300">DRC / LVS</span>
+                <span class="text-yellow-400 text-xs font-medium">IN REVIEW</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-dark-800/60 rounded-lg border border-dark-600/50">
+                <span class="text-gray-300">GDSII release</span>
+                <span class="text-gray-500 text-xs font-medium">LOCKED</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist tracking -->
+          <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
+            <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
+              <h3 class="text-white font-semibold">Checklist tracking</h3>
+              <p class="text-xs text-gray-500 mt-1">DRC/LVS &amp; packaging house handover</p>
+            </div>
+            <div class="p-5 space-y-3 text-sm">
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 w-4 h-4 rounded border border-green-500 bg-green-500/20 flex-shrink-0"></span>
+                <div>
+                  <p class="text-gray-300">Metal density checks complete</p>
+                  <p class="text-xs text-gray-500">Closed by PD lead</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 w-4 h-4 rounded border border-green-500 bg-green-500/20 flex-shrink-0"></span>
+                <div>
+                  <p class="text-gray-300">LVS netlist match report attached</p>
+                  <p class="text-xs text-gray-500">Artifact linked to gate</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 w-4 h-4 rounded border border-yellow-500 flex-shrink-0"></span>
+                <div>
+                  <p class="text-gray-300">OSAT BOM &amp; substrate notes</p>
+                  <p class="text-xs text-gray-500">Awaiting package eng</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audit trail -->
+          <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
+            <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
+              <h3 class="text-white font-semibold">Approval audit trail</h3>
+              <p class="text-xs text-gray-500 mt-1">Who signed which spec change</p>
+            </div>
+            <div class="p-5 space-y-4 text-sm">
+              <div class="border-l-2 border-neon-blue pl-4">
+                <p class="text-gray-300">Spec v3.2 approved</p>
+                <p class="text-xs text-gray-500">m.patel@acme.semi · Floorplan constraints</p>
+                <p class="text-xs text-neon-blue/80 mt-1">Mar 18, 2026 · 14:22 UTC</p>
+              </div>
+              <div class="border-l-2 border-neon-purple pl-4">
+                <p class="text-gray-300">Checklist item reopened</p>
+                <p class="text-xs text-gray-500">j.kim@acme.semi · Antenna rule waiver</p>
+                <p class="text-xs text-neon-purple/80 mt-1">Mar 17, 2026 · 09:01 UTC</p>
+              </div>
+              <div class="border-l-2 border-dark-500 pl-4">
+                <p class="text-gray-300">Vendor NDA package shared</p>
+                <p class="text-xs text-gray-500">Scoped link · OSAT partner</p>
+                <p class="text-xs text-gray-500 mt-1">Mar 16, 2026 · 18:44 UTC</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div>
+            <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mx-auto mb-4 text-lg font-bold text-white">1</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Create Projects</h3>
+            <p class="text-gray-400 text-sm">Configure teams, gates, and approval chains.</p>
+          </div>
+          <div>
+            <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mx-auto mb-4 text-lg font-bold text-white">2</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Upload &amp; Validate</h3>
+            <p class="text-gray-400 text-sm">Specs + SpecLint + checklists for DRC/LVS closure.</p>
+          </div>
+          <div>
+            <div class="w-12 h-12 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mx-auto mb-4 text-lg font-bold text-white">3</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Track &amp; Approve</h3>
+            <p class="text-gray-400 text-sm">Sign-offs with audit trails vendors and PMs can trust.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security Architecture -->
+    <section id="security" class="py-20 px-4 sm:px-6 lg:px-8 bg-dark-900/50">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Security Architecture</h2>
+          <p class="text-xl text-gray-400 max-w-3xl mx-auto">
+            Designed for foundry-customer NDA paranoia—encryption, isolation, and a clear compliance roadmap
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div class="glass-effect rounded-xl p-6 border border-dark-700">
+            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">In transit</p>
+            <h3 class="text-white font-semibold mb-2">TLS 1.3</h3>
+            <p class="text-gray-400 text-sm">All browser ↔ API traffic encrypted end to end.</p>
+          </div>
+          <div class="glass-effect rounded-xl p-6 border border-dark-700">
+            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">At rest</p>
+            <h3 class="text-white font-semibold mb-2">AES-256</h3>
+            <p class="text-gray-400 text-sm">Stored artifacts and databases encrypted at rest.</p>
+          </div>
+          <div class="glass-effect rounded-xl p-6 border border-dark-700">
+            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Deployment</p>
+            <h3 class="text-white font-semibold mb-2">Private VPC</h3>
+            <p class="text-gray-400 text-sm">Cloud VPC deploy today; on-prem / dedicated VPC roadmap for IP-sensitive customers.</p>
+          </div>
+          <div class="glass-effect rounded-xl p-6 border border-dark-700">
+            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Compliance</p>
+            <h3 class="text-white font-semibold mb-2">SOC 2 roadmap</h3>
+            <p class="text-gray-400 text-sm">Controls aligned toward SOC 2 Type II; security reviews available for pilots.</p>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <router-link
+            to="/security"
+            class="inline-flex items-center text-neon-blue hover:text-neon-purple transition-colors font-medium"
+          >
+            Full security overview
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </router-link>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integrations -->
+    <section id="integrations" class="py-20 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Fits how teams already work</h2>
+          <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+            Compatibility and roadmap integration points with industry-standard tooling
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
-              1
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+            <h3 class="text-lg font-semibold text-white mb-4">Version control &amp; ticketing</h3>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="name in ['Jira', 'GitLab', 'GitHub']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
             </div>
-            <h3 class="text-xl font-semibold text-white mb-3">Create Projects</h3>
-            <p class="text-gray-400">
-              Set up your tapeout projects and configure team members and workflows.
-            </p>
+            <p class="text-xs text-gray-500 mt-4">Roadmap: sync gates ↔ issues and MR/PR status</p>
           </div>
-
-          <div class="text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
-              2
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+            <h3 class="text-lg font-semibold text-white mb-4">CI/CD &amp; EDA scripting</h3>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="name in ['Python', 'TCL', 'Jenkins']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
             </div>
-            <h3 class="text-xl font-semibold text-white mb-3">Upload & Validate</h3>
-            <p class="text-gray-400">
-              Upload specifications, run automated linting, and link checklists to ensure quality.
-            </p>
+            <p class="text-xs text-gray-500 mt-4">Roadmap: webhook / CLI hooks from regression farms</p>
           </div>
-
-          <div class="text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
-              3
+          <div class="glass-effect rounded-2xl p-8 border border-dark-700">
+            <h3 class="text-lg font-semibold text-white mb-4">Cloud &amp; on-prem storage</h3>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="name in ['Perforce', 'AWS', 'Azure']" :key="name" class="px-3 py-1.5 text-sm bg-dark-800 border border-dark-600 rounded-lg text-gray-300">{{ name }}</span>
             </div>
-            <h3 class="text-xl font-semibold text-white mb-3">Track & Approve</h3>
-            <p class="text-gray-400">
-              Monitor approval workflows, track vendor communications, and maintain audit trails.
-            </p>
+            <p class="text-xs text-gray-500 mt-4">Roadmap: depot-aware artifact refs without leaving your VPC</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-neon-blue/10 via-neon-purple/10 to-neon-blue/10">
-      <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
-          Ready to Streamline Your Workflow?
-        </h2>
-        <p class="text-xl text-gray-400 mb-8">
-          Join teams using TapeOutOps to manage their semiconductor tapeout processes efficiently.
+    <!-- Demo / Enterprise Pilot CTA -->
+    <section id="demo" class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-neon-blue/10 via-neon-purple/10 to-neon-blue/10">
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-10">
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">
+            Request a Demo
+          </h2>
+          <p class="text-xl text-gray-400">
+            Join the enterprise pilot—gated access for teams handling proprietary IP.
+          </p>
+        </div>
+
+        <form
+          class="glass-effect rounded-2xl p-8 border border-dark-700 space-y-5"
+          @submit.prevent="submitDemoRequest"
+        >
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm text-gray-400 mb-1.5">Name</label>
+              <input
+                v-model="demoForm.name"
+                required
+                maxlength="120"
+                class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none"
+                placeholder="Your name"
+              />
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-1.5">Work email</label>
+              <input
+                v-model="demoForm.email"
+                type="email"
+                required
+                class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none"
+                placeholder="you@company.com"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm text-gray-400 mb-1.5">Company</label>
+              <input
+                v-model="demoForm.company"
+                required
+                maxlength="200"
+                class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none"
+                placeholder="Company / design house"
+              />
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-1.5">Role</label>
+              <input
+                v-model="demoForm.role"
+                maxlength="120"
+                class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none"
+                placeholder="e.g. PD lead, VP Eng"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">Interest</label>
+            <select
+              v-model="demoForm.interest"
+              class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none"
+            >
+              <option value="request_demo">Request a Demo</option>
+              <option value="enterprise_pilot">Join Enterprise Pilot</option>
+              <option value="security_review">Security / architecture review</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">Message (optional)</label>
+            <textarea
+              v-model="demoForm.message"
+              rows="3"
+              maxlength="2000"
+              class="w-full px-4 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-white focus:border-neon-blue outline-none resize-y"
+              placeholder="Process node, team size, VPC / on-prem needs…"
+            />
+          </div>
+
+          <p v-if="demoError" class="text-sm text-red-400">{{ demoError }}</p>
+          <p v-if="demoSuccess" class="text-sm text-green-400">{{ demoSuccess }}</p>
+
+          <button
+            type="submit"
+            :disabled="demoSubmitting"
+            class="w-full sm:w-auto px-8 py-3 font-semibold bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {{ demoSubmitting ? 'Sending…' : 'Submit request' }}
+          </button>
+        </form>
+
+        <p class="text-center text-sm text-gray-500 mt-6">
+          Already provisioned?
+          <button @click="router.push('/login')" class="text-neon-blue hover:underline ml-1">Sign in</button>
         </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            @click="router.push('/login')"
-            class="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl hover:opacity-90 transition-opacity shadow-2xl shadow-neon-blue/50"
-          >
-            Get Started Free
-          </button>
-          <button
-            @click="router.push('/login')"
-            class="px-8 py-4 text-lg font-semibold bg-dark-800 text-gray-300 border border-dark-700 rounded-xl hover:bg-dark-700 transition-colors"
-          >
-            Sign In
-          </button>
-        </div>
       </div>
     </section>
 
-    <!-- About Section -->
+    <!-- About / Founder -->
     <section id="about" class="py-20 px-4 sm:px-6 lg:px-8 bg-dark-900/50">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">About TapeOutOps</h2>
           <p class="text-xl text-gray-400 max-w-3xl mx-auto">
-            Revolutionizing semiconductor tapeout workflows with cutting-edge technology
+            Operational infrastructure for semiconductor tapeout—built by someone who lived the workflow pain
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch mb-16">
-          <!-- Product Story -->
           <div class="glass-effect rounded-2xl p-8 border border-dark-700 h-full flex flex-col">
-            <div class="w-16 h-16 bg-gradient-to-br from-neon-blue to-neon-purple rounded-xl flex items-center justify-center mb-6">
-              <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div>
             <h3 class="text-2xl font-bold text-white mb-4">Our Mission</h3>
             <p class="text-gray-400 leading-relaxed mb-4">
-              TapeOutOps was born from a simple observation: semiconductor tapeout workflows are complex, fragmented, and often inefficient. We set out to create a unified platform that brings together all aspects of the tapeout process—from specification management to quality checks and vendor collaboration.
+              Semiconductor tapeout workflows are complex, fragmented, and often stuck in email + spreadsheets.
+              TapeOutOps unifies specs, quality checklists, and vendor collaboration so design teams can close
+              gates without losing the audit trail.
             </p>
             <p class="text-gray-400 leading-relaxed grow">
-              Our platform empowers engineering teams to streamline their workflows, reduce errors, and accelerate time-to-market. With intelligent automation, real-time collaboration, and comprehensive quality assurance, TapeOutOps transforms how semiconductor companies manage their tapeout processes.
+              We sell workflow infrastructure into hardware engineering orgs that treat GDSII, PDK rules, and
+              foundry packages as crown-jewel IP—so access is gated, not self-serve free.
             </p>
           </div>
 
-          <!-- Founder Story -->
           <div class="glass-effect rounded-2xl p-8 border border-dark-700 h-full flex flex-col">
             <div class="flex items-center mb-6">
-              <img 
-                src="/founder-photo.jpg" 
-                alt="Chethan - Founder of TapeOutOps"
+              <img
+                src="/founder-photo.jpg"
+                alt="Chethan Gopal, Founder of TapeOutOps"
                 class="w-20 h-20 rounded-full object-cover border-2 border-neon-blue/50 shadow-lg mr-4"
                 style="object-position: center 10%;"
               />
               <div>
-                <h3 class="text-2xl font-bold text-white">Chethan</h3>
-                <p class="text-neon-blue">Founder</p>
+                <h3 class="text-2xl font-bold text-white">Chethan Gopal</h3>
+                <p class="text-neon-blue">Founder · VLSI / Semiconductor</p>
               </div>
             </div>
             <p class="text-gray-400 leading-relaxed mb-4">
-              As the founder of TapeOutOps, I've spent considerable time researching and understanding the challenges teams face during tapeout. Through extensive conversations with engineers and deep analysis of industry workflows, I recognized the critical need for integrated tools. The lack of unified solutions, manual processes, and communication gaps between teams inspired me to build a platform that addresses these pain points.
+              Chethan brings deep domain background in VLSI and semiconductor operations. After extensive
+              conversations with ASIC and design-ops leads, he built TapeOutOps to replace fragmented EDA/fab
+              handoffs with a single operational system of record.
             </p>
             <p class="text-gray-400 leading-relaxed grow">
-              TapeOutOps represents my vision of a modern, efficient tapeout workflow—one where engineers can focus on what they do best: designing exceptional chips. Every feature we build is driven by real-world needs and feedback from the semiconductor community.
+              As a solo founder, domain credibility is the product’s foundation—every gate, checklist, and
+              audit trail is shaped by real tapeout constraints, not generic project-management defaults.
             </p>
-            <div class="mt-auto pt-6 flex items-center space-x-4">
-              <a href="mailto:support@tapeoutops.com" class="text-neon-blue hover:text-neon-purple transition-colors flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            <div class="mt-auto pt-6 flex flex-wrap items-center gap-4">
+              <a
+                href="https://www.linkedin.com/in/chethan-gopal"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-neon-blue hover:text-neon-purple transition-colors flex items-center"
+              >
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                 </svg>
-                Get in Touch
+                LinkedIn
+              </a>
+              <a href="mailto:support@tapeoutops.com" class="text-gray-400 hover:text-neon-blue transition-colors flex items-center">
+                Contact
               </a>
             </div>
-          </div>
-        </div>
-
-        <!-- Key Values -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="glass-effect rounded-xl p-6 border border-dark-700 text-center">
-            <div class="w-12 h-12 bg-neon-blue/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <svg class="w-6 h-6 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-            </div>
-            <h4 class="text-lg font-semibold text-white mb-2">Innovation First</h4>
-            <p class="text-gray-400 text-sm">We continuously push the boundaries of what's possible in tapeout management.</p>
-          </div>
-
-          <div class="glass-effect rounded-xl p-6 border border-dark-700 text-center">
-            <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-            </div>
-            <h4 class="text-lg font-semibold text-white mb-2">User-Centric</h4>
-            <p class="text-gray-400 text-sm">Every feature is designed with engineers and their workflows in mind.</p>
-          </div>
-
-          <div class="glass-effect rounded-xl p-6 border border-dark-700 text-center">
-            <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-              </svg>
-            </div>
-            <h4 class="text-lg font-semibold text-white mb-2">Reliable & Secure</h4>
-            <p class="text-gray-400 text-sm">Enterprise-grade security and reliability for mission-critical workflows.</p>
           </div>
         </div>
       </div>
@@ -473,7 +557,7 @@
               <span class="text-xl font-bold text-gradient">TapeOutOps</span>
             </div>
             <p class="text-gray-400 text-sm">
-              Streamlining semiconductor tapeout workflows with modern web technology.
+              Enterprise tapeout workflow infrastructure for semiconductor teams.
             </p>
           </div>
 
@@ -481,7 +565,8 @@
             <h4 class="text-white font-bold mb-4">Product</h4>
             <ul class="space-y-2 text-sm text-gray-300">
               <li><a href="#features" class="hover:text-neon-blue transition-colors">Features</a></li>
-              <li><a href="#how-it-works" class="hover:text-neon-blue transition-colors">How It Works</a></li>
+              <li><a href="#product" class="hover:text-neon-blue transition-colors">Product</a></li>
+              <li><a href="#integrations" class="hover:text-neon-blue transition-colors">Integrations</a></li>
               <li><router-link to="/documentation" class="hover:text-neon-blue transition-colors">Documentation</router-link></li>
             </ul>
           </div>
@@ -490,14 +575,9 @@
             <h4 class="text-white font-semibold mb-4">Company</h4>
             <ul class="space-y-2 text-sm text-gray-400">
               <li><a href="#about" class="hover:text-neon-blue transition-colors">About</a></li>
-              <li><a href="/about" class="hover:text-neon-blue transition-colors">About Page</a></li>
+              <li><a href="#demo" class="hover:text-neon-blue transition-colors">Request a Demo</a></li>
               <li>
-                <a
-                  href="mailto:support@tapeoutops.com"
-                  class="hover:text-neon-blue transition-colors"
-                >
-                  Contact
-                </a>
+                <a href="mailto:support@tapeoutops.com" class="hover:text-neon-blue transition-colors">Contact</a>
               </li>
             </ul>
           </div>
@@ -521,16 +601,28 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { reportLandingVisit } from '@/utils/clientTelemetry'
+import { resolveApiUrl } from '@/config/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+const demoForm = reactive({
+  name: '',
+  email: '',
+  company: '',
+  role: '',
+  message: '',
+  interest: 'enterprise_pilot',
+})
+const demoSubmitting = ref(false)
+const demoError = ref('')
+const demoSuccess = ref('')
+
 onMounted(async () => {
-  // Hydrate profile when a token exists so logged-in homepage hits get email/name
   if (authStore.token && !authStore.user) {
     try {
       await authStore.checkAuth()
@@ -556,6 +648,48 @@ const scrollToSection = (id: string) => {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
+
+async function submitDemoRequest() {
+  demoError.value = ''
+  demoSuccess.value = ''
+  demoSubmitting.value = true
+  try {
+    const res = await fetch(resolveApiUrl('/api/v1/public/demo-request'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        name: demoForm.name.trim(),
+        email: demoForm.email.trim(),
+        company: demoForm.company.trim(),
+        role: demoForm.role.trim() || null,
+        message: demoForm.message.trim() || null,
+        interest: demoForm.interest,
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      const detail = body.detail
+      const msg =
+        typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join(', ')
+            : body.message
+      throw new Error(msg || `Request failed (${res.status})`)
+    }
+    demoSuccess.value = "Thanks — we'll follow up shortly about the enterprise pilot."
+    demoForm.name = ''
+    demoForm.email = ''
+    demoForm.company = ''
+    demoForm.role = ''
+    demoForm.message = ''
+    demoForm.interest = 'enterprise_pilot'
+  } catch (e: unknown) {
+    demoError.value = e instanceof Error ? e.message : 'Something went wrong. Email support@tapeoutops.com.'
+  } finally {
+    demoSubmitting.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -572,4 +706,3 @@ const scrollToSection = (id: string) => {
   -webkit-backdrop-filter: blur(10px);
 }
 </style>
-

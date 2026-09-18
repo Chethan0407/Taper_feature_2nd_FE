@@ -33,10 +33,10 @@
               Sign In
             </button>
             <button
-              @click="router.push('/login')"
+              @click="router.push('/#demo')"
               class="px-6 py-2 text-sm font-medium bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-neon-blue/50"
             >
-              Get Started
+              Request a Demo
             </button>
           </div>
         </div>
@@ -66,7 +66,7 @@
           
           <div class="prose prose-invert max-w-none">
             <p class="text-lg text-gray-300 leading-relaxed mb-6">
-              TapeOutOps was founded with a clear vision: to revolutionize how semiconductor companies manage their tapeout processes. The journey began when our founder, Chethan, recognized the significant challenges engineering teams face during the critical tapeout phase.
+              TapeOutOps was founded by <span class="text-white font-medium">Chethan Gopal</span> with a clear vision: to revolutionize how semiconductor companies manage their tapeout processes. Drawing on deep VLSI / semiconductor domain experience, Chethan recognized the significant challenges engineering teams face during the critical tapeout phase.
             </p>
             
             <p class="text-lg text-gray-300 leading-relaxed mb-6">
@@ -206,10 +206,10 @@
         </p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
-            @click="router.push('/login')"
+            @click="router.push('/#demo')"
             class="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl hover:opacity-90 transition-opacity shadow-2xl shadow-neon-blue/50"
           >
-            Get Started Free
+            Request a Demo
           </button>
           <button
             @click="router.push('/')"

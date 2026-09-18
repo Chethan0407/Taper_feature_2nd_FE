@@ -339,6 +339,100 @@
           </div>
         </section>
 
+        <!-- Demo requests (enterprise pilot / demo form) -->
+        <section class="mb-10 page-enter" data-testid="demo-requests">
+          <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 class="module-section-title">Demo requests</h2>
+              <p class="mt-1 max-w-3xl text-sm text-slate-400">
+                Submissions from the landing
+                <code class="text-xs text-sky-300">#demo</code> form via
+                <code class="text-xs text-sky-300">GET /api/v1/admin/usage/demo-requests</code>.
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
+                :class="demoRequestsFromServer
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-200'"
+              >
+                <span
+                  class="h-1.5 w-1.5 rounded-full"
+                  :class="demoRequestsFromServer ? 'animate-pulse bg-emerald-400' : 'bg-amber-400'"
+                />
+                {{ demoRequestsFromServer ? `${demoRequests.length} leads` : (demoRequestsError || 'API pending') }}
+              </span>
+              <button
+                type="button"
+                class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300"
+                :disabled="demoRequestsLoading"
+                @click="fetchDemoRequests"
+              >
+                {{ demoRequestsLoading ? 'Refreshing…' : 'Refresh' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3 flex flex-wrap items-center gap-3">
+            <select v-model="demoRequestInterestFilter" class="input-field rounded-lg px-3 py-2 text-sm">
+              <option value="all">All interests</option>
+              <option value="request_demo">Request a Demo</option>
+              <option value="enterprise_pilot">Join Enterprise Pilot</option>
+            </select>
+            <input
+              v-model="demoRequestQuery"
+              type="search"
+              placeholder="Filter name, email, company…"
+              class="input-field w-64 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-violet-500/20 bg-white shadow-lg dark:border-violet-500/20 dark:bg-dark-900/90">
+            <table class="min-w-full text-left text-sm">
+              <thead class="border-b border-violet-500/15 bg-violet-500/5">
+                <tr>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">When</th>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">Name</th>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">Email</th>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">Company</th>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">Role</th>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">Interest</th>
+                  <th class="px-4 py-3 font-semibold text-violet-700 dark:text-violet-200">Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredDemoRequests.length === 0">
+                  <td colspan="7" class="px-4 py-6 text-center text-gray-400">
+                    {{ demoRequestsError || 'No demo requests yet. Submit the landing form, then refresh.' }}
+                  </td>
+                </tr>
+                <tr
+                  v-for="(row, idx) in filteredDemoRequests.slice(0, 100)"
+                  :key="String(row.id || row.email) + String(idx)"
+                  class="border-b border-gray-200 dark:border-dark-800"
+                >
+                  <td class="px-4 py-2 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                    {{ formatSiteTrafficTime(row.created_at || row.createdAt || row.ts) }}
+                  </td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.name || '—' }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.email || '—' }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.company || '—' }}</td>
+                  <td class="px-4 py-2 text-gray-800 dark:text-gray-200">{{ row.role || '—' }}</td>
+                  <td class="px-4 py-2">
+                    <span class="rounded px-2 py-0.5 text-xs font-medium bg-violet-500/20 text-violet-200">
+                      {{ formatDemoInterest(row.interest) }}
+                    </span>
+                  </td>
+                  <td class="max-w-xs truncate px-4 py-2 text-gray-400" :title="row.message || ''">
+                    {{ row.message || '—' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <!-- Signup leads — same layout pattern as Users (filters + table) -->
         <section class="mb-10 page-enter" data-testid="signup-leads">
           <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -1118,6 +1212,82 @@ async function refreshLandingVisitsFromServer() {
   }
 }
 
+type DemoRequestRow = {
+  id?: string | number
+  name?: string
+  email?: string
+  company?: string
+  role?: string
+  message?: string
+  interest?: string
+  created_at?: string
+  createdAt?: string
+  ts?: string | number
+}
+
+const demoRequests = ref<DemoRequestRow[]>([])
+const demoRequestsLoading = ref(false)
+const demoRequestsFromServer = ref(false)
+const demoRequestsError = ref('')
+const demoRequestInterestFilter = ref<'all' | 'request_demo' | 'enterprise_pilot'>('all')
+const demoRequestQuery = ref('')
+
+function formatDemoInterest(interest?: string) {
+  if (interest === 'enterprise_pilot') return 'Enterprise Pilot'
+  if (interest === 'request_demo') return 'Request a Demo'
+  return interest || '—'
+}
+
+const filteredDemoRequests = computed(() => {
+  const q = demoRequestQuery.value.trim().toLowerCase()
+  return demoRequests.value.filter((row) => {
+    if (
+      demoRequestInterestFilter.value !== 'all' &&
+      String(row.interest || '') !== demoRequestInterestFilter.value
+    ) {
+      return false
+    }
+    if (!q) return true
+    const hay = [row.name, row.email, row.company, row.role, row.message]
+      .map((v) => String(v || '').toLowerCase())
+      .join(' ')
+    return hay.includes(q)
+  })
+})
+
+async function fetchDemoRequests() {
+  demoRequestsLoading.value = true
+  demoRequestsError.value = ''
+  try {
+    const res = await authenticatedFetch(`${API}/demo-requests`)
+    if (!res.ok) {
+      demoRequestsFromServer.value = false
+      demoRequestsError.value =
+        res.status === 404
+          ? 'Demo-requests API not deployed yet'
+          : `Failed to load demo requests (${res.status})`
+      return
+    }
+    const data = await res.json()
+    const rows = Array.isArray(data?.items)
+      ? data.items
+      : Array.isArray(data?.demo_requests)
+        ? data.demo_requests
+        : Array.isArray(data?.requests)
+          ? data.requests
+          : Array.isArray(data)
+            ? data
+            : []
+    demoRequests.value = rows
+    demoRequestsFromServer.value = true
+  } catch (e: any) {
+    demoRequestsFromServer.value = false
+    demoRequestsError.value = e?.message || 'Failed to load demo requests'
+  } finally {
+    demoRequestsLoading.value = false
+  }
+}
+
 async function refreshSiteTraffic(opts?: { quiet?: boolean }) {
   const quiet = Boolean(opts?.quiet)
   if (!quiet) {
@@ -1684,6 +1854,7 @@ onMounted(async () => {
   refreshLocalSignupLeads()
   await Promise.all([
     refreshSiteTraffic(),
+    fetchDemoRequests(),
     fetchOverview(),
     fetchSignupLeads(),
     fetchTrends(),
