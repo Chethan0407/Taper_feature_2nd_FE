@@ -126,15 +126,6 @@
               </li>
               <li>
                 <router-link 
-                  to="/settings?section=notifications" 
-                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
-                  @click="closeProfileDropdown"
-                >
-                  Settings
-                </router-link>
-              </li>
-              <li>
-                <router-link 
                   to="/settings?section=security" 
                   class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
                   @click="closeProfileDropdown"
@@ -143,12 +134,21 @@
                 </router-link>
               </li>
               <li>
+                <router-link
+                  to="/settings?section=integrations"
+                  class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors"
+                  @click="closeProfileDropdown"
+                >
+                  Integrations
+                </router-link>
+              </li>
+              <li>
                 <router-link 
-                  to="/settings?section=branding" 
+                  to="/settings?section=organization" 
                   class="block px-4 py-3 text-white hover:bg-dark-800 transition-colors" 
                   @click="closeProfileDropdown"
                 >
-                  Branding
+                  Organization
                 </router-link>
               </li>
               <li v-if="authStore.canManageDataTransfer">

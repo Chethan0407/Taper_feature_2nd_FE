@@ -66,16 +66,20 @@ test.describe('Settings / profile / branding @authenticated', () => {
     await brandingPage.expectColorSchemeRemoved()
   })
 
-  test('edge: profile empty name blocked by required', async ({ authenticated, profilePage }) => {
+  test('settings tabs segregate account / security / integrations', async ({ authenticated, page }) => {
     void authenticated
-    await profilePage.goto()
-    await profilePage.expectLoaded()
-    if (await profilePage.nameInput().isVisible().catch(() => false)) {
-      await profilePage.nameInput().fill('')
-      await profilePage.saveButton().click()
-      // HTML5 required keeps user on profile
-      await expect(profilePage.nameInput()).toBeVisible()
-      await expect(profilePage.saveButton()).toBeVisible()
-    }
+    await page.goto('/settings')
+    await expect(page.getByTestId('settings-tabs')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByTestId('settings-tab-account')).toBeVisible()
+    await expect(page.locator('#profile')).toBeVisible()
+    await expect(page.getByTestId('settings-security')).toBeHidden()
+
+    await page.getByTestId('settings-tab-security').click()
+    await expect(page.getByTestId('settings-security')).toBeVisible()
+    await expect(page.locator('#profile')).toBeHidden()
+
+    await page.getByTestId('settings-tab-integrations').click()
+    await expect(page.getByTestId('settings-integrations')).toBeVisible()
+    await expect(page).toHaveURL(/section=integrations/)
   })
 })
