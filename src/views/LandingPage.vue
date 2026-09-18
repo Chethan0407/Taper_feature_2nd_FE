@@ -191,45 +191,31 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <!-- GIF 1: SpecLint -->
+          <!-- Preview 1: SpecLint (GIF optional — CSS mock until /public/product/*.gif exists) -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
               <h3 class="text-white font-semibold">SpecLint on upload</h3>
               <p class="text-xs text-gray-500 mt-1">Out-of-bounds parameter flagged automatically</p>
             </div>
             <div class="relative aspect-video bg-dark-950">
-              <img
-                v-show="!gifFailed.speclint"
-                src="/product/speclint-upload.gif"
-                alt="Spec upload triggering SpecLint error flag"
-                class="h-full w-full object-cover"
-                @error="gifFailed.speclint = true"
-              />
-              <div v-if="gifFailed.speclint" class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+              <div class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
                 <div class="rounded-lg border border-dark-600 bg-dark-800/60 p-3">
                   <p class="text-gray-300">spec_v3.xlsx uploaded</p>
-                  <p class="mt-1 text-xs text-red-400">SpecLint · ERROR · clock skew out of bounds</p>
+                  <p class="mt-1 text-xs font-bold text-red-400">[ERROR] Block B_CLK: Frequency 3.2GHz exceeds 7nm PDK max. Tapeout blocked.</p>
                 </div>
-                <p class="text-xs text-gray-500">Drop <code class="text-neon-blue">/public/product/speclint-upload.gif</code> to replace this preview.</p>
+                <p class="text-xs text-gray-500">Live demo → SpecLint Console after sign-in</p>
               </div>
             </div>
           </div>
 
-          <!-- GIF 2: Checklist approve -->
+          <!-- Preview 2: Checklist approve -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
               <h3 class="text-white font-semibold">DRC/LVS gate approve</h3>
               <p class="text-xs text-gray-500 mt-1">Manager approve → audit trail updates live</p>
             </div>
             <div class="relative aspect-video bg-dark-950">
-              <img
-                v-show="!gifFailed.checklist"
-                src="/product/checklist-approve.gif"
-                alt="Approving DRC LVS checklist with live audit history"
-                class="h-full w-full object-cover"
-                @error="gifFailed.checklist = true"
-              />
-              <div v-if="gifFailed.checklist" class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+              <div class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
                 <div class="flex justify-between rounded-lg border border-dark-600 bg-dark-800/60 p-3">
                   <span class="text-gray-300">DRC / LVS closure</span>
                   <span class="text-xs font-medium text-green-400">APPROVED</span>
@@ -237,31 +223,22 @@
                 <div class="border-l-2 border-neon-blue pl-3 text-xs text-gray-500">
                   Audit · eng.manager@acme.semi · just now
                 </div>
-                <p class="text-xs text-gray-500">Drop <code class="text-neon-blue">/public/product/checklist-approve.gif</code> to replace this preview.</p>
               </div>
             </div>
           </div>
 
-          <!-- GIF 3: Vendor handoff -->
+          <!-- Preview 3: Vendor handoff -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
               <h3 class="text-white font-semibold">Vendor performance view</h3>
               <p class="text-xs text-gray-500 mt-1">Siloed staging for foundry / OSAT handoff</p>
             </div>
             <div class="relative aspect-video bg-dark-950">
-              <img
-                v-show="!gifFailed.vendor"
-                src="/product/vendor-handoff.gif"
-                alt="Vendor performance view with secure file staging"
-                class="h-full w-full object-cover"
-                @error="gifFailed.vendor = true"
-              />
-              <div v-if="gifFailed.vendor" class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+              <div class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
                 <div class="rounded-lg border border-dark-600 bg-dark-800/60 p-3">
                   <p class="text-gray-300">Foundry package · siloed staging</p>
                   <p class="mt-1 text-xs text-gray-500">NDA scope · response SLA 18h</p>
                 </div>
-                <p class="text-xs text-gray-500">Drop <code class="text-neon-blue">/public/product/vendor-handoff.gif</code> to replace this preview.</p>
               </div>
             </div>
           </div>
@@ -645,11 +622,6 @@ const demoForm = reactive({
 const demoSubmitting = ref(false)
 const demoError = ref('')
 const demoSuccess = ref('')
-const gifFailed = reactive({
-  speclint: false,
-  checklist: false,
-  vendor: false,
-})
 
 onMounted(async () => {
   if (authStore.token && !authStore.user) {
