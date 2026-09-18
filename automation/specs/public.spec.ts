@@ -13,10 +13,10 @@ test.describe('Public / marketing — buttons & links @smoke', () => {
     await landingPage.goToLoginViaSignIn()
   })
 
-  test('landing: Get Started navigates to login', async ({ landingPage, page }) => {
+  test('landing: Request a Demo scrolls to demo form', async ({ landingPage, page }) => {
     await landingPage.goto()
     await landingPage.getStartedButton().click()
-    await expect(page).toHaveURL(/\/login/)
+    await expect(page.locator('#demo')).toBeVisible()
   })
 
   test('landing: footer legal links exist', async ({ landingPage }) => {

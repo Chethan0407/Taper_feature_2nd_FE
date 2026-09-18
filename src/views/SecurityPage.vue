@@ -109,10 +109,31 @@
           </section>
 
           <section>
+            <h2 class="text-2xl font-bold text-white mb-4">Deployment Options</h2>
+            <div class="space-y-4 text-gray-300 leading-relaxed">
+              <p>
+                TapeOutOps is designed for teams that treat GDSII, PDK rules, and foundry packages as proprietary IP.
+              </p>
+              <ul class="list-disc list-inside ml-4 space-y-2">
+                <li><span class="text-white font-medium">Private VPC (available):</span> Deploy in an isolated cloud VPC with customer-controlled networking.</li>
+                <li><span class="text-white font-medium">On-prem / dedicated VPC (roadmap):</span> Customer-managed or dedicated environments for the most IP-sensitive programs.</li>
+                <li><span class="text-white font-medium">AWS GovCloud (roadmap):</span> Evaluated for customers with elevated regulatory requirements.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
             <h2 class="text-2xl font-bold text-white mb-4">Compliance</h2>
-            <p class="text-gray-300 leading-relaxed">
-              We maintain compliance with industry standards and regulations relevant to semiconductor data protection, ensuring that your sensitive design information is handled according to best practices.
-            </p>
+            <div class="space-y-4 text-gray-300 leading-relaxed">
+              <p>
+                We maintain security practices aligned with semiconductor data-protection expectations, and we share architecture details under NDA during enterprise pilots.
+              </p>
+              <ul class="list-disc list-inside ml-4 space-y-2">
+                <li><span class="text-white font-medium">Encryption:</span> TLS 1.3 in transit; AES-256 at rest.</li>
+                <li><span class="text-white font-medium">Access control:</span> JWT auth, RBAC, session controls, and audit trails for approvals.</li>
+                <li><span class="text-white font-medium">SOC 2 roadmap:</span> Controls are being aligned toward SOC 2 Type II; security questionnaires and reviews are available for pilot customers.</li>
+              </ul>
+            </div>
           </section>
 
           <section>
