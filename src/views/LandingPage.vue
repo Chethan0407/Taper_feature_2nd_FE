@@ -191,31 +191,62 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <!-- Preview 1: SpecLint (GIF optional — CSS mock until /public/product/*.gif exists) -->
+          <!-- Preview 1: SpecLint GIF -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
               <h3 class="text-white font-semibold">SpecLint on upload</h3>
               <p class="text-xs text-gray-500 mt-1">Out-of-bounds parameter flagged automatically</p>
             </div>
             <div class="relative aspect-video bg-dark-950">
-              <div class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+              <img
+                v-show="gifReady.speclint"
+                :src="productGifs.speclint"
+                alt="Spec upload triggering SpecLint error flag"
+                class="h-full w-full object-cover"
+                @load="gifReady.speclint = true"
+                @error="gifReady.speclint = false"
+              />
+              <div
+                v-show="!gifReady.speclint"
+                class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm"
+              >
                 <div class="rounded-lg border border-dark-600 bg-dark-800/60 p-3">
                   <p class="text-gray-300">spec_v3.xlsx uploaded</p>
                   <p class="mt-1 text-xs font-bold text-red-400">[ERROR] Block B_CLK: Frequency 3.2GHz exceeds 7nm PDK max. Tapeout blocked.</p>
                 </div>
-                <p class="text-xs text-gray-500">Live demo → SpecLint Console after sign-in</p>
+                <p class="text-xs text-gray-500">Add <code class="text-neon-blue">public/product/speclint-upload.gif</code> for the live clip</p>
               </div>
+              <!-- Hidden probe so @load/@error fire even while fallback is visible -->
+              <img
+                v-if="!gifReady.speclint"
+                :src="productGifs.speclint"
+                alt=""
+                class="pointer-events-none absolute h-0 w-0 opacity-0"
+                @load="gifReady.speclint = true"
+                @error="gifReady.speclint = false"
+              />
             </div>
           </div>
 
-          <!-- Preview 2: Checklist approve -->
+          <!-- Preview 2: Checklist approve GIF -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
               <h3 class="text-white font-semibold">DRC/LVS gate approve</h3>
               <p class="text-xs text-gray-500 mt-1">Manager approve → audit trail updates live</p>
             </div>
             <div class="relative aspect-video bg-dark-950">
-              <div class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+              <img
+                v-show="gifReady.checklist"
+                :src="productGifs.checklist"
+                alt="Approving DRC LVS checklist with live audit history"
+                class="h-full w-full object-cover"
+                @load="gifReady.checklist = true"
+                @error="gifReady.checklist = false"
+              />
+              <div
+                v-show="!gifReady.checklist"
+                class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm"
+              >
                 <div class="flex justify-between rounded-lg border border-dark-600 bg-dark-800/60 p-3">
                   <span class="text-gray-300">DRC / LVS closure</span>
                   <span class="text-xs font-medium text-green-400">APPROVED</span>
@@ -223,23 +254,52 @@
                 <div class="border-l-2 border-neon-blue pl-3 text-xs text-gray-500">
                   Audit · eng.manager@acme.semi · just now
                 </div>
+                <p class="text-xs text-gray-500">Add <code class="text-neon-blue">public/product/checklist-approve.gif</code> for the live clip</p>
               </div>
+              <img
+                v-if="!gifReady.checklist"
+                :src="productGifs.checklist"
+                alt=""
+                class="pointer-events-none absolute h-0 w-0 opacity-0"
+                @load="gifReady.checklist = true"
+                @error="gifReady.checklist = false"
+              />
             </div>
           </div>
 
-          <!-- Preview 3: Vendor handoff -->
+          <!-- Preview 3: Vendor handoff GIF -->
           <div class="glass-effect rounded-2xl border border-dark-700 overflow-hidden">
             <div class="px-5 py-3 border-b border-dark-600 bg-dark-800/80">
               <h3 class="text-white font-semibold">Vendor performance view</h3>
               <p class="text-xs text-gray-500 mt-1">Siloed staging for foundry / OSAT handoff</p>
             </div>
             <div class="relative aspect-video bg-dark-950">
-              <div class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm">
+              <img
+                v-show="gifReady.vendor"
+                :src="productGifs.vendor"
+                alt="Vendor performance view with secure file staging"
+                class="h-full w-full object-cover"
+                @load="gifReady.vendor = true"
+                @error="gifReady.vendor = false"
+              />
+              <div
+                v-show="!gifReady.vendor"
+                class="absolute inset-0 flex flex-col justify-center gap-3 p-5 text-sm"
+              >
                 <div class="rounded-lg border border-dark-600 bg-dark-800/60 p-3">
                   <p class="text-gray-300">Foundry package · siloed staging</p>
                   <p class="mt-1 text-xs text-gray-500">NDA scope · response SLA 18h</p>
                 </div>
+                <p class="text-xs text-gray-500">Add <code class="text-neon-blue">public/product/vendor-handoff.gif</code> for the live clip</p>
               </div>
+              <img
+                v-if="!gifReady.vendor"
+                :src="productGifs.vendor"
+                alt=""
+                class="pointer-events-none absolute h-0 w-0 opacity-0"
+                @load="gifReady.vendor = true"
+                @error="gifReady.vendor = false"
+              />
             </div>
           </div>
         </div>
@@ -622,6 +682,17 @@ const demoForm = reactive({
 const demoSubmitting = ref(false)
 const demoError = ref('')
 const demoSuccess = ref('')
+const gifReady = reactive({
+  speclint: false,
+  checklist: false,
+  vendor: false,
+})
+/** Public folder URLs — not Vite module imports */
+const productGifs = {
+  speclint: '/product/speclint-upload.gif',
+  checklist: '/product/checklist-approve.gif',
+  vendor: '/product/vendor-handoff.gif',
+}
 
 onMounted(async () => {
   if (authStore.token && !authStore.user) {
