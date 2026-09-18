@@ -99,6 +99,9 @@ export const useProjectsStore = defineStore('projects', () => {
         if (response.status === 401) {
           throw new Error('Not authenticated')
         }
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          throw new Error('The API is temporarily unavailable. Please try again in a moment.')
+        }
         const errorText = await response.text()
         throw new Error(errorText || 'Failed to load projects')
       }

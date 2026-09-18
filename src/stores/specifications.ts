@@ -218,6 +218,9 @@ export const useSpecificationsStore = defineStore('specifications', () => {
               // This prevents unwanted logouts when loading specs fails
               throw new Error('Not authenticated')
             }
+            if (response.status === 502 || response.status === 503 || response.status === 504) {
+              throw new Error('The API is temporarily unavailable. Please try again in a moment.')
+            }
             const errorText = await response.text()
             throw new Error(errorText || 'Failed to load specifications')
           }

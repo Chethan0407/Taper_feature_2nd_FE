@@ -1,6 +1,10 @@
 import { useAuthStore } from '@/stores/auth'
 import { resolveApiUrl } from '@/config/api'
 import { validateToken, isTokenExpired } from './token-utils'
+import { isAbortError } from '@/utils/request-coordinator'
+
+/** Prevent infinite loading spinners when nginx/upstream hangs. */
+const DEFAULT_FETCH_TIMEOUT_MS = 20_000
 
 /**
  * Helper function to create authenticated headers
@@ -38,7 +42,7 @@ export function getAuthHeaders(contentType?: string): HeadersInit {
  */
 export async function authenticatedFetch(
   url: string, 
-  options: RequestInit = {}
+  options: RequestInit & { timeoutMs?: number } = {}
 ): Promise<Response> {
   const authStore = useAuthStore()
   
@@ -241,10 +245,29 @@ export async function authenticatedFetch(
     
     // Add optional properties
     if (options.body) fetchOptions.body = options.body
-    if (options.signal) fetchOptions.signal = options.signal
     if (options.cache) fetchOptions.cache = options.cache
     if (options.credentials) fetchOptions.credentials = options.credentials
     if (options.mode) fetchOptions.mode = options.mode
+
+    // Merge caller abort + hard timeout so UI never spins forever on hung upstream.
+    const timeoutMs =
+      typeof options.timeoutMs === 'number' ? options.timeoutMs : DEFAULT_FETCH_TIMEOUT_MS
+    const timeoutController = new AbortController()
+    let timedOut = false
+    const timeoutId =
+      timeoutMs > 0
+        ? window.setTimeout(() => {
+            timedOut = true
+            timeoutController.abort()
+          }, timeoutMs)
+        : null
+    const callerSignal = options.signal
+    const onCallerAbort = () => timeoutController.abort()
+    if (callerSignal) {
+      if (callerSignal.aborted) timeoutController.abort()
+      else callerSignal.addEventListener('abort', onCallerAbort, { once: true })
+    }
+    fetchOptions.signal = timeoutController.signal
     
     // Final verification before sending - headers should still have Authorization
     const finalCheckHeaders = fetchOptions.headers as Record<string, string>
@@ -328,9 +351,38 @@ export async function authenticatedFetch(
       authHeaderLength: authHeader.length
     })
     
-    // Make the fetch request - headers should be properly formatted
-    const response = await fetch(resolveApiUrl(cleanUrl), fetchOptions)
-    
+    let response: Response
+    try {
+      response = await fetch(resolveApiUrl(cleanUrl), fetchOptions)
+    } catch (fetchErr) {
+      if (timeoutId != null) window.clearTimeout(timeoutId)
+      callerSignal?.removeEventListener('abort', onCallerAbort)
+      // Caller cancelled — rethrow so pages can ignore without treating as API outage
+      if (callerSignal?.aborted && !timedOut) {
+        throw fetchErr instanceof Error ? fetchErr : new DOMException('Aborted', 'AbortError')
+      }
+      if (timedOut || isAbortError(fetchErr)) {
+        const timeoutResponse = new Response(
+          JSON.stringify({
+            detail: 'Request timed out. The API took too long to respond — please try again.',
+          }),
+          {
+            status: 504,
+            statusText: 'Gateway Timeout',
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
+        ;(timeoutResponse as any).errorDetail = 'Request timed out'
+        ;(timeoutResponse as any).isTimeout = true
+        ;(timeoutResponse as any).isNetworkError = true
+        return timeoutResponse
+      }
+      throw fetchErr
+    } finally {
+      if (timeoutId != null) window.clearTimeout(timeoutId)
+      callerSignal?.removeEventListener('abort', onCallerAbort)
+    }
+
     console.log('📥 authenticatedFetch - Response:', {
       url: cleanUrl,
       status: response.status,
@@ -429,12 +481,16 @@ export async function authenticatedFetch(
   
     return response
   } catch (fetchError: any) {
+    // Navigation / page-scope cancel — let callers treat as AbortError (no error banner)
+    if (isAbortError(fetchError)) {
+      throw fetchError
+    }
     console.error('❌ authenticatedFetch - Network error:', fetchError)
     // Response status MUST be 200–599. status: 0 throws TypeError and surfaces as
     // "Failed to construct 'Response'..." in SpecLint / other UI (e.g. Add Rule).
     const errorResponse = new Response(
       JSON.stringify({
-        detail: 'Network error: ' + (fetchError.message || 'Failed to fetch'),
+        detail: 'Network error: The API is unreachable. Please try again.',
       }),
       {
         status: 503,
