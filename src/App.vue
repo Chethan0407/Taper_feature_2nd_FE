@@ -10,15 +10,7 @@
         </button>
       </div>
     </div>
-    <div v-else-if="!mounted" class="flex min-h-screen items-center justify-center bg-[#e8eef4] text-slate-900 dark:bg-dark-950 dark:text-gray-100">
-      <div class="text-center">
-        <div class="mb-4 text-2xl font-medium">Loading…</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Initializing application</div>
-      </div>
-    </div>
     <router-view v-else />
-    <!-- Suggestion Chat Widget -->
-    <!-- <SuggestionChat /> -->
   </div>
 </template>
 
@@ -26,10 +18,7 @@
 import { ref, onMounted, onErrorCaptured } from 'vue'
 import { useBrandingStore } from '@/stores/branding'
 import { applyBrandTheme } from '@/utils/brand-theme'
-// Temporarily disable SuggestionChat to debug white page issue
-// import SuggestionChat from '@/components/Common/SuggestionChat.vue'
 
-const mounted = ref(false)
 const error = ref<string | null>(null)
 
 onErrorCaptured((err: any) => {
@@ -38,14 +27,11 @@ onErrorCaptured((err: any) => {
   return false
 })
 
-onMounted(async () => {
+onMounted(() => {
   try {
-    // Defaults first so accents exist before branding fetch resolves
     applyBrandTheme()
     const branding = useBrandingStore()
-    // Fire-and-forget; header also fetches when needed
     branding.fetchBranding().catch(() => undefined)
-    mounted.value = true
   } catch (err: any) {
     console.error('🚨 Error in onMounted:', err)
     error.value = err.message || 'Failed to initialize application'

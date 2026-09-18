@@ -56,10 +56,36 @@ function normalizeUser(raw: Record<string, unknown> | null | undefined): User | 
   }
 }
 
+const USER_CACHE_KEY = 'tapeout_user_cache'
+
+function readCachedUser(): User | null {
+  try {
+    const raw = sessionStorage.getItem(USER_CACHE_KEY)
+    if (!raw) return null
+    return normalizeUser(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+function writeCachedUser(u: User | null) {
+  try {
+    if (!u) {
+      sessionStorage.removeItem(USER_CACHE_KEY)
+      return
+    }
+    sessionStorage.setItem(USER_CACHE_KEY, JSON.stringify(u))
+  } catch {
+    /* ignore quota */
+  }
+}
+
 const API_BASE = resolveApiUrl('/api/v1/auth')
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
+  // Instant paint on refresh: reuse last /me profile while a fresh check runs in the background
+  const cachedUser = readCachedUser()
+  const user = ref<User | null>(cachedUser)
   // Load token from localStorage, but filter out invalid values
   const storedToken = localStorage.getItem('tapeout_token')
   const token = ref<string | null>(
@@ -67,6 +93,11 @@ export const useAuthStore = defineStore('auth', () => {
       ? storedToken 
       : null
   )
+  // Drop stale cache if there is no token
+  if (!token.value && user.value) {
+    user.value = null
+    writeCachedUser(null)
+  }
   const isLoading = ref(false)
   let authCheckInProgress = false // Flag to prevent multiple simultaneous auth checks
   let authCheckPromise: Promise<boolean> | null = null
@@ -207,6 +238,7 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(`Failed to fetch profile: ${errorText}`)
       }
       user.value = normalizeUser(await profileRes.json())
+      writeCachedUser(user.value)
       console.log('✅ User profile loaded after login:', user.value?.email, 'superuser:', user.value?.is_superuser)
       
       return { success: true }
@@ -271,6 +303,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Set user data from response
       if (data.user) {
         user.value = normalizeUser(data.user)
+        writeCachedUser(user.value)
         console.log('✅ User data set after email verification:', user.value?.email)
       } else {
         // Fetch user profile if not included in response
@@ -278,6 +311,7 @@ export const useAuthStore = defineStore('auth', () => {
         const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
         if (profileRes.ok) {
           user.value = normalizeUser(await profileRes.json())
+          writeCachedUser(user.value)
           console.log('✅ User profile loaded after verification')
         }
       }
@@ -339,6 +373,7 @@ export const useAuthStore = defineStore('auth', () => {
         const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders })
         if (!profileRes.ok) throw new Error('Failed to fetch profile')
         user.value = normalizeUser(await profileRes.json())
+        writeCachedUser(user.value)
         return { success: true }
       } else {
         throw new Error('No valid token received')
@@ -373,6 +408,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     token.value = null
     localStorage.removeItem('tapeout_token')
+    writeCachedUser(null)
     
     console.log('✅ Logout completed - user and token cleared')
   }
@@ -420,6 +456,7 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = null
             token.value = null
             localStorage.removeItem('tapeout_token')
+            writeCachedUser(null)
           }
           return false
         }
@@ -427,6 +464,7 @@ export const useAuthStore = defineStore('auth', () => {
         const userData = await response.json()
         console.log('✅ Auth check successful, user data:', userData)
         user.value = normalizeUser(userData)
+        writeCachedUser(user.value)
         console.log('🔑 is_superuser normalized:', user.value?.is_superuser)
         return true
       } catch (error: any) {
@@ -454,6 +492,7 @@ export const useAuthStore = defineStore('auth', () => {
       avatar: next || undefined,
       avatar_url: next || undefined,
     }
+    writeCachedUser(user.value)
   }
 
   // Auto-load user data if token exists but user is missing

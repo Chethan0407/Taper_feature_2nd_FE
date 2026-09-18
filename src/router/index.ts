@@ -255,13 +255,16 @@ router.beforeEach(async (to, from, next) => {
         invalidateRequestCache('/api/v1/checklists')
       }
 
-      // Hydrate profile when we only have a token (sidebar superuser links, welcome name, etc.)
+      // Hydrate profile in background — do not block first paint waiting on /me
       if (!authStore.user) {
-        await authStore.checkAuth()
+        void authStore.checkAuth()
       }
 
-      // Superuser-only routes (System Usage)
+      // Superuser-only routes need a resolved profile before we can gate
       if (to.meta.requiresSuperuser || to.meta.requiresAdmin) {
+        if (!authStore.user) {
+          await authStore.checkAuth()
+        }
         if (authStore.isSuperuser !== true) {
           next({ path: '/dashboard', query: { notice: 'admin_required' }, replace: true })
           return

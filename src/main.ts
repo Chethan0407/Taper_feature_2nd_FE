@@ -35,7 +35,22 @@ try {
   }
   
   console.log('🚀 main.ts: Setting up Pinia...')
-  app.use(createPinia())
+  const pinia = createPinia()
+  app.use(pinia)
+
+  // Start /me hydrate ASAP (does not block mount)
+  try {
+    const { useAuthStore } = await import('./stores/auth')
+    const auth = useAuthStore(pinia)
+    if (auth.token && !auth.user) {
+      void auth.checkAuth()
+    } else if (auth.token && auth.user) {
+      // Refresh cache in background after instant paint from session cache
+      void auth.checkAuth()
+    }
+  } catch {
+    /* ignore */
+  }
   
   console.log('🚀 main.ts: Setting up Router...')
   app.use(router)
