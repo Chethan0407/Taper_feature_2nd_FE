@@ -1,5 +1,5 @@
 <template>
-  <section data-testid="vendor-performance" class="module-panel module-panel-accent overflow-hidden p-6">
+  <section data-testid="vendor-performance" class="module-panel module-panel-accent p-6">
     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h2 class="module-section-title">Vendor performance</h2>
@@ -18,53 +18,56 @@
     </div>
 
     <p v-if="note" class="mb-3 text-xs text-slate-500 dark:text-gray-400">{{ note }}</p>
-    <p v-if="error" class="mb-3 text-sm text-amber-400">
+    <p v-if="error" class="mb-3 text-sm text-amber-300">
       {{ error }}
       <button type="button" class="ml-2 font-medium text-neon-blue hover:underline" @click="load">Try again</button>
     </p>
-    <div v-if="loading && !rows.length" class="py-6 text-center text-sm text-slate-500">Loading performance…</div>
+
+    <div v-if="loading && !rows.length" class="py-8 text-center text-sm text-slate-400 dark:text-gray-400">
+      Loading performance…
+    </div>
     <div
       v-else-if="!rows.length"
-      class="rounded-xl border border-dashed border-slate-300 py-8 text-center text-sm text-slate-500 dark:border-dark-600"
+      class="rounded-xl border border-dashed border-slate-300 py-8 text-center text-sm text-slate-500 dark:border-dark-600 dark:text-gray-400"
     >
       No vendor performance rows yet.
     </div>
-    <div v-else class="overflow-x-auto" :class="{ 'opacity-70': loading }">
-      <table class="min-w-full text-left text-sm">
-        <thead class="text-xs uppercase tracking-wide text-slate-400">
+    <div v-else class="-mx-1 overflow-x-auto" :class="{ 'opacity-80': loading }">
+      <table class="min-w-full text-left text-sm text-slate-800 dark:text-gray-200">
+        <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-gray-400">
           <tr>
-            <th class="py-2 pr-3">Vendor</th>
-            <th class="py-2 pr-3">Status</th>
-            <th class="py-2 pr-3">Specs</th>
-            <th class="py-2 pr-3">Acks</th>
-            <th class="py-2 pr-3">SLA</th>
-            <th class="py-2 pr-3">Staging</th>
-            <th class="py-2">Last activity</th>
+            <th class="py-2 pr-4 font-medium">Vendor</th>
+            <th class="py-2 pr-4 font-medium">Status</th>
+            <th class="py-2 pr-4 font-medium">Specs</th>
+            <th class="py-2 pr-4 font-medium">Acks</th>
+            <th class="py-2 pr-4 font-medium">SLA</th>
+            <th class="py-2 pr-4 font-medium">Staging</th>
+            <th class="py-2 font-medium">Last activity</th>
           </tr>
         </thead>
-        <tbody class="text-slate-700 dark:text-gray-300">
+        <tbody>
           <tr
             v-for="row in rows"
             :key="String(row.vendor_id)"
-            class="border-t border-slate-100 dark:border-dark-700"
+            class="border-t border-slate-200 dark:border-dark-700"
           >
-            <td class="py-2 pr-3 font-medium">
+            <td class="py-3 pr-4 font-medium text-slate-900 dark:text-white">
               {{ row.name }}
-              <span v-if="row.type" class="ml-1 text-xs text-slate-400">· {{ row.type }}</span>
+              <span v-if="row.type" class="ml-1 text-xs font-normal text-slate-500 dark:text-gray-400">· {{ row.type }}</span>
             </td>
-            <td class="py-2 pr-3">{{ row.status || '—' }}</td>
-            <td class="py-2 pr-3">{{ row.linked_specifications ?? 0 }}</td>
-            <td class="py-2 pr-3">{{ row.acknowledgements ?? 0 }}</td>
-            <td class="py-2 pr-3">
-              <span :class="row.sla_breached ? 'text-red-400' : 'text-emerald-400'">
+            <td class="py-3 pr-4">{{ row.status || '—' }}</td>
+            <td class="py-3 pr-4">{{ row.linked_specifications ?? 0 }}</td>
+            <td class="py-3 pr-4">{{ row.acknowledgements ?? 0 }}</td>
+            <td class="py-3 pr-4">
+              <span :class="row.sla_breached ? 'font-medium text-red-400' : 'font-medium text-emerald-400'">
                 {{ row.sla_breached ? 'Breached' : 'OK' }}
               </span>
-              <span v-if="row.response_sla_hours != null" class="ml-1 text-xs text-slate-400">
+              <span v-if="row.response_sla_hours != null" class="ml-1 text-xs text-slate-500 dark:text-gray-400">
                 ({{ row.response_sla_hours }}h)
               </span>
             </td>
-            <td class="py-2 pr-3">{{ row.staging || '—' }}</td>
-            <td class="py-2">{{ formatWhen(row.last_activity_at) }}</td>
+            <td class="py-3 pr-4">{{ row.staging || '—' }}</td>
+            <td class="py-3 whitespace-nowrap">{{ formatWhen(row.last_activity_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -101,7 +104,6 @@ async function load() {
   } catch (e: any) {
     if (isAbortError(e)) return
     error.value = e?.message || 'Failed to load vendor performance'
-    // Keep previous rows so the panel does not vanish on a flaky refresh
   } finally {
     loading.value = false
   }
