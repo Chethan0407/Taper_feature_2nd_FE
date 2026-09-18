@@ -29,15 +29,15 @@ export class LandingPage extends BasePage {
   }
 
   footerPrivacy(): Locator {
-    return this.page.getByRole('link', { name: /privacy/i }).first()
+    return this.page.locator('footer').getByRole('link', { name: /^privacy$/i })
   }
 
   footerTerms(): Locator {
-    return this.page.getByRole('link', { name: /terms/i }).first()
+    return this.page.locator('footer').getByRole('link', { name: /^terms$/i })
   }
 
   footerSecurity(): Locator {
-    return this.page.getByRole('link', { name: /security/i }).first()
+    return this.page.locator('footer').getByRole('link', { name: /^security$/i })
   }
 
   footerDocs(): Locator {

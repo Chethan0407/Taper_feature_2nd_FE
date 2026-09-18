@@ -16,7 +16,10 @@ test.describe('Landing honesty from public APIs @smoke', () => {
     await expect(page.getByText(/Calibre \/ GDSII layout mutation/i).first()).toBeVisible()
     await expect(page.getByTestId('landing-mcp-badge')).toBeVisible()
     await expect(page.getByText(/Cursor \/ Claude MCP — live \(API key\)/i)).toBeVisible()
-    await expect(page.getByText(/SOC 2 certified/i)).toHaveCount(0)
+    await expect(page.getByTestId('landing-signoff-preview').getByText(/Marketing preview/i)).toBeVisible()
+    await expect(page.getByTestId('security-pillars').getByText(/TLS 1\.3/i)).toBeVisible()
+    await expect(page.getByText(/Not SOC 2 certified/i).first()).toBeVisible()
+    await expect(page.getByText(/^SOC 2 certified$/i)).toHaveCount(0)
   })
 
   test('demo form accepts investor_data_room interest', async ({ page }) => {

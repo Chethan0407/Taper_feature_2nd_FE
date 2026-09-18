@@ -80,18 +80,32 @@
           </button>
         </div>
 
-        <!-- Hero preview: sign-off matrix -->
-        <div class="relative max-w-6xl mx-auto">
+        <!-- Hero: sign-off matrix — marketing preview OR live when logged in -->
+        <div class="relative max-w-6xl mx-auto" data-testid="landing-signoff-preview">
           <div class="glass-effect rounded-3xl p-1 shadow-2xl border border-neon-blue/30 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-r from-neon-blue/20 via-neon-purple/20 to-neon-blue/20 blur-xl opacity-50"></div>
             <div class="bg-gradient-to-br from-dark-800 via-dark-800 to-dark-900 rounded-2xl overflow-hidden relative text-left">
-              <div class="bg-dark-700/80 backdrop-blur-sm px-6 py-3 flex items-center justify-between border-b border-dark-600/50">
+              <div class="bg-dark-700/80 backdrop-blur-sm px-6 py-3 flex flex-wrap items-center justify-between gap-2 border-b border-dark-600/50">
                 <div class="flex items-center space-x-3">
                   <div class="w-8 h-8 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg"></div>
                   <span class="text-sm text-gray-300 font-medium">Tapeout Gate — Sign-off Matrix</span>
                 </div>
-                <span class="text-xs text-neon-blue bg-neon-blue/10 px-2 py-1 rounded">LIVE PREVIEW</span>
+                <span
+                  class="text-xs px-2 py-1 rounded border"
+                  :class="signoffIsLive
+                    ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+                    : 'text-amber-200 bg-amber-500/10 border-amber-500/30'"
+                >
+                  {{ signoffIsLive ? 'Live · your project' : 'Marketing preview' }}
+                </span>
               </div>
+              <p
+                v-if="!signoffIsLive"
+                class="px-6 pt-3 text-xs text-gray-500"
+              >
+                Illustrative gates for visitors — not live project data. Sign in to load
+                <code class="text-gray-400">GET /projects/&#123;id&#125;/signoff-matrix</code>.
+              </p>
               <div class="p-6 overflow-x-auto">
                 <table class="w-full text-sm min-w-[640px]">
                   <thead>
@@ -104,33 +118,16 @@
                     </tr>
                   </thead>
                   <tbody class="text-gray-300">
-                    <tr class="border-b border-dark-700/80">
-                      <td class="py-3">DRC closure</td>
-                      <td class="py-3 text-gray-400">Physical Design</td>
-                      <td class="py-3"><span class="text-green-400">Signed off</span></td>
-                      <td class="py-3">a.chen@acme.semi</td>
-                      <td class="py-3 text-gray-500">2h ago</td>
-                    </tr>
-                    <tr class="border-b border-dark-700/80">
-                      <td class="py-3">LVS closure</td>
-                      <td class="py-3 text-gray-400">Physical Design</td>
-                      <td class="py-3"><span class="text-yellow-400">In review</span></td>
-                      <td class="py-3 text-gray-500">—</td>
-                      <td class="py-3 text-gray-500">—</td>
-                    </tr>
-                    <tr class="border-b border-dark-700/80">
-                      <td class="py-3">Packaging handover</td>
-                      <td class="py-3 text-gray-400">OSAT / Package</td>
-                      <td class="py-3"><span class="text-gray-400">Pending</span></td>
-                      <td class="py-3 text-gray-500">—</td>
-                      <td class="py-3 text-gray-500">—</td>
-                    </tr>
-                    <tr>
-                      <td class="py-3">Foundry tapeout package</td>
-                      <td class="py-3 text-gray-400">Program Mgmt</td>
-                      <td class="py-3"><span class="text-gray-400">Blocked</span></td>
-                      <td class="py-3 text-gray-500">—</td>
-                      <td class="py-3 text-gray-500">—</td>
+                    <tr
+                      v-for="(row, idx) in signoffPreviewRows"
+                      :key="String(row.gate_id || row.gate) + idx"
+                      class="border-b border-dark-700/80 last:border-0"
+                    >
+                      <td class="py-3">{{ row.gate }}</td>
+                      <td class="py-3 text-gray-400">{{ row.owner || '—' }}</td>
+                      <td class="py-3">{{ row.status }}</td>
+                      <td class="py-3">{{ row.approved_by || '—' }}</td>
+                      <td class="py-3 text-gray-500">{{ row.when || '—' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -322,68 +319,71 @@
           </div>
         </div>
 
-        <!-- Security pillars — immediately under the 3-step story -->
+        <!-- Security pillars — from GET /public/security -->
         <div class="mt-16" data-testid="security-pillars">
           <div class="text-center mb-8">
             <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">Security pillars</h3>
             <p class="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
-              Built for foundry NDAs—isolation and encryption before any pilot starts
+              Live controls from the public security API — no invented certifications
             </p>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
-              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Data protection</p>
-              <h4 class="text-white font-semibold mb-2">End-to-End TLS 1.3 &amp; AES-256</h4>
-              <p class="text-gray-400 text-sm">Transit encryption plus AES-256 storage encryption for operational metadata at rest.</p>
-            </div>
-            <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
-              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Deployment options</p>
-              <h4 class="text-white font-semibold mb-2">Isolated cloud VPC <span class="text-xs font-medium text-sky-300">(ops)</span></h4>
-              <p class="text-gray-400 text-sm">
-                TLS 1.3, AES-256, VPC segmentation, backups, firewalls, Datadog monitoring.
-                On-prem / dedicated VPC and GovCloud are roadmap.
+          <p v-if="securityError" class="mb-4 text-center text-sm text-amber-300">{{ securityError }}</p>
+          <div v-else-if="securityLoading" class="text-center text-sm text-gray-500">Loading security…</div>
+          <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+              v-for="card in securityPillars"
+              :key="card.key"
+              class="glass-effect rounded-xl p-6 border border-dark-700 text-left"
+            >
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide">{{ card.eyebrow }}</p>
+                <span
+                  class="rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  :class="claimTone(card.status)"
+                >{{ card.status }}</span>
+              </div>
+              <h4 class="text-white font-semibold mb-2">{{ card.title }}</h4>
+              <p class="text-gray-400 text-sm">{{ card.notes }}</p>
+              <p
+                v-if="card.key === 'soc2'"
+                class="mt-2 text-xs font-medium text-amber-300/90"
+              >
+                Not SOC 2 certified — roadmap alignment only.
               </p>
-            </div>
-            <div class="glass-effect rounded-xl p-6 border border-dark-700 text-left">
-              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Compliance roadmap</p>
-              <h4 class="text-white font-semibold mb-2">SOC 2 Type II <span class="text-xs font-medium text-violet-300">(roadmap)</span></h4>
-              <p class="text-gray-400 text-sm">Controls aligned toward SOC 2 Type II — not certified. Questionnaires available for pilots.</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Security Architecture -->
-    <section id="security" class="py-20 px-4 sm:px-6 lg:px-8 bg-dark-900/50">
+    <!-- Security Architecture — from GET /public/security -->
+    <section id="security" class="py-20 px-4 sm:px-6 lg:px-8 bg-dark-900/50" data-testid="landing-security">
       <div class="max-w-7xl mx-auto">
         <div class="text-center mb-16">
           <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Security Architecture</h2>
           <p class="text-xl text-gray-400 max-w-3xl mx-auto">
-            Designed for foundry-customer NDA paranoia—encryption, isolation, and a clear compliance roadmap
+            {{ securityOverview?.data_boundary || 'Designed for foundry-customer NDA paranoia—encryption, isolation, and a clear compliance roadmap' }}
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div class="glass-effect rounded-xl p-6 border border-dark-700">
-            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">In transit</p>
-            <h3 class="text-white font-semibold mb-2">TLS 1.3</h3>
-            <p class="text-gray-400 text-sm">All browser ↔ API traffic encrypted end to end.</p>
-          </div>
-          <div class="glass-effect rounded-xl p-6 border border-dark-700">
-            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">At rest</p>
-            <h3 class="text-white font-semibold mb-2">AES-256</h3>
-            <p class="text-gray-400 text-sm">Stored artifacts and databases encrypted at rest.</p>
-          </div>
-          <div class="glass-effect rounded-xl p-6 border border-dark-700">
-            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Deployment</p>
-            <h3 class="text-white font-semibold mb-2">Private VPC</h3>
-            <p class="text-gray-400 text-sm">Cloud VPC deploy today; on-prem / dedicated VPC roadmap for IP-sensitive customers.</p>
-          </div>
-          <div class="glass-effect rounded-xl p-6 border border-dark-700">
-            <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide mb-2">Compliance</p>
-            <h3 class="text-white font-semibold mb-2">SOC 2 Type II (roadmap)</h3>
-            <p class="text-gray-400 text-sm">Not certified. Controls aligned toward SOC 2 Type II; security reviews available for pilots.</p>
+        <div
+          v-if="securityArchCards.length"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+        >
+          <div
+            v-for="card in securityArchCards"
+            :key="card.key"
+            class="glass-effect rounded-xl p-6 border border-dark-700"
+          >
+            <div class="mb-2 flex items-center justify-between gap-2">
+              <p class="text-neon-blue text-xs font-semibold uppercase tracking-wide">{{ card.eyebrow }}</p>
+              <span
+                class="rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                :class="claimTone(card.status)"
+              >{{ card.status }}</span>
+            </div>
+            <h3 class="text-white font-semibold mb-2">{{ card.title }}</h3>
+            <p class="text-gray-400 text-sm">{{ card.notes }}</p>
           </div>
         </div>
 
@@ -714,9 +714,9 @@
           <div>
             <h4 class="text-white font-semibold mb-4">Legal</h4>
             <ul class="space-y-2 text-sm text-gray-400">
-              <li><router-link to="/privacy" class="hover:text-neon-blue transition-colors">Privacy</router-link></li>
-              <li><router-link to="/terms" class="hover:text-neon-blue transition-colors">Terms</router-link></li>
-              <li><router-link to="/security" class="hover:text-neon-blue transition-colors">Security</router-link></li>
+              <li><a href="/privacy" class="hover:text-neon-blue transition-colors">Privacy</a></li>
+              <li><a href="/terms" class="hover:text-neon-blue transition-colors">Terms</a></li>
+              <li><a href="/security" class="hover:text-neon-blue transition-colors">Security</a></li>
             </ul>
           </div>
         </div>
@@ -737,6 +737,11 @@ import { reportLandingVisit } from '@/utils/clientTelemetry'
 import { resolveApiUrl } from '@/config/api'
 import { fetchPublicCapabilities, fetchPublicIntegrations } from '@/api/public-claims'
 import type { CapabilityClaim, IntegrationItem } from '@/api/public-claims'
+import { fetchPublicSecurity } from '@/api/security'
+import type { PublicSecurityOverview, SecurityControlItem, SecurityStatus } from '@/types/security'
+import { isSecurityStatus } from '@/types/security'
+import { fetchSignoffMatrix, type SignoffMatrixRow } from '@/api/product-surfaces'
+import { authenticatedFetch } from '@/utils/auth-requests'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -747,6 +752,23 @@ const integrationsOutOfScope = ref<IntegrationItem[]>([])
 const integrationsNote = ref('')
 const integrationsError = ref('')
 const capabilityClaims = ref<CapabilityClaim[]>([])
+
+const securityOverview = ref<PublicSecurityOverview | null>(null)
+const securityLoading = ref(false)
+const securityError = ref('')
+
+const MARKETING_SIGNOFF_ROWS: SignoffMatrixRow[] = [
+  { gate_id: 'preview-drc', gate: 'DRC closure', owner: 'Physical Design', status: 'Signed off', approved_by: 'a.chen@acme.semi', when: '2h ago' },
+  { gate_id: 'preview-lvs', gate: 'LVS closure', owner: 'Physical Design', status: 'In review', approved_by: null, when: null },
+  { gate_id: 'preview-pkg', gate: 'Packaging handover', owner: 'OSAT / Package', status: 'Pending', approved_by: null, when: null },
+  { gate_id: 'preview-fab', gate: 'Foundry tapeout package', owner: 'Program Mgmt', status: 'Blocked', approved_by: null, when: null },
+]
+
+const liveSignoffRows = ref<SignoffMatrixRow[]>([])
+const signoffIsLive = computed(() => liveSignoffRows.value.length > 0)
+const signoffPreviewRows = computed(() =>
+  signoffIsLive.value ? liveSignoffRows.value : MARKETING_SIGNOFF_ROWS,
+)
 
 const mcpAgentLive = computed(() =>
   capabilityClaims.value.some((c) => {
@@ -761,7 +783,104 @@ function claimTone(status: string) {
   if (s === 'live') return 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
   if (s === 'ops') return 'border-sky-500/40 bg-sky-500/15 text-sky-300'
   if (s === 'partial') return 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+  if (s === 'out_of_scope') return 'border-slate-500/40 bg-slate-500/15 text-slate-300'
   return 'border-violet-500/40 bg-violet-500/15 text-violet-300'
+}
+
+function normalizeStatus(status: unknown): SecurityStatus | string {
+  if (isSecurityStatus(status)) return status
+  if (typeof status === 'string' && status) return status
+  return 'partial'
+}
+
+function controlTitle(key: string, item?: SecurityControlItem | null) {
+  if (item?.control) return item.control
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+type SecCard = {
+  key: string
+  eyebrow: string
+  title: string
+  notes: string
+  status: string
+}
+
+const securityPillars = computed<SecCard[]>(() => {
+  const o = securityOverview.value
+  if (!o) return []
+  const cards: SecCard[] = []
+  const transit = o.encryption?.in_transit
+  const rest = o.encryption?.at_rest
+  if (transit || rest) {
+    cards.push({
+      key: 'encryption',
+      eyebrow: 'Data protection',
+      title: [transit?.control, rest?.control].filter(Boolean).join(' & ') || 'Encryption',
+      notes: [transit?.notes, rest?.notes].filter(Boolean).join(' ') || 'Encryption in transit and at rest.',
+      status: normalizeStatus(transit?.status || rest?.status || 'ops'),
+    })
+  }
+  const vpc = o.deployment?.private_vpc || o.infrastructure?.network_security
+  if (vpc) {
+    cards.push({
+      key: 'vpc',
+      eyebrow: 'Deployment',
+      title: controlTitle('private_vpc', vpc),
+      notes: vpc.notes || 'Isolated cloud deployment.',
+      status: normalizeStatus(vpc.status),
+    })
+  }
+  const soc2 = o.compliance?.soc2
+  if (soc2) {
+    cards.push({
+      key: 'soc2',
+      eyebrow: 'Compliance',
+      title: soc2.control || 'SOC 2 Type II',
+      notes: soc2.notes || 'Roadmap — not certified.',
+      status: normalizeStatus(soc2.status),
+    })
+  }
+  return cards
+})
+
+const securityArchCards = computed<SecCard[]>(() => {
+  const o = securityOverview.value
+  if (!o) return []
+  const picks: Array<{ key: string; eyebrow: string; item?: SecurityControlItem }> = [
+    { key: 'in_transit', eyebrow: 'In transit', item: o.encryption?.in_transit },
+    { key: 'at_rest', eyebrow: 'At rest', item: o.encryption?.at_rest },
+    { key: 'private_vpc', eyebrow: 'Deployment', item: o.deployment?.private_vpc },
+    { key: 'soc2', eyebrow: 'Compliance', item: o.compliance?.soc2 },
+  ]
+  return picks
+    .filter((p) => p.item)
+    .map((p) => ({
+      key: p.key,
+      eyebrow: p.eyebrow,
+      title: controlTitle(p.key, p.item),
+      notes: p.item?.notes || '',
+      status: normalizeStatus(p.item?.status),
+    }))
+})
+
+async function tryLoadLiveSignoff() {
+  if (!authStore.token) return
+  try {
+    const res = await authenticatedFetch('/api/v1/projects')
+    if (!res.ok) return
+    const data = await res.json()
+    const list = Array.isArray(data) ? data : data?.projects || data?.items || []
+    const first = list[0]
+    const id = first?.id
+    if (id == null) return
+    const matrix = await fetchSignoffMatrix(id)
+    if (Array.isArray(matrix.gates) && matrix.gates.length) {
+      liveSignoffRows.value = matrix.gates
+    }
+  } catch {
+    /* keep marketing preview */
+  }
 }
 
 const demoForm = reactive({
@@ -807,9 +926,14 @@ onMounted(async () => {
   )
 
   try {
-    const [caps, integ] = await Promise.all([
+    securityLoading.value = true
+    const [caps, integ, sec] = await Promise.all([
       fetchPublicCapabilities().catch(() => null),
       fetchPublicIntegrations().catch(() => null),
+      fetchPublicSecurity().catch((e: any) => {
+        securityError.value = e?.message || 'Could not load security claims from API.'
+        return null
+      }),
     ])
     if (caps?.capabilities) capabilityClaims.value = caps.capabilities
     if (integ) {
@@ -820,9 +944,14 @@ onMounted(async () => {
     } else {
       integrationsError.value = 'Could not load live integrations matrix from API.'
     }
+    if (sec) securityOverview.value = sec
   } catch (e: any) {
     integrationsError.value = e?.message || 'Failed to load capabilities / integrations'
+  } finally {
+    securityLoading.value = false
   }
+
+  await tryLoadLiveSignoff()
 })
 
 const scrollToSection = (id: string) => {

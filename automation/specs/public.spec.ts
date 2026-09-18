@@ -32,26 +32,37 @@ test.describe('Public / marketing — buttons & links @smoke', () => {
   })
 
   test('landing: enterprise CTAs + security pillars + metadata copy @smoke', async ({ landingPage, page }) => {
+    const { mockApi } = await import('../fixtures/api')
+    await mockApi(page)
     await landingPage.goto()
     await expect(page.getByRole('button', { name: /request an enterprise pilot/i }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: /join the private beta/i }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: /get started free/i })).toHaveCount(0)
     await expect(page.getByTestId('security-pillars')).toBeVisible()
-    await expect(page.getByText(/TLS 1\.3/i).first()).toBeVisible()
+    await expect(page.getByTestId('landing-security')).toBeVisible()
+    await expect(page.getByText(/TLS 1\.3/i).first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/AES-256/i).first()).toBeVisible()
     await expect(page.getByText(/SOC 2 Type II/i).first()).toBeVisible()
-    await expect(page.getByText(/not certified/i).first()).toBeVisible()
-    await expect(page.getByText(/Datadog monitoring/i).first()).toBeVisible()
+    await expect(page.getByText(/Not SOC 2 certified/i).first()).toBeVisible()
+    await expect(page.getByTestId('landing-signoff-preview').getByText(/Marketing preview/i)).toBeVisible()
+    await expect(page.getByText(/LIVE PREVIEW/i)).toHaveCount(0)
     await expect(page.getByText(/completely isolated from your raw physical layout files/i)).toBeVisible()
     await expect(page.getByRole('heading', { name: /Sign-Off Matrices & DRC\/LVS Tracking Gates/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Secure Foundry & OSAT Handovers/i })).toBeVisible()
   })
 
-  test('landing: footer legal links exist', async ({ landingPage }) => {
+  test('landing: footer legal links navigate', async ({ landingPage, page }) => {
     await landingPage.goto()
     await expect(landingPage.footerPrivacy()).toBeVisible()
-    await expect(landingPage.footerTerms()).toBeVisible()
-    await expect(landingPage.footerSecurity()).toBeVisible()
+    await landingPage.footerPrivacy().click()
+    await expect(page).toHaveURL(/\/privacy/)
+    await expect(page.getByRole('heading', { name: /privacy/i })).toBeVisible()
+    await page.goto('/')
+    await landingPage.footerTerms().click()
+    await expect(page).toHaveURL(/\/terms/)
+    await page.goto('/')
+    await landingPage.footerSecurity().click()
+    await expect(page).toHaveURL(/\/security/)
   })
 
   for (const { path, heading } of [
