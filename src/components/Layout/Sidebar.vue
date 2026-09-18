@@ -190,6 +190,5 @@ const userInitials = computed(() => {
 
 const handleLogout = async () => {
   await authStore.logout()
-  router.push('/login')
 }
 </script>

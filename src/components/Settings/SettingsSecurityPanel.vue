@@ -220,7 +220,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
   disableMfa,
@@ -242,7 +241,6 @@ import type {
 } from '@/types/security'
 
 const authStore = useAuthStore()
-const router = useRouter()
 
 const session = ref<SessionInfo | null>(null)
 const sessionLoading = ref(false)
@@ -401,7 +399,6 @@ async function submitDeletion() {
     const res = await requestAccountDeletion(true, deleteReason.value.trim() || undefined)
     deleteSuccess.value = res.message || 'Account deletion requested.'
     await authStore.logout()
-    router.push('/login')
   } catch (e: any) {
     deleteError.value = e?.message || 'Deletion request failed'
   } finally {
