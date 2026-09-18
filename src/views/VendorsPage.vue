@@ -62,12 +62,28 @@
           <!-- Recent Activity - Always Visible -->
           <div class="min-w-0 lg:col-span-1">
             <div class="module-panel module-panel-accent flex flex-col overflow-hidden" style="max-height: 600px;">
-              <h2 class="module-section-title mb-6 flex-shrink-0 px-6 pt-6">Recent Activity</h2>
+              <div class="mb-4 flex flex-shrink-0 items-center justify-between px-6 pt-6">
+                <h2 class="module-section-title !mb-0">Recent Activity</h2>
+                <button
+                  type="button"
+                  class="text-sm font-medium text-neon-blue hover:underline disabled:opacity-50"
+                  :disabled="activitiesLoading"
+                  @click="fetchActivities"
+                >
+                  Refresh
+                </button>
+              </div>
               <div class="flex-1 overflow-y-auto px-6 pb-6 custom-scrollbar">
-                <div v-if="activitiesLoading" class="text-center text-gray-400 py-4">Loading...</div>
-                <div v-else-if="activitiesError" class="text-center text-red-400 py-4">Activity feed unavailable</div>
+                <div v-if="activitiesLoading && activities.length === 0" class="text-center text-gray-400 py-4">Loading...</div>
+                <div v-else-if="activitiesError && activities.length === 0" class="text-center py-4">
+                  <p class="text-red-400 text-sm">{{ activitiesError }}</p>
+                  <button type="button" class="mt-2 text-sm font-medium text-neon-blue hover:underline" @click="fetchActivities">
+                    Try again
+                  </button>
+                </div>
                 <div v-else-if="activities.length === 0" class="text-center text-gray-400 py-4">No recent activity.</div>
                 <div v-else class="space-y-4">
+                  <p v-if="activitiesError" class="text-xs text-amber-400">{{ activitiesError }}</p>
                   <div v-for="activity in recentActivities" :key="activity.timestamp + activity.action + activity.entity_id" class="flex items-start space-x-3">
                     <div class="w-2 h-2 bg-neon-blue rounded-full mt-2 flex-shrink-0"></div>
                     <div class="min-w-0 flex-1">
@@ -638,6 +654,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useVendorsStore } from '@/stores/vendors'
 import { useAuthStore } from '@/stores/auth'
 import { authenticatedFetch } from '@/utils/auth-requests'
+import { fetchActivity } from '@/api/product-surfaces'
 import type { Vendor } from '@/stores/vendors'
 import { statusBadgeClass } from '@/utils/status-badge'
 
@@ -647,7 +664,7 @@ interface Activity {
   user: string;
   action: string;
   entity: string;
-  entity_id: number;
+  entity_id: number | string;
 }
 
 const vendorsStore = useVendorsStore()
@@ -866,66 +883,68 @@ const recentActivities = computed(() => {
     .slice(0, MAX_RECENT_ACTIVITIES)
 })
 
-// Fetch recent activity from API
+// Fetch recent activity from API — soft-fail only (never logout / never block the page)
 const fetchActivities = async () => {
   activitiesLoading.value = true
   activitiesError.value = ''
   try {
-    const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
-    // Fetch activities - limit is handled client-side by recentActivities computed property
-    const res = await fetch('/api/v1/activity/', { headers })
-    if (!res.ok) {
-      if (res.status === 401) {
-        await authStore.logout()
-        window.location.href = '/login'
-        throw new Error('Session expired. Please log in again.')
-      }
-      throw new Error('Failed to fetch activity')
-    }
-    const data = await res.json()
-    // Store only the most recent activities to prevent memory issues
-    const allActivities = Array.isArray(data) ? data : []
-    // Sort by timestamp (newest first) and limit what we store
-    const sortedActivities = [...allActivities]
+    const rows = await fetchActivity({ limit: MAX_RECENT_ACTIVITIES })
+    const sortedActivities = [...rows]
+      .map((row) => ({
+        timestamp: String(row.timestamp || ''),
+        user: String(row.user || ''),
+        action: String(row.action || ''),
+        entity: String(row.entity || ''),
+        entity_id: row.entity_id ?? '',
+      }))
       .sort((a, b) => {
         const dateA = parseTimestampForSort(a.timestamp)
         const dateB = parseTimestampForSort(b.timestamp)
-        return dateB - dateA // Descending order (newest first)
+        return dateB - dateA
       })
       .slice(0, MAX_RECENT_ACTIVITIES)
     activities.value = sortedActivities
   } catch (e: any) {
-    activitiesError.value = e.message || 'Failed to fetch activity'
-    activities.value = []
+    // Do NOT logout here — a flaky activity feed was kicking the session and
+    // making Vendor performance appear then disappear on /vendors.
+    activitiesError.value = e?.message || 'Activity feed unavailable'
   } finally {
     activitiesLoading.value = false
   }
 }
 
-onMounted(async () => {
-  await vendorsStore.fetchVendors()
-  await fetchActivities()
+onMounted(() => {
+  // Load shell data in parallel so a slow activity call cannot stall vendors/performance
+  void vendorsStore.fetchVendors()
+  void fetchActivities()
 
-  const headers = authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : undefined
+  const headers = authStore.token ? { Authorization: `Bearer ${authStore.token}` } : undefined
 
-  // Fetch specs
-  const specsRes = await fetch('/api/v1/specifications', { headers })
-  if (specsRes.ok) {
-    const specsData = await specsRes.json()
-    allSpecs.value = Array.isArray(specsData) ? specsData : (specsData?.items ?? specsData?.data ?? [])
-  }
+  void (async () => {
+    try {
+      const specsRes = await authenticatedFetch('/api/v1/specifications', { headers })
+      if (specsRes.ok) {
+        const specsData = await specsRes.json()
+        allSpecs.value = Array.isArray(specsData) ? specsData : (specsData?.items ?? specsData?.data ?? [])
+      }
+    } catch {
+      /* ignore — link modals degrade gracefully */
+    }
 
-  // Fetch checklist templates for linking (not active instances)
-  // Backend exposes them under /api/v1/checklists/templates
-  const checklistsRes = await fetch('/api/v1/checklists/templates', { headers })
-  if (checklistsRes.ok) {
-    const checklistData = await checklistsRes.json()
-    allChecklists.value = Array.isArray(checklistData)
-      ? checklistData
-      : (checklistData?.items ?? checklistData?.data ?? [])
-  } else {
-    allChecklists.value = []
-  }
+    try {
+      const checklistsRes = await authenticatedFetch('/api/v1/checklists/templates', { headers })
+      if (checklistsRes.ok) {
+        const checklistData = await checklistsRes.json()
+        allChecklists.value = Array.isArray(checklistData)
+          ? checklistData
+          : (checklistData?.items ?? checklistData?.data ?? [])
+      } else {
+        allChecklists.value = []
+      }
+    } catch {
+      allChecklists.value = []
+    }
+  })()
 })
 
 const getStatusClass = (status: string) => statusBadgeClass(status)

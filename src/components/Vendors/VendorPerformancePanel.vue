@@ -4,24 +4,32 @@
       <div>
         <h2 class="module-section-title">Vendor performance</h2>
         <p class="mt-1 text-sm text-slate-500 dark:text-gray-400">
-          Live SLA and staging signals from GET /vendors/performance — not a bidirectional sync claim.
+          Live SLA and staging signals — metadata / NDA / acknowledgement staging only.
         </p>
       </div>
-      <button type="button" class="text-sm font-medium text-neon-blue hover:underline" @click="load">
-        Refresh
+      <button
+        type="button"
+        class="text-sm font-medium text-neon-blue hover:underline disabled:opacity-50"
+        :disabled="loading"
+        @click="load"
+      >
+        {{ loading && rows.length ? 'Refreshing…' : 'Refresh' }}
       </button>
     </div>
 
     <p v-if="note" class="mb-3 text-xs text-slate-500 dark:text-gray-400">{{ note }}</p>
-    <p v-if="error" class="mb-3 text-sm text-amber-400">{{ error }}</p>
-    <div v-if="loading" class="py-6 text-center text-sm text-slate-500">Loading performance…</div>
+    <p v-if="error" class="mb-3 text-sm text-amber-400">
+      {{ error }}
+      <button type="button" class="ml-2 font-medium text-neon-blue hover:underline" @click="load">Try again</button>
+    </p>
+    <div v-if="loading && !rows.length" class="py-6 text-center text-sm text-slate-500">Loading performance…</div>
     <div
       v-else-if="!rows.length"
       class="rounded-xl border border-dashed border-slate-300 py-8 text-center text-sm text-slate-500 dark:border-dark-600"
     >
       No vendor performance rows yet.
     </div>
-    <div v-else class="overflow-x-auto">
+    <div v-else class="overflow-x-auto" :class="{ 'opacity-70': loading }">
       <table class="min-w-full text-left text-sm">
         <thead class="text-xs uppercase tracking-wide text-slate-400">
           <tr>
@@ -67,6 +75,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { fetchVendorPerformance, type VendorPerformanceRow } from '@/api/product-surfaces'
+import { isAbortError } from '@/utils/request-coordinator'
 
 const rows = ref<VendorPerformanceRow[]>([])
 const note = ref('')
@@ -90,8 +99,9 @@ async function load() {
     rows.value = Array.isArray(data.vendors) ? data.vendors : []
     note.value = data.note || ''
   } catch (e: any) {
+    if (isAbortError(e)) return
     error.value = e?.message || 'Failed to load vendor performance'
-    rows.value = []
+    // Keep previous rows so the panel does not vanish on a flaky refresh
   } finally {
     loading.value = false
   }
